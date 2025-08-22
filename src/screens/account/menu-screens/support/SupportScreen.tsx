@@ -162,34 +162,6 @@ const SupportScreen: React.FC<ISupportScreenProps> = ({
         },
       ],
     };
-    fetch("https://api.sendgrid.com/v3/mail/send", {
-      method: "POST",
-      headers: {
-        Authorization:
-          "Bearer " +
-          "",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-    })
-      .then((response) => {
-        setIsLoading(false)
-        if (response.ok == true) {
-          setSupportMessage('')
-          setSubject('')
-          setImageUri(null)
-          Alert.alert(
-            "Email Sent successfully! Please wait we will get back to you."
-          );
-        } else {
-          Alert.alert("Network Error! Please try again");
-        }
-      })
-      .catch((err) => {
-        setIsLoading(false)
-        console.log(err);
-        Alert.alert("Network Error! Please try again");
-      });
   };
 
   const Submit = () => (
