@@ -1,0 +1,47 @@
+module.exports = {
+  presets: ['module:metro-react-native-babel-preset'],
+  presets: ['@react-native'],
+  plugins: [
+    ['@babel/plugin-transform-class-properties', { loose: true }],
+    ['@babel/plugin-transform-private-methods', { loose: true }],
+    ['@babel/plugin-transform-private-property-in-object', { loose: true }],
+    [
+      'module:react-native-dotenv',
+      {
+        moduleName: '@env',
+        path: '.env',
+        safe: false,
+        allowUndefined: true,
+        blocklist: null,
+        allowlist: null,
+        verbose: false,
+      },
+    ],
+    [
+      'module-resolver',
+      {
+        root: ['./src'],
+        alias: [
+          { '@shared-components': './src/shared/components' },
+          { '@shared-constants': './src/shared/constants' },
+          { '@font-size': './src/shared/theme/font-size' },
+          { '@api': './src/services/api/index' },
+          { '@fonts': './src/shared/theme/fonts' },
+          { '@colors': './src/shared/theme/colors' },
+          { '@theme': './src/shared/theme' },
+          { '@models': './src/services/models' },
+          { '@services': './src/services' },
+          { '@screens': './src/screens' },
+          { '@utils': './src/utils/' },
+          { '@assets': './src/assets' },
+          { '@event-emitter': './src/services/event-emitter' },
+          { '@local-storage': './src/services/local-storage' },
+          { '@storage': './src/storage' },
+          { '@interface': './src/interface' },
+        ],
+        extensions: ['.js', '.jsx', '.ts', '.tsx', '.svg'],
+      },
+    ],
+    'react-native-reanimated/plugin',
+  ],
+};

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>989835900525-12u32ofbc1hterkrj816amb5e6gr8j97.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.989835900525-12u32ofbc1hterkrj816amb5e6gr8j97</string>
+	<key>ANDROID_CLIENT_ID</key>
+	<string>989835900525-cp7codflgo70sm0g48jhth944spvp1gq.apps.googleusercontent.com</string>
+	<key>API_KEY</key>
+	<string>AIzaSyC3Rj95CpRJ95MtNR0z3xL_jbJtG_mcXa4</string>
+	<key>GCM_SENDER_ID</key>
+	<string>989835900525</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.app.lawnq</string>
+	<key>PROJECT_ID</key>
+	<string>lawnq-au</string>
+	<key>STORAGE_BUCKET</key>
+	<string>lawnq-au.appspot.com</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:989835900525:ios:1332deb1bf2022e8e13164</string>
+	<key>DATABASE_URL</key>
+	<string>https://lawnq-au-default-rtdb.firebaseio.com</string>
+</dict>
+</plist>
