@@ -167,7 +167,7 @@ const SupportScreen: React.FC<ISupportScreenProps> = ({
       headers: {
         Authorization:
           "Bearer " +
-          "REDACTED",
+          "",
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
