@@ -180,8 +180,9 @@ const Navigation = () => {
         <Stack.Screen name={SCREENS.WELCOME} component={WelcomeScreen} />
         <Stack.Screen
           name={SCREENS.HOME}
-          component={RenderTabNavigation}
-          options={{gestureEnabled: false}}
+          component={HomeScreen}
+          // component={RenderTabNavigation}
+          // options={{gestureEnabled: false}}
         />
 
         {/* Booking Today */}

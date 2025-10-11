@@ -1,25 +1,121 @@
+// android/build.gradle (TOP-LEVEL)
+
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
 buildscript {
-    ext {
-        // buildToolsVersion = "34.0.0"
-        minSdkVersion = 26
-        compileSdkVersion = 34
-        targetSdkVersion = 34
-        ndkVersion = "26.1.10909125"
-        kotlinVersion = "1.9.22"
-        LoaderKit_compileSdkVersion = 34
-        LoaderKit_minSdkVersion = 26
-        LoaderKit_targetSdkVersion = 34
-    }
-    repositories {
-        google()
-        mavenCentral()
-    }
-    dependencies {
-        classpath('com.android.tools.build:gradle:8.5.0') // Update this to your required Gradle version
-        classpath("com.facebook.react:react-native-gradle-plugin")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.0") // Update Kotlin if needed
-        classpath("com.google.gms:google-services:4.3.15") // Updated version
-    }
+  ext {
+    // AGP 8.x auto-selects buildToolsVersion; keeping it is harmless.
+    buildToolsVersion = "34.0.0"
+    minSdkVersion     = 24
+    compileSdkVersion = 35
+    targetSdkVersion  = 34
+
+    // Pin Kotlin to 1.9.24 to avoid mixing with 2.x artifacts.
+    kotlinVersion = "1.9.24"
+
+    // NDK commonly used with AGP 8.x on Apple Silicon
+    ndkVersion = "26.1.10909125"
+  }
+  repositories {
+    google()
+    mavenCentral()
+  }
+  dependencies {
+    classpath("com.android.tools.build:gradle:8.7.2")
+    classpath("com.facebook.react:react-native-gradle-plugin")
+    classpath("com.google.gms:google-services:4.4.0")
+    classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}")
+  }
 }
 
-apply plugin: "com.facebook.react.rootproject"
+/**
+ * Compose plugin is applied only to modules that enable compose=true.
+ * Safe to keep even if you don't use Compose (no-op).
+ */
+plugins {
+  id "org.jetbrains.kotlin.plugin.compose" version "2.0.20" apply false
+}
+
+subprojects { Project subproj ->
+  // ---- Android application modules ----
+  subproj.plugins.withId("com.android.application") {
+    def androidExt = subproj.extensions.findByName("android")
+    if (androidExt != null) {
+      // Use new-style properties when configuring via code
+      androidExt.compileSdk = rootProject.ext.compileSdkVersion
+      androidExt.defaultConfig {
+        minSdk    = rootProject.ext.minSdkVersion
+        targetSdk = rootProject.ext.targetSdkVersion
+      }
+      androidExt.compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+      }
+    }
+  }
+
+  // ---- Android library modules (node_modules/* and others) ----
+  subproj.plugins.withId("com.android.library") {
+    def androidExt = subproj.extensions.findByName("android")
+    if (androidExt != null) {
+      androidExt.compileSdk = rootProject.ext.compileSdkVersion
+      androidExt.defaultConfig {
+        minSdk    = rootProject.ext.minSdkVersion
+        targetSdk = rootProject.ext.targetSdkVersion
+      }
+      if (androidExt.hasProperty("buildFeatures") && androidExt.buildFeatures != null) {
+        // Some libs declare BuildConfig fields; AGP8 requires this flag enabled.
+        androidExt.buildFeatures.buildConfig = true
+      }
+      androidExt.compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+      }
+
+      // ---------- Patch libraries that don't declare a namespace ----------
+      switch (subproj.name) {
+        case "react-native-background-timer":
+          androidExt.namespace = "com.ocetnik.timer"; break
+        case "react-native-community_masked-view":
+          androidExt.namespace = "org.reactnative.maskedview"; break
+        case "react-native-config":
+          androidExt.namespace = "com.lugg.ReactNativeConfig"; break
+        case "react-native-fast-image":
+          androidExt.namespace = "com.dylanvann.fastimage"; break
+        case "react-native-fs":
+          androidExt.namespace = "com.rnfs"; break
+        case "react-native-linear-gradient":
+          androidExt.namespace = "com.BV.LinearGradient"; break
+        // Add more mappings here if Gradle reports other modules missing a namespace.
+      }
+    }
+  }
+
+  // ---- Kotlin toolchain: JVM target 17 everywhere ----
+  subproj.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    kotlinOptions { jvmTarget = "17" }
+  }
+
+  // ---- Force all kotlin-stdlib artifacts to 1.9.24 ----
+  subproj.configurations.configureEach { cfg ->
+    cfg.resolutionStrategy.eachDependency { details ->
+      if (details.requested.group == "org.jetbrains.kotlin") {
+        def n = details.requested.name
+        if (n.startsWith("kotlin-stdlib") || n == "kotlin-reflect" || n == "kotlin-stdlib-common") {
+          details.useVersion(rootProject.ext.kotlinVersion)
+          details.because("Align with Kotlin Gradle Plugin ${rootProject.ext.kotlinVersion}")
+        }
+      }
+    }
+  }
+
+  // ---- Auto-apply Compose plugin only when module enables compose ----
+  subproj.afterEvaluate {
+    def androidExt = subproj.extensions.findByName("android")
+    if (androidExt && androidExt.hasProperty("buildFeatures") && androidExt.buildFeatures?.compose == true) {
+      if (!subproj.plugins.hasPlugin("org.jetbrains.kotlin.plugin.compose")) {
+        subproj.pluginManager.apply("org.jetbrains.kotlin.plugin.compose")
+      }
+    }
+  }
+}

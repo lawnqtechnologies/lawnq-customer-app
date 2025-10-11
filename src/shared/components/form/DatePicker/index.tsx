@@ -1,7 +1,6 @@
 import React, {useMemo, useState} from 'react';
 import {useTheme} from '@react-navigation/native';
 import {useDispatch, useSelector} from 'react-redux';
-import {size} from 'lodash';
 
 /* Framework */
 import {StyleProp, TextInput, View, ViewStyle} from 'react-native';
@@ -11,7 +10,6 @@ import {TouchableOpacity} from 'react-native-gesture-handler';
 import createStyles from './DatePicker.style';
 
 /* Library */
-import {OutlinedTextField} from '@freakycoder/react-native-material-textfield';
 import DatePicker from 'react-native-date-picker';
 import moment from 'moment';
 import {Controller, FieldError} from 'react-hook-form';

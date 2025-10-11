@@ -9,7 +9,6 @@ import {
 } from 'react-native';
 import {useFocusEffect, useTheme} from '@react-navigation/native';
 import LottieView from 'lottie-react-native';
-import 'react-native-reanimated';
 import * as NavigationService from 'react-navigation-helpers';
 
 /**
@@ -30,6 +29,7 @@ import {
   requestNotifications,
 } from 'react-native-permissions';
 import NotificationEnabler from 'shared/functions/NotificationEnabler';
+import { clampRGBA } from 'react-native-reanimated/lib/typescript/Colors';
 
 /**
  * ? Constants
@@ -79,23 +79,30 @@ const WelcomeScreen: React.FC<IWelcomeScreenProps> = () => {
       duration: TIMER - 2000,
       useNativeDriver: true,
     }).start();
+    console.log('from welcome screen:');
+     NavigationService.navigate(SCREENS.HOME);
   };
 
-  const Animation = () => (
-    <LottieView
-      source={require('@assets/animations/custom-lottie-animation/logo-animation.json')}
-      autoPlay
-      loop={false}
-      style={{flex: 1}}
-      onAnimationFinish={() => {
-        // take note dispatch of onSetGoToScreen will be the exact screen for example SCREENS.BOOKING_DETAIL
-        // this will be available on Notification handler
-        // if (goToScreen) return NavigationService.navigate(SCREENS.HOME);
-        // let _goToScreen = goToScreen !== undefined ? goToScreen : SCREENS.HOME;
-        NavigationService.navigate(SCREENS.HOME);
-      }}
-    />
-  );
+  const handleAnimationFinish = () => {
+    console.log('Animation Finished');
+    NavigationService.navigate(SCREENS.HOME);
+  }
+
+  // const Animation = () => (
+  //   <LottieView
+  //     source={require('@assets/animations/custom-lottie-animation/logo-animation.json')}
+  //     autoPlay
+  //     loop={false}
+  //     style={{flex: 1}}
+  //     onAnimationFinish={() => {
+  //       // take note dispatch of onSetGoToScreen will be the exact screen for example SCREENS.BOOKING_DETAIL
+  //       // this will be available on Notification handler
+  //       if (goToScreen) return NavigationService.navigate(SCREENS.HOME);
+  //       let _goToScreen = goToScreen !== undefined ? goToScreen : SCREENS.HOME;
+  //       NavigationService.navigate(SCREENS.HOME);
+  //     }}
+  //   />
+  // );
 
   return (
     <View style={styles.container}>
@@ -111,7 +118,7 @@ const WelcomeScreen: React.FC<IWelcomeScreenProps> = () => {
           source={require('@assets/animations/custom-lottie-animation/lawnq-loading.json')}
           autoPlay
           loop={false}
-          onAnimationFinish={() => NavigationService.navigate(SCREENS.HOME)}
+          onAnimationFinish={handleAnimationFinish}
         />
       </View>
     </View>

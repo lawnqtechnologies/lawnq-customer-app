@@ -1,104 +1,272 @@
-# Resolve react_native_pods.rb with node to allow for hoisting
-def node_require(script)
-  # Resolve script with node to allow for hoisting
- require Pod::Executable.execute_command('node', ['-p',
-    "require.resolve(
-     '#{script}',
-     {paths: [process.argv[1]]},
-    )", __dir__]).strip
-end
+require_relative '../node_modules/react-native/scripts/react_native_pods'
+require_relative '../node_modules/react-native-permissions/scripts/setup.rb'
 
-node_require('react-native/scripts/react_native_pods.rb')
-node_require('react-native-permissions/scripts/setup.rb')
+platform :ios, '18.0'
+
+prepare_react_native_project!
+
 setup_permissions([
- # 'AppTrackingTransparency',
- # 'Bluetooth',
- # 'Calendars',
- # 'CalendarsWriteOnly',
   'Camera',
- # 'Contacts',
- # 'FaceID',
   'LocationAccuracy',
   'LocationAlways',
   'LocationWhenInUse',
   'MediaLibrary',
- # 'Microphone',
- # 'Motion',
   'Notifications',
   'PhotoLibrary'
- # 'PhotoLibraryAddOnly',
- # 'Reminders',
- # 'Siri',
- # 'SpeechRecognition',
- # 'StoreKit',
 ])
-platform :ios, min_ios_version_supported
-prepare_react_native_project!
-
-# If you are using a `react-native-flipper` your iOS build will fail when `NO_FLIPPER=1` is set.
-# because `react-native-flipper` depends on (FlipperKit,...) that will be excluded
-#
-# To fix this you can also exclude `react-native-flipper` using a `react-native.config.js`
-# ```js
-# module.exports = {
-#   dependencies: {
-#     ...(process.env.NO_FLIPPER ? { 'react-native-flipper': { platforms: { ios: null } } } : {}),
-# ```
-# flipper_config = ENV['NO_FLIPPER'] == "1" ? FlipperConfiguration.disabled : FlipperConfiguration.enabled
-
-linkage = ENV['USE_FRAMEWORKS']
-if linkage != nil
- Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
- use_frameworks! :linkage => linkage.to_sym
-end
 
 target 'LawnQ' do
- config = use_native_modules!
- pod 'RNPermissions', :path => '../node_modules/react-native-permissions'
- pod 'GoogleMaps'
- pod 'Google-Maps-iOS-Utils'
- pod 'GoogleAppMeasurement'
- pod 'RNVectorIcons', :path => '../node_modules/react-native-vector-icons'
- pod 'lottie-ios', :path => '../node_modules/lottie-ios'
- pod 'lottie-react-native', :path => '../node_modules/lottie-react-native'
+  # Enable auto-linking for packages that support it
+  config = use_native_modules!
+  
+  # ✅ Use native_modules and merge instead of overwriting
+  config = use_native_modules!
+  config[:reactNativePath] = '../node_modules/react-native'
+  config[:hermes_enabled] = false
+  config[:fabric_enabled] = false
 
+  use_frameworks! :linkage => :static
 
-#  pod 'Firebase/Auth', '10.29.0'
-#  pod 'Firebase/Storage', '11.5.0'
-#  pod 'Firebase/Core', '11.5.0'
-# pod 'lottie-react-native', :path => '../node_modules/lottie-react-native'
- # Flags change depending on the env values.
- flags = get_default_flags()
- use_frameworks! :linkage => :static
- use_react_native!(
-   :path => config[:reactNativePath],
-   # Hermes is now enabled by default. Disable by setting this flag to false.
-   :hermes_enabled => true,
-   :fabric_enabled => flags[:fabric_enabled],
-   # Enables Flipper.
-   #
-   # Note that if you have use_frameworks! enabled, Flipper will not work and
-   # you should disable the next line.
-   # :flipper_configuration => flipper_config,
-   # An absolute path to your application root.
-   :app_path => "#{Pod::Config.instance.installation_root}/.."
- )
- 
-
-
- target 'LawnQTests' do
-  inherit! :complete
-  # Pods for testing
-end
-
-post_install do |installer|
-  # https://github.com/facebook/react-native/blob/main/packages/react-native/scripts/react_native_pods.rb#L197-L202
-  react_native_post_install(
-    installer,
-    config[:reactNativePath],
-    :mac_catalyst_enabled => false,
-    # :ccache_enabled => true
+  use_react_native!(
+    :path => config[:reactNativePath],
+    :hermes_enabled => config[:hermes_enabled],
+    :fabric_enabled => config[:fabric_enabled],
+    :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
-end
-end
 
+  pod 'FirebaseCore', :modular_headers => true
+  pod 'Firebase/Messaging'
+  pod 'Firebase/Auth'
+  pod 'Firebase/Database'
+  
+  # Google Maps SDK for iOS
+  pod 'GoogleMaps'
+  pod 'GooglePlaces'
+
+  pod 'StripePaymentSheet', '~> 24.22'
+  # (Optionally) keep base pod aligned:
+  pod 'Stripe',            '~> 24.22'
+  
+  # React Native Firebase pods
+  pod 'RNFBApp', :path => '../node_modules/@react-native-firebase/app'
+  pod 'RNFBAuth', :path => '../node_modules/@react-native-firebase/auth'
+  pod 'RNFBDatabase', :path => '../node_modules/@react-native-firebase/database'
+  pod 'RNFBFirestore', :path => '../node_modules/@react-native-firebase/firestore'
+  pod 'RNFBMessaging', :path => '../node_modules/@react-native-firebase/messaging'
+  pod 'RNFBStorage', :path => '../node_modules/@react-native-firebase/storage'
+  pod 'RNGestureHandler', :path => '../node_modules/react-native-gesture-handler'
+  pod 'RNReanimated', :path => '../node_modules/react-native-reanimated'
+
+  # React Native Worklets - removed manual linking to avoid conflicts with Reanimated
+
+  pod 'RNPermissions', path: '../node_modules/react-native-permissions'
+  pod 'DoubleConversion', podspec: '../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec'
+  
+  # Temporarily disable fmt due to compilation issues
+  # pod 'fmt', :podspec => '../node_modules/react-native/third-party-podspecs/fmt.podspec'
+
+  # pod 'lottie-ios', :path => '../node_modules/lottie-ios'
+  pod 'lottie-react-native', :path => '../node_modules/lottie-react-native'
+  pod 'RNDeviceInfo', :path => '../node_modules/react-native-device-info'
+  
+  # Manual linking for AsyncStorage
+  pod 'RNCAsyncStorage', :path => '../node_modules/@react-native-async-storage/async-storage'
+  
+  # Manual linking for packages that don't auto-link properly
+  pod 'RNCCheckbox', :path => '../node_modules/@react-native-community/checkbox'
+  pod 'RNCMaskedView', :path => '../node_modules/@react-native-community/masked-view'
+  pod 'RNCPushNotificationIOS', :path => '../node_modules/@react-native-community/push-notification-ios'
+  
+  # react-native-vector-icons is auto-linked from node_modules
+
+  # Agora SDK is auto-linked from react-native-agora package
+  
+  # Agora SDK is auto-linked from react-native-agora package
+
+  target 'LawnQTests' do
+    inherit! :complete
+  end
+
+
+
+  post_install do |installer|
+    react_native_post_install(
+      installer,
+      config[:reactNativePath] || '../node_modules/react-native',
+      mac_catalyst_enabled: false
+    )
+
+    # fmt_prefix_dir = "#{installer.sandbox.root}/fmt/include/fmt"
+    # FileUtils.mkdir_p(fmt_prefix_dir) unless Dir.exist?(fmt_prefix_dir)
+    # FileUtils.chmod_R(0755, fmt_prefix_dir)
+
+    # fmt_prefix_path = "#{fmt_prefix_dir}/fmt_prefix.h"
+    # File.write(fmt_prefix_path, <<~HEADER)
+    #   #ifndef FMT_PREFIX_H
+    #   #define FMT_PREFIX_H
+
+    #   #if !defined(__cpp_char8_t)
+    #     #if defined(__cplusplus) && __cplusplus >= 201703L
+    #       using char8_t = unsigned char;
+    #     #else
+    #       typedef unsigned char char8_t;
+    #     #endif
+    #   #endif
+
+    #   #endif // FMT_PREFIX_H
+    # HEADER
+
+    # FileUtils.chmod(0644, fmt_prefix_path)
+
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |cfg|
+        cfg.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '18.0'
+        
+        # Force disable bitcode for ALL targets (including Agora frameworks)
+        cfg.build_settings['ENABLE_BITCODE'] = 'NO'
+        
+        # Additional bitcode-related settings to ensure compatibility
+        cfg.build_settings['BITCODE_GENERATION_MODE'] = 'none'
+        cfg.build_settings['OTHER_LDFLAGS'] ||= ['$(inherited)']
+        cfg.build_settings['OTHER_LDFLAGS'] << '-fembed-bitcode=off'
+
+        if target.name == 'lottie-ios'
+          cfg.build_settings['SWIFT_VERSION'] = '5.0'
+          cfg.build_settings['SWIFT_OPTIMIZATION_LEVEL'] = '-Onone'
+          cfg.build_settings['SWIFT_ACTIVE_COMPILATION_CONDITIONS'] = 'DEBUG'
+          cfg.build_settings['SWIFT_COMPILATION_MODE'] = 'singlefile'
+          cfg.build_settings['SWIFT_STRICT_CONCURRENCY'] = 'complete'
+          cfg.build_settings['SWIFT_MODULE_NAME'] = 'Lottie'
+          cfg.build_settings['DEFINES_MODULE'] = 'YES'
+          cfg.build_settings['SWIFT_INSTALL_OBJC_HEADER'] = 'NO'
+          cfg.build_settings['SWIFT_OBJC_INTERFACE_HEADER_NAME'] = ''
+          cfg.build_settings['CLANG_ENABLE_MODULES'] = 'YES'
+          cfg.build_settings['CLANG_ENABLE_OBJC_ARC'] = 'YES'
+          cfg.build_settings['ENABLE_BITCODE'] = 'NO'
+          cfg.build_settings['OTHER_LDFLAGS'] = '$(inherited) -ObjC'
+        end
+
+        cfg.build_settings['SWIFT_VERSION'] = '5.0'
+        cfg.build_settings['SWIFT_OPTIMIZATION_LEVEL'] = '-Onone'
+        cfg.build_settings['SWIFT_ACTIVE_COMPILATION_CONDITIONS'] = 'DEBUG'
+        cfg.build_settings['SWIFT_COMPILATION_MODE'] = 'singlefile'
+        cfg.build_settings['SWIFT_STRICT_CONCURRENCY'] = 'complete'
+
+        cfg.build_settings['HEADER_SEARCH_PATHS'] ||= ['$(inherited)']
+        cfg.build_settings['HEADER_SEARCH_PATHS'] += [
+          "${PODS_ROOT}/../node_modules/react-native/ReactCommon",
+          "${PODS_ROOT}/../node_modules/react-native/ReactCommon/react",
+          "${PODS_ROOT}/../node_modules/react-native/ReactCommon/react/bridging"
+        ]
+        cfg.build_settings['HEADER_SEARCH_PATHS'].uniq!
+
+        if %w[gRPC-Core gRPC-C++ gRPC abseil].include?(target.name)
+          cfg.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++20'
+          cfg.build_settings['CLANG_CXX_LIBRARY'] = 'libc++'
+          cfg.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
+          cfg.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'GRPC_CFSTREAM=1'
+          cfg.build_settings['OTHER_CFLAGS'] ||= ['$(inherited)']
+          cfg.build_settings['OTHER_CFLAGS'] << '-Wno-error=missing-template-arg-list-after-template-kw'
+          cfg.build_settings['OTHER_CPLUSPLUSFLAGS'] ||= ['$(inherited)']
+          cfg.build_settings['OTHER_CPLUSPLUSFLAGS'] << '-Wno-error=missing-template-arg-list-after-template-kw'
+          cfg.build_settings['OTHER_CPLUSPLUSFLAGS'] << '-Wno-error=no-template-named-result_of'
+          cfg.build_settings['OTHER_CPLUSPLUSFLAGS'] << '-D_GLIBCXX_USE_CXX11_ABI=0'
+          cfg.build_settings['OTHER_CPLUSPLUSFLAGS'] << '-Wno-error=deprecated-declarations'
+          cfg.build_settings['OTHER_CPLUSPLUSFLAGS'] << '-Wno-error=unused-variable'
+        end
+
+        # Temporarily disabled fmt configuration due to compilation issues
+        # if target.name == 'fmt'
+        #   cfg.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++14'
+        #   cfg.build_settings['CLANG_CXX_LIBRARY'] = 'libc++'
+        #   # ... rest of fmt configuration commented out
+        # end
+
+        if target.name == 'BoringSSL-GRPC'
+          target.source_build_phase.files.each do |file|
+            if file.settings && file.settings['COMPILER_FLAGS']
+              flags = file.settings['COMPILER_FLAGS'].split
+              flags.reject! { |flag| flag == '-GCC_WARN_INHIBIT_ALL_WARNINGS' }
+              file.settings['COMPILER_FLAGS'] = flags.join(' ')
+          end
+        end
+
+          # Additional compiler flags for simulator
+          if cfg.build_settings['PLATFORM_NAME'] == 'iphonesimulator'
+            cfg.build_settings['OTHER_CFLAGS'] ||= ['$(inherited)']
+            cfg.build_settings['OTHER_CFLAGS'] << '-Wno-error=unsupported-option'
+            cfg.build_settings['OTHER_CFLAGS'] << '-Wno-error=unused-command-line-argument'
+            cfg.build_settings['OTHER_CFLAGS'] << '-Wno-error=unused-option'
+            
+            cfg.build_settings['OTHER_CPLUSPLUSFLAGS'] ||= ['$(inherited)']
+            cfg.build_settings['OTHER_CPLUSPLUSFLAGS'] << '-Wno-error=unsupported-option'
+            cfg.build_settings['OTHER_CPLUSPLUSFLAGS'] << '-Wno-error=unused-command-line-argument'
+            cfg.build_settings['OTHER_CPLUSPLUSFLAGS'] << '-Wno-error=unused-option'
+          end
+
+          # Basic settings
+          cfg.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
+          cfg.build_settings['CLANG_CXX_LIBRARY'] = 'libc++'
+          cfg.build_settings['GCC_OPTIMIZATION_LEVEL'] = '0'
+          cfg.build_settings['ENABLE_BITCODE'] = 'NO'
+          cfg.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
+          cfg.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'OPENSSL_NO_ASM=1'
+        end
+      end
+    end
+    
+    # Additional post-install step to handle Agora frameworks specifically
+    installer.pods_project.targets.each do |target|
+      if target.name.include?('Agora') || target.name.include?('agora')
+        target.build_configurations.each do |cfg|
+          cfg.build_settings['ENABLE_BITCODE'] = 'NO'
+          cfg.build_settings['BITCODE_GENERATION_MODE'] = 'none'
+          cfg.build_settings['OTHER_LDFLAGS'] ||= ['$(inherited)']
+          cfg.build_settings['OTHER_LDFLAGS'] << '-fembed-bitcode=off'
+          
+          # Additional Agora-specific settings
+          cfg.build_settings['CLANG_ENABLE_BITCODE'] = 'NO'
+          cfg.build_settings['BITCODE_GENERATION_MODE'] = 'none'
+          cfg.build_settings['ENABLE_BITCODE'] = 'NO'
+          
+          # Force disable bitcode for all architectures
+          cfg.build_settings['OTHER_CFLAGS'] ||= ['$(inherited)']
+          cfg.build_settings['OTHER_CFLAGS'] << '-fembed-bitcode=off'
+          cfg.build_settings['OTHER_CPLUSPLUSFLAGS'] ||= ['$(inherited)']
+          cfg.build_settings['OTHER_CPLUSPLUSFLAGS'] << '-fembed-bitcode=off'
+          
+          # Additional aggressive bitcode removal
+          cfg.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
+          cfg.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'DISABLE_BITCODE=1'
+          cfg.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'NO_BITCODE=1'
+        end
+      end
+    end
+    
+    # Also check for any frameworks that might contain bitcode
+    installer.pods_project.targets.each do |target|
+      if target.respond_to?(:product_type) && target.product_type == 'com.apple.product-type.framework'
+        target.build_configurations.each do |cfg|
+          cfg.build_settings['ENABLE_BITCODE'] = 'NO'
+          cfg.build_settings['BITCODE_GENERATION_MODE'] = 'none'
+        end
+      end
+    end
+    
+    # Add environment variables to force bitcode removal
+    installer.pods_project.build_configurations.each do |config|
+      config.build_settings['ENABLE_BITCODE'] = 'NO'
+      config.build_settings['BITCODE_GENERATION_MODE'] = 'none'
+    end
+    
+    # Force all targets to have bitcode disabled
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['ENABLE_BITCODE'] = 'NO'
+        config.build_settings['BITCODE_GENERATION_MODE'] = 'none'
+        config.build_settings['OTHER_LDFLAGS'] ||= ['$(inherited)']
+        config.build_settings['OTHER_LDFLAGS'] << '-fembed-bitcode=off'
+      end
+    end
+  end
+end

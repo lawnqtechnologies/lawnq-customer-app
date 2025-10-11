@@ -1,16 +1,16 @@
 #import "AppDelegate.h"
 #import "RNSplashScreen.h"
 #import <Firebase.h>
-#import <GoogleMaps/GoogleMaps.h>
 #import <React/RCTBundleURLProvider.h>
+#import <ReactAppDependencyProvider/RCTAppDependencyProvider.h>
 
 @implementation AppDelegate
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
-  [GMSServices provideAPIKey:@"AIzaSyAQ_Hd8-sh8uM6rufkNrkvABip3292UoXs"];
   [FIRApp configure];
   self.moduleName = @"LawnQ";
+  self.dependencyProvider = [RCTAppDependencyProvider new];
   // You can add your custom initial props in the dictionary below.
   // They will be passed down to the ViewController used by React Native.
   self.initialProps = @{};

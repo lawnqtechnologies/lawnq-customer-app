@@ -8,6 +8,7 @@ import {LQ_API, LQ_PASSWORD, LQ_USERNAME} from '@env';
  * ? Local Imports
  */
 import {AUTHENTICATION} from '@shared-constants';
+import { clampRGBA } from 'react-native-reanimated/lib/typescript/Colors';
 
 const baseURL = LQ_API;
 
@@ -16,7 +17,6 @@ const {TOKEN} = AUTHENTICATION;
 const getUrl = (url: string) => {
   return `${baseURL}${url}`;
 };
-
 
 const getAxiosMultiPartClient = async <T>(
   method: Method,
@@ -52,6 +52,7 @@ const getAxiosMultiPartClient = async <T>(
       return response;
     },
     error => {
+      console.log(axiosSetup)
       console.log('axios error:', error);
       console.log('axios error:', error.response?.data?.errors);
       // Do centralize error handling here

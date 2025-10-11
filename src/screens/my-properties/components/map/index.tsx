@@ -6,9 +6,6 @@ import MapView, {
   PROVIDER_GOOGLE,
   PROVIDER_DEFAULT,
 } from 'react-native-maps';
-import Icon from 'react-native-dynamic-vector-icons';
-import {useSelector} from 'react-redux';
-
 /**
  * ? Local imports
  */

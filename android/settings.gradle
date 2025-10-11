@@ -1,6 +1,58 @@
-rootProject.name = 'LawnQ'
-apply from: file("../node_modules/@react-native-community/cli-platform-android/native_modules.gradle"); applyNativeModulesSettingsGradle(settings)
-include ':app'
-includeBuild('../node_modules/@react-native/gradle-plugin')
-include ':react-native-svg'
-project(':react-native-svg').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-svg/android')
+// settings.gradle (Groovy)
+
+pluginManagement {
+  repositories {
+    gradlePluginPortal()
+    google()
+    mavenCentral()
+  }
+  // Keep Kotlin pins: Compose plugin may be 2.x; everything else 1.9.24
+  resolutionStrategy {
+    eachPlugin {
+      if (requested.id.id == "org.jetbrains.kotlin.plugin.compose") {
+        useVersion("2.0.20")
+      } else if (requested.id.id.startsWith("org.jetbrains.kotlin")) {
+        useVersion("1.9.24")
+      }
+    }
+  }
+}
+
+dependencyResolutionManagement {
+  // Prefer settings repositories; project repositories are ignored
+  repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+
+  repositories {
+    // --- Notifee private Maven (required for app.notifee:core) ---
+    maven {
+      url "https://artifacts.notifee.app/android/maven"
+      content { includeGroup("app.notifee") } // only use this repo for Notifee artifacts
+    }
+
+    // Core repos
+    mavenCentral()
+    google()
+
+    // React Native local Maven (required)
+    maven { url("$rootDir/../node_modules/react-native/android") }
+
+    // If you use JSC (safe to keep even with Hermes)
+    maven { url("$rootDir/../node_modules/jsc-android/dist") }
+
+    // Optional: some libs use JitPack
+    maven { url "https://www.jitpack.io" }
+  }
+}
+
+rootProject.name = "LawnQ"
+
+// Keep RN native modules hook
+apply from: file("../node_modules/@react-native-community/cli-platform-android/native_modules.gradle")
+applyNativeModulesSettingsGradle(settings)
+
+// Modules
+include(":app")
+project(":app").projectDir = file("app")
+
+// RN gradle plugin composite build
+includeBuild("../node_modules/@react-native/gradle-plugin")
