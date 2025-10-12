@@ -12,6 +12,7 @@ import NotificationHandler from 'shared/functions/NoficationHandler';
 import ChatCountHandler from 'shared/functions/ChatCountHandler';
 import CenterModal from '@shared-components/modals/center-modal/CenterModal';
 import { LogBox } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 export const queryClient = new QueryClient();
 
@@ -36,8 +37,9 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <Provider store={store}>
         <SafeAreaProvider>
-          <Navigation />
-
+          <GestureHandlerRootView style={{ flex: 1 }}>
+            <Navigation />
+          </GestureHandlerRootView>
           <BackgroundActivityHandler />
 
           <NotificationHandler

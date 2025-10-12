@@ -52,6 +52,7 @@ const getAxiosMultiPartClient = async <T>(
       return response;
     },
     error => {
+      console.log('--------------------------:', axiosSetup)
       console.log(axiosSetup)
       console.log('axios error:', error);
       console.log('axios error:', error.response?.data?.errors);

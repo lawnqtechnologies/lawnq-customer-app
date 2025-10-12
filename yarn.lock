@@ -2961,7 +2961,7 @@
     use-latest-callback "^0.2.4"
     use-sync-external-store "^1.5.0"
 
-"@react-navigation/elements@^2.0.0":
+"@react-navigation/elements@^2.0.0", "@react-navigation/elements@^2.6.5":
   version "2.6.5"
   resolved "https://registry.yarnpkg.com/@react-navigation/elements/-/elements-2.6.5.tgz#e9038e96044e47f43f7f432edc798d6b0185fc01"
   integrity sha512-HOaekvFeoqKyaSKP2hakL7OUnw0jIhk/1wMjcovUKblT76LMTumZpriqsc30m/Vnyy1a8zgp4VsuA1xftcalgQ==
@@ -2969,6 +2969,14 @@
     color "^4.2.3"
     use-latest-callback "^0.2.4"
     use-sync-external-store "^1.5.0"
+
+"@react-navigation/native-stack@^7.3.27":
+  version "7.3.27"
+  resolved "https://registry.yarnpkg.com/@react-navigation/native-stack/-/native-stack-7.3.27.tgz#fa7a309877c51b0fe1b0c81e1285912715f26f19"
+  integrity sha512-bbbud0pT63tGh706hQD/A3Z9gF1O2HtQ0dJqaiYzHzPy9wSOi82i721530tJkmccevAemUrZbEeEC5mxVo1DzQ==
+  dependencies:
+    "@react-navigation/elements" "^2.6.5"
+    warn-once "^0.1.1"
 
 "@react-navigation/native@7.0.0":
   version "7.0.0"
@@ -7546,11 +7554,6 @@ loose-envify@^1.0.0, loose-envify@^1.4.0:
   dependencies:
     js-tokens "^3.0.0 || ^4.0.0"
 
-lottie-ios@4.4.1:
-  version "4.4.1"
-  resolved "https://registry.yarnpkg.com/lottie-ios/-/lottie-ios-4.4.1.tgz#34a0838499213ced8969924770c76ec387787996"
-  integrity sha512-Mxx8jse+CAbGDmkOcHCIrLKRLo4K1U+X0VtBzKGQXJSDhpvy/ugek8R1dJeaQm3IIqzsb/KZUUW0og3Q27ADHQ==
-
 lottie-react-native@^7.3.4:
   version "7.3.4"
   resolved "https://registry.yarnpkg.com/lottie-react-native/-/lottie-react-native-7.3.4.tgz#774bc028e2b93dd88cd87ab84ac51a1c3e015cad"
@@ -9666,7 +9669,7 @@ react-native-video-player@^0.16.3:
   resolved "https://registry.yarnpkg.com/react-native-video-player/-/react-native-video-player-0.16.3.tgz#7ac6057f4ff4db32b08f3b12422be983e7006d04"
   integrity sha512-7FMPl2uO9HRkklAaAGqtuAx+8qphbluacWTxyOhV19AOLc0GC4hkD0FrQoj6ksmgrwFJEXIkBlWkkfu1GS1YyA==
 
-react-native-video@^6.0.0:
+react-native-video@^6.17.0:
   version "6.17.0"
   resolved "https://registry.yarnpkg.com/react-native-video/-/react-native-video-6.17.0.tgz#36e91627550d4957faa38f88ee5b647aa122c7eb"
   integrity sha512-sslmQo5paSNLmSJ93t3lkC7kl4yFGIc+LWoBdu44hkL4EKG7OIZNd5iaX+/SedAdqecifJrOZHAozxHzVh3TsQ==
@@ -11180,7 +11183,7 @@ walker@^1.0.7, walker@^1.0.8:
   dependencies:
     makeerror "1.0.12"
 
-warn-once@0.1.1, warn-once@^0.1.0:
+warn-once@0.1.1, warn-once@^0.1.0, warn-once@^0.1.1:
   version "0.1.1"
   resolved "https://registry.yarnpkg.com/warn-once/-/warn-once-0.1.1.tgz#952088f4fb56896e73fd4e6a3767272a3fccce43"
   integrity sha512-VkQZJbO8zVImzYFteBXvBOZEl1qL175WH8VmZcxF2fZAoudNhNDvHi+doCaAEdU2l2vtcIwa2zn0QK5+I1HQ3Q==

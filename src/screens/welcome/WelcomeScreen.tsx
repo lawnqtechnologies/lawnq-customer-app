@@ -81,6 +81,7 @@ const WelcomeScreen: React.FC<IWelcomeScreenProps> = () => {
     }).start();
     console.log('from welcome screen:');
      NavigationService.navigate(SCREENS.HOME);
+       NavigationService.navigate('AppTabs', { screen: SCREENS.HOME });
   };
 
   const handleAnimationFinish = () => {
@@ -118,7 +119,7 @@ const WelcomeScreen: React.FC<IWelcomeScreenProps> = () => {
           source={require('@assets/animations/custom-lottie-animation/lawnq-loading.json')}
           autoPlay
           loop={false}
-          onAnimationFinish={handleAnimationFinish}
+          onAnimationFinish={handleShowSubText}
         />
       </View>
     </View>
