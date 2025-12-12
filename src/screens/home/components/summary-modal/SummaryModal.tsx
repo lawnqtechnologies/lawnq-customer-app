@@ -3,7 +3,7 @@ import {
   View,
   StyleProp,
   ViewStyle,
-  TouchableOpacity,
+  Pressable,
   Alert,
   Vibration,
 } from 'react-native';
@@ -282,6 +282,7 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
       defaultCard?.CustomerStripePaymentId || '',
     );
     request.append('CustomerDiscountId', data.customerDiscountId ?? 0);
+    request.append('CollectClippings',data.collectClippings ?? 0)
     request.append('PropertyAddId', property.value);
     request.append('Scheduledate', JSON.parse(rawDate));
     request.append('DeviceDetails.AppVersion', deviceDetails.AppVersion);
@@ -408,7 +409,7 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
     console.log(defaultCard?.CustomerStripePaymentId);
     if (defaultCard?.CustomerStripePaymentId !== undefined) {
       return (
-        <TouchableOpacity
+        <Pressable
           style={styles.cardContainer}
           onPress={() => {
             setIsVisible(() => false);
@@ -427,7 +428,7 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
             </View>
           </View>
           <CHEVRON_RIGHT />
-        </TouchableOpacity>
+        </Pressable>
       );
     } else {
       return (
@@ -448,14 +449,14 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
 */
   const Content = () => (
     <View style={styles.content}>
-      <TouchableOpacity style={styles.closeButton} onPress={closeSummaryModal}>
+      <Pressable style={styles.closeButton} onPress={closeSummaryModal}>
         <Icon
           name="close"
           type={IconType.MaterialIcons}
           color={v2Colors.lightRed}
           size={25}
         />
-      </TouchableOpacity>
+      </Pressable>
       <LikeGreenCircle height={75} width={75} style={styles.icon} />
       {isFetching ? <Header2 /> : <Header />}
 
@@ -502,28 +503,16 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
           <Text h4 bold color={v2Colors.green}>
             {'$' + data.fee || ''}
           </Text>
+          
         </View>
 
-        {/* <TouchableOpacity
-          style={styles.cardContainer}
-          onPress={() => {
-            setIsVisible(() => false);
-            setTimeout(() => NavigationService.navigate(SCREENS.PAYMENT), 300);
-          }}>
-          <View style={styles.cardLeftContent}>
-            <VISA height={40} width={40} />
-            <View style={styles.cardMiddleContent}>
-              <Text bold color={v2Colors.green}>
-                {`${defaultCard?.Brand}`}
-              </Text>
-              <Text
-                color={
-                  v2Colors.green
-                }>{`XXXX XXXX XXXX ${defaultCard?.Last4}`}</Text>
-            </View>
-          </View>
-          <CHEVRON_RIGHT />
-        </TouchableOpacity> */}
+        <View style={styles.serviceContainer}>
+          <Text h4 color={v2Colors.green}>
+          </Text>
+          <Text style={{fontSize: 12}} color={v2Colors.green}>
+            (Includes 10% GST)
+          </Text>
+        </View>
         <CardContent />
       </View>
       <ConditionalConfirm />

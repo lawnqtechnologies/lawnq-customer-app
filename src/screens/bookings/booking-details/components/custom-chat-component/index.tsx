@@ -10,13 +10,10 @@ import {
 } from 'react-native-gifted-chat';
 import database from '@react-native-firebase/database';
 import notifee from '@notifee/react-native';
-import {Alert, View, TouchableOpacity} from 'react-native';
+import {Alert, View, Pressable,Vibration} from 'react-native';
 import moment from 'moment';
 import _ from 'lodash';
-import {useKeyboard} from '@react-native-community/hooks';
-
 import {useBooking} from '@services/hooks/useBooking';
-import {isAndroid} from '@freakycoder/react-native-helpers';
 import {v2Colors} from '@theme/themes';
 import fonts from '@fonts';
 import styles from './styles';
@@ -93,8 +90,8 @@ const CustomChatComponent: React.FC<ICustomChatComponent> = ({
    * ? Hooks
    */
   const {sendNotification} = useBooking();
-  const keyboard = useKeyboard();
-  const {keyboardShown, keyboardHeight} = keyboard;
+  // const keyboard = useKeyboard();
+  // const {keyboardShown, keyboardHeight} = keyboard;
 
   /**
    * ? Redux States
@@ -128,7 +125,9 @@ const CustomChatComponent: React.FC<ICustomChatComponent> = ({
   /**
    * ? Watchers
    */
-  // ? Handles fetch of all chats when in app
+
+
+
   useEffect(() => {
     if (!customerId || !ServiceProviderId || !Firstname) return;
 
@@ -139,6 +138,7 @@ const CustomChatComponent: React.FC<ICustomChatComponent> = ({
 
   useEffect(() => {
     onGetChatMessages();
+    // triggerDefaultNotification()
   }, [receivedChatInfo]);
 
   /**
@@ -359,7 +359,6 @@ const CustomChatComponent: React.FC<ICustomChatComponent> = ({
         },
         shadowOpacity: 0.25,
         shadowRadius: 3.84,
-
         elevation: 1,
       }}
       primaryStyle={{alignItems: 'center'}}
@@ -394,14 +393,14 @@ const CustomChatComponent: React.FC<ICustomChatComponent> = ({
 
   return (
     <View style={{flex: 1}}>
-      <TouchableOpacity
+      <Pressable
         style={styles.closeButton}
         onPress={() => {
           setInitChat(false);
           setSnapPoint(0);
         }}>
         <X_RED />
-      </TouchableOpacity>
+      </Pressable>
 
       <PureGiftedChatComponent
         messages={messages}

@@ -33,6 +33,7 @@ export default (theme: ExtendedTheme) => {
       backgroundColor: "white",
       borderTopLeftRadius: 40,
       borderTopRightRadius: 40,
+      alignItems: "center",
     },
     body: {
       flex: 1,

@@ -59,7 +59,6 @@ target 'LawnQ' do
  pod 'Google-Maps-iOS-Utils'
  pod 'GoogleAppMeasurement'
  pod 'RNVectorIcons', :path => '../node_modules/react-native-vector-icons'
- pod 'lottie-ios', :path => '../node_modules/lottie-ios'
  pod 'lottie-react-native', :path => '../node_modules/lottie-react-native'
 
 
@@ -101,4 +100,3 @@ post_install do |installer|
   )
 end
 end
-

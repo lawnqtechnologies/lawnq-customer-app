@@ -1,11 +1,8 @@
 import React, {useEffect, useState} from 'react';
-import {Platform, Alert} from 'react-native';
 import {
-  launchCamera,
   launchImageLibrary,
   ImageLibraryOptions,
 } from 'react-native-image-picker';
-// import storage from "@react-native-firebase/storage";
 import {useDispatch, useSelector} from 'react-redux';
 import {RootState} from 'store';
 import {onSetLawnURIList} from '@services/states/booking/booking.slice';

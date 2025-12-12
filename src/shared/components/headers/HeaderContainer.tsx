@@ -1,5 +1,5 @@
-import React, { useMemo } from "react";
-import { View, TouchableOpacity, StatusBar } from "react-native";
+import React, { useMemo, useState } from "react";
+import { View, Pressable, StatusBar } from "react-native";
 import { useTheme } from "@react-navigation/native";
 import * as NavigationService from "react-navigation-helpers";
 
@@ -16,7 +16,6 @@ import fonts from "@fonts";
  */
 import ARROW_LEFT from "@assets/v2/headers/arrow-left.svg";
 import TRASH from "@assets/v2/properties/icons/trash.svg";
-import { propertySlice } from "@services/states/property/property.slice";
 
 interface IHeaderContainerProps {
   pageTitle?: string;
@@ -41,13 +40,17 @@ const HeaderContainer: React.FC<IHeaderContainerProps> = ({
 }) => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const [isPressed, setIsPressed] = useState(false);
 
   const handleBack = () => {
+    if (isPressed) return;
+    setIsPressed(true);
     if(backValue){
     NavigationService.goBack()
     }
     else {
       NavigationService.push(navigateTo)
+      setTimeout(() => setIsPressed(false), 500); // re-enable after delay
     }
   };
 
@@ -56,12 +59,13 @@ const HeaderContainer: React.FC<IHeaderContainerProps> = ({
       <StatusBar barStyle={"dark-content"} />
       <View style={styles.leftContainer}>
         {!backDisabled && (
-          <TouchableOpacity
+          <Pressable
             onPress={handleBack}
-            style={{ paddingTop: 2, marginRight: 15 }}
+            disabled={isPressed}
+           style={{ paddingTop: 2, marginRight: 15, opacity: isPressed ? 0.6 : 1 }}
           >
             <ARROW_LEFT width={24} height={24} />
-          </TouchableOpacity>
+          </Pressable>
         )}
         <Text h2 color={v2Colors.green} fontFamily={fonts.lexend.extraBold}>
           {pageTitle}
@@ -69,23 +73,29 @@ const HeaderContainer: React.FC<IHeaderContainerProps> = ({
       </View>
 
       {hasCancel && onCancel && (
-        <TouchableOpacity
-          onPress={() => onCancel()}
+        <Pressable
+          onPress={() => {
+            onCancel();
+          }}
           style={styles.cancelContainer}
+          disabled={isPressed}
         >
           <Text right h3 color={v2Colors.highlight}>
             Cancel
           </Text>
-        </TouchableOpacity>
+        </Pressable>
       )}
 
       {hasDelete && onDelete && (
-        <TouchableOpacity
-          onPress={() => onDelete()}
+        <Pressable
+          onPress={() => {
+            onDelete();
+          }}
           style={styles.deleteContainer}
+          disabled={isPressed}
         >
           <TRASH />
-        </TouchableOpacity>
+        </Pressable>
       )}
     </View>
   );

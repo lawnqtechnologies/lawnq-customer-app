@@ -1,11 +1,11 @@
-import React, {useEffect, useMemo, useState} from 'react';
+import React, {useMemo} from 'react';
 import {
   View,
   StyleProp,
   ViewStyle,
   ScrollView,
   Dimensions,
-  TouchableOpacity,
+  Pressable,
 } from 'react-native';
 import Text from '@shared-components/text-wrapper/TextWrapper';
 
@@ -106,9 +106,9 @@ const TNC: React.FC<ITNCProps> = ({route}) => {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const Header = (props: {pageTitle: string}) => (
     <View style={styles.headerContainer}>
-      <TouchableOpacity onPress={() => NavigationService.goBack()}>
+      <Pressable onPress={() => NavigationService.goBack()}>
         <ARROW_LEFT style={{marginTop: 4, marginRight: 10}} />
-      </TouchableOpacity>
+      </Pressable>
       <Text h2 bold color={v2Colors.green}>
         {props.pageTitle}
       </Text>

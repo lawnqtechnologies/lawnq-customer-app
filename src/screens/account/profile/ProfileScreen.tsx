@@ -3,7 +3,7 @@ import {
   View,
   StyleProp,
   ViewStyle,
-  TouchableOpacity,
+  Pressable,
   Alert,
 } from 'react-native';
 import {useTheme} from '@react-navigation/native';
@@ -326,13 +326,13 @@ const ProfileScreen: React.FC<IProfileScreenProps> = ({navigation}) => {
           }}
         />
       )}
-      <TouchableOpacity
+      <Pressable
         style={styles.subProfilePicImageStyle}
         onPress={() => selectImage()}>
         <Text h5 color={'black'}>
           Change Photo
         </Text>
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 

@@ -1,5 +1,5 @@
 import React, {useMemo} from 'react';
-import {View, StyleProp, ViewStyle, TouchableOpacity} from 'react-native';
+import {View, StyleProp, ViewStyle, Pressable} from 'react-native';
 import {useTheme} from '@react-navigation/native';
 import Modal from 'react-native-modal';
 import * as _ from 'lodash';
@@ -14,7 +14,6 @@ import {v2Colors} from '@theme/themes';
 import fonts from '@fonts';
 import Text from '@shared-components/text-wrapper/TextWrapper';
 import ModalArrow from '@assets/v2/homescreen/icons/modal-arrow.svg';
-import Time from '@assets/v2/homescreen/icons/time.svg';
 import CalendarGreen from '@assets/v2/homescreen/icons/calendar-green.svg';
 import {onSetBookingType} from '@services/states/booking/booking.slice';
 
@@ -88,24 +87,13 @@ const BookingModal: React.FC<ICenterModalScreenProps> = ({
 
   const Buttons = () => (
     <View style={styles.buttonContainer}>
-      {/* <TouchableOpacity
-        onPress={() => {
-          dispatch(onSetBookingType(1));
-          setIsVisible(false);
-        }}
-        style={styles.button1}>
-        <Time style={{marginRight: 50}} />
-        <Text h4 center color={v2Colors.green}>
-          Book Today
-        </Text>
-      </TouchableOpacity> */}
       <View style={{marginTop: 20}} />
-      <TouchableOpacity onPress={handleBookSchedule} style={styles.button2}>
+      <Pressable onPress={handleBookSchedule} style={styles.button2}>
         <CalendarGreen style={{marginRight: 10}} />
         <Text h4 center color={v2Colors.green}>
           Schedule Booking
         </Text>
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 

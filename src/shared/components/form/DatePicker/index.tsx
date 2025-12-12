@@ -1,17 +1,14 @@
 import React, {useMemo, useState} from 'react';
-import {useTheme} from '@react-navigation/native';
+import {useTheme,Pressable} from '@react-navigation/native';
 import {useDispatch, useSelector} from 'react-redux';
-import {size} from 'lodash';
 
 /* Framework */
 import {StyleProp, TextInput, View, ViewStyle} from 'react-native';
-import {TouchableOpacity} from 'react-native-gesture-handler';
 
 /* Local */
 import createStyles from './DatePicker.style';
 
 /* Library */
-import {OutlinedTextField} from '@freakycoder/react-native-material-textfield';
 import DatePicker from 'react-native-date-picker';
 import moment from 'moment';
 import {Controller, FieldError} from 'react-hook-form';
@@ -75,7 +72,7 @@ const FormDatePicker: React.FC<IFormDatePickerProps> = ({
         render={({field: {onChange, onBlur, value}, fieldState: {error}}) => {
           return (
             <>
-              <TouchableOpacity
+              <Pressable
                 onPress={() => {
                   setOpen(true);
                 }}
@@ -97,7 +94,7 @@ const FormDatePicker: React.FC<IFormDatePickerProps> = ({
                 </View>
 
                 <View style={styles.icon}>{rightIcon}</View>
-              </TouchableOpacity>
+              </Pressable>
               <DatePicker
                 modal
                 mode="date"

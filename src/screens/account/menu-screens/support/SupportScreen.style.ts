@@ -1,4 +1,4 @@
-import { ViewStyle, StyleSheet } from "react-native";
+import { ViewStyle, StyleSheet, TextStyle } from "react-native";
 import { ExtendedTheme } from "@react-navigation/native";
 import { ScreenWidth, ScreenHeight } from "@freakycoder/react-native-helpers";
 import fonts from "@fonts";
@@ -8,7 +8,7 @@ import { ImageStyle } from "react-native-fast-image";
 interface Style {
   modal: ViewStyle;
   closeButton: ViewStyle;
-  input: ViewStyle;
+  input: TextStyle;
   content: ViewStyle;
   header: ViewStyle;
   bottomContentContainer: ViewStyle;
@@ -19,7 +19,7 @@ interface Style {
   button: ViewStyle;
   container:ViewStyle;
   submit:ViewStyle;
-  inputSubject:ViewStyle;
+  inputSubject:TextStyle;
   
 }
 

@@ -160,9 +160,19 @@ const Navigation = () => {
     );
   };
 
+  const config = {
+    screens: {
+      Payment: "payment"
+    }
+  }
+
   return (
     <NavigationContainer
       ref={navigationRef}
+      linking={{
+        prefixes:["app.lawnq://app","https://lawnq.com.au"],
+        config
+      }}
       onReady={() => {
         isReadyRef.current = true;
       }}

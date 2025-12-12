@@ -2,9 +2,8 @@ import React, {useCallback} from 'react';
 import {Alert} from 'react-native';
 import {useFocusEffect} from '@react-navigation/native';
 import {useDispatch, useSelector} from 'react-redux';
-import messaging from '@react-native-firebase/messaging';
+import { getMessaging } from '@react-native-firebase/messaging';
 import * as NavigationService from 'react-navigation-helpers';
-import {SCREENS} from '@shared-constants';
 /**
  * ? Local imports
  */
@@ -80,8 +79,10 @@ const Setup: React.FC<any> = () => {
   };
 
   const onSetMessagingConfig = () => {
-    //Get the device token
-    messaging()
+    const messagingInstance = getMessaging();
+
+    // Get the device token
+    messagingInstance
       .getToken()
       .then(token => {
         console.log('===================================deviceId');
@@ -89,14 +90,15 @@ const Setup: React.FC<any> = () => {
         console.log('end========================================');
 
         return saveTokenToDatabase(token);
-      });
+      })
+      .catch(err => console.log('getToken error:', err));
 
-    // // If using other push notification providers (ie Amazon SNS, etc)
-    // // you may need to get the APNs token instead for iOS:
-    // // if(Platform.OS == 'ios') { messaging().getAPNSToken().then(token => { return saveTokenToDatabase(token); }); }
+    // If using other push notification providers (ie Amazon SNS, etc)
+    // you may need to get the APNs token instead for iOS:
+    // if(Platform.OS == 'ios') { messagingInstance.getAPNSToken().then(token => saveTokenToDatabase(token)); }
 
-    // // Listen to whether the token changes
-    return messaging().onTokenRefresh(token => {
+    // Listen to whether the token changes
+    return messagingInstance.onTokenRefresh(token => {
       saveTokenToDatabase(token);
     });
   };

@@ -4,10 +4,9 @@ import {
   StyleProp,
   ViewStyle,
   ScrollView,
-  TouchableOpacity,
+  Pressable,
   Alert,
   Linking,
-  Image,
 } from 'react-native';
 import {useFocusEffect, useTheme} from '@react-navigation/native';
 import * as NavigationService from 'react-navigation-helpers';
@@ -54,36 +53,15 @@ import CenterModalW2Buttons from '@shared-components/modals/center-modal/with-2-
 import DisputeBottomModal from './components/dispute-bottom-modal/DisputeBottomModal';
 import {isAndroid} from '@freakycoder/react-native-helpers';
 import {RootState} from 'store';
-import fonts from '@fonts';
 import RescheduleModal from './components/reschedule-summary/RescheduleSummary';
 import {usePayment} from '@services/hooks/usePayment';
 import {
   CustomerPaymentInfo,
   ICustomerPaymentInfo,
 } from '@services/models/payment';
-import Loader from '@shared-components/loaders/loader';
-import PENDING from '@assets/v2/bookings/icons/pending.svg';
-import CenterModalV2 from '@shared-components/modals/center-modal/CenterModalV2';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 /**
  * ? Constants
  */
-const INITIAL_BOOKING_DATA = {
-  Alias: '',
-  Address1: '',
-  BookingRefNo: '',
-  BookingStatus: '',
-  BookingTypeDesc: '',
-  CustomerId: '',
-  DateCompleted: '',
-  IntervalTimeLabel: '',
-  LawnAreaLabel: '',
-  PropertyAddId: '',
-  ServiceFee: '',
-  ServiceProviderId: '',
-  ServiceTypeDesc: '',
-  BookingDate: '',
-};
 
 type CustomStyleProp = StyleProp<ViewStyle> | Array<StyleProp<ViewStyle>>;
 
@@ -95,7 +73,6 @@ interface IBookingDetailScreenProps {
 
 const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
   const theme = useTheme();
-  const {colors} = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   /**
@@ -508,40 +485,40 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
   const PendingActions = () => (
     <View style={styles.headerBottomContent}>
       {bookingData?.BookingStatus !== 'IN PROGRESS' && (
-        <TouchableOpacity
+        <Pressable
           style={styles.squareContainer}
           onPress={onPressReschedule}>
           <RESCHEDULE />
           <View style={{width: 20}} />
           <Text color={v2Colors.green}>Reschedule</Text>
-        </TouchableOpacity>
+        </Pressable>
       )}
-      <TouchableOpacity
+      <Pressable
         onPress={onShowCancelModal}
         style={styles.squareContainer}>
         <CANCEL />
         <View style={{width: 20}} />
         <Text color={v2Colors.highlight}>Cancel</Text>
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 
   const CompletedActions = () => (
     <View style={styles.headerBottomContent}>
-      <TouchableOpacity
+      <Pressable
         style={styles.squareContainer}
         onPress={onShowDisputeModal}>
         <DISPUTE />
         <View style={{width: 20}} />
         <Text color={v2Colors.green}>Dispute</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
+      </Pressable>
+      <Pressable
         style={styles.squareContainer}
         onPress={getBookingReceipt}>
         <RECEIPT />
         <View style={{width: 20}} />
         <Text color={v2Colors.highlight}>Receipt</Text>
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 
@@ -658,11 +635,11 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
           bookingData?.DateCompleted,
           <CALENDAR_GREEN height={24} width={24} />,
         )}
-      {renderLineItem(
+      {/* {renderLineItem(
         'Outdoor Pets',
         !!Number(bookingData?.HasOutdoorPets) ? 'Yes' : 'No',
         <PET_GREEN height={30} width={30} />,
-      )}
+      )} */}
       <View style={{alignContent: 'center', justifyContent: 'center'}}>
         <Text
           style={{
@@ -696,7 +673,7 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
 
   const CommunicationActions = () => (
     <View style={styles.commsActionsContainer}>
-      <TouchableOpacity onPress={() => setInitChat(true)}>
+      <Pressable onPress={() => setInitChat(true)}>
         <View style={styles.completeButtonContainer}>
           <Text color={'white'}>Message Provider</Text>
         </View>
@@ -707,7 +684,7 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
             </Text>
           </View>
         )}
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 

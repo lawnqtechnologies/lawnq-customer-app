@@ -15,7 +15,7 @@ import Geocoder from 'react-native-geocoding';
 import BottomSheet from '@gorhom/bottom-sheet';
 import Geolocation from '@react-native-community/geolocation';
 import WholeScreenLoader from '@shared-components/loaders/WholeScreenLoader';
-import 'react-native-get-random-values';
+// import 'react-native-get-random-values';
 /**
  * ? Local imports
  */
@@ -61,27 +61,8 @@ const GOOGLE_PLACES_API_KEY = 'AIzaSyAQ_Hd8-sh8uM6rufkNrkvABip3292UoXs';
 const INITIAL_REGION = {
   latitude: -33.7619, // Corrected to use negative latitude for Australia
   longitude: 150.9929,
-  // latitudeDelta: 0.0043,
-  // longitudeDelta: 0.0043 * ASPECT_RATIO,
 };
 
-const initialLocationData: LocationData = {
-  coords: {
-    accuracy: 5,
-    altitude: 99.2,
-    heading: 10.979999542236328,
-    latitude: -33.8688, // Sydney latitude
-    longitude: 151.2093, // Sydney longitude
-    speed: 0.8456885814666748,
-  },
-  extras: {
-    maxCn0: 28,
-    meanCn0: 19,
-    satellites: 8,
-  },
-  mocked: false,
-  timestamp: 1734661836000,
-};
 
 type CustomStyleProp = StyleProp<ViewStyle> | Array<StyleProp<ViewStyle>>;
 
@@ -318,6 +299,9 @@ const SignUpLocatePropertyAddress: React.FC<ILocatePropertyAddress> = ({
               const newLat: number = Number(details?.geometry.location.lat);
               const newLng: number = Number(details?.geometry.location.lng);
               const newUrl: string = details?.url || '';
+
+              console.log('-------details')
+              console.log(details);
 
               dispatch(
                 onSetGeometry({

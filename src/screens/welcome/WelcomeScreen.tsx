@@ -4,8 +4,6 @@ import {
   StyleProp,
   ViewStyle,
   Animated,
-  Alert,
-  Platform,
 } from 'react-native';
 import {useFocusEffect, useTheme} from '@react-navigation/native';
 import LottieView from 'lottie-react-native';
@@ -20,16 +18,7 @@ import Setup from './functions/Setup';
 import {SCREENS} from '@shared-constants';
 import {useSelector} from 'react-redux';
 import {RootState} from 'store';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import LandingScreen from '@screens/landing/LandingScreen';
-import {
-  PERMISSIONS,
-  RESULTS,
-  openSettings,
-  request,
-  requestNotifications,
-} from 'react-native-permissions';
-import NotificationEnabler from 'shared/functions/NotificationEnabler';
 
 /**
  * ? Constants

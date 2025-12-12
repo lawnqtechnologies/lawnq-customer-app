@@ -5,7 +5,7 @@ import {
   FlatList,
   ScrollView,
   StyleProp,
-  TouchableOpacity,
+  Pressable,
   View,
   ViewStyle,
   Alert,
@@ -402,7 +402,7 @@ const AddPropertyScreen: React.FC<IAddPropertyScreenProps> = () => {
     request.append('Latitude', geometry.lat);
     request.append('ServiceTypeId', selectedServiceType || 0);
     request.append('TerrainType', selectedTerrainType || '');
-    request.append('Remarks', Remarks || '');
+    request.append('Remarks', values.Remarks || '');
     request.append('IsDefault', isDefault ? 1 : 0);
 
     request.append('CustomerPropertyId', propertyId);
@@ -515,7 +515,7 @@ const AddPropertyScreen: React.FC<IAddPropertyScreenProps> = () => {
     length: number;
     type: string;
   }) => (
-    <TouchableOpacity
+    <Pressable
       style={[
         styles.squareContentContainer,
         {
@@ -540,8 +540,8 @@ const AddPropertyScreen: React.FC<IAddPropertyScreenProps> = () => {
           dispatch(onSetSelectedTerrainType(props.text));
       }}>
       {props.icon}
-      <View>
-        <Text h4 right color={v2Colors.green}>
+      <View style={{alignItems: 'center', justifyContent: 'center'}}>
+        <Text right color={v2Colors.green}>
           {props.text}
         </Text>
       </View>
@@ -556,64 +556,7 @@ const AddPropertyScreen: React.FC<IAddPropertyScreenProps> = () => {
           <GREEN_CHECK_CIRCLE />
         </View>
       )}
-    </TouchableOpacity>
-  );
-
-  const renderImages = (value: any) => {
-    return (
-      <View>
-        <FastImage
-          source={{uri: value?.item?.length ? value.item : value.item.uri}}
-          style={styles.lawnImages}
-          resizeMode={'cover'}
-        />
-      </View>
-    );
-  };
-
-  const ImageUploads = () => (
-    <View style={styles.imageContainer}>
-      {!addPropURIList.length ? (
-        <>
-          <Text color={v2Colors.green} style={{fontSize: 21}}>
-            Upload Yard Images
-          </Text>
-          <Text color={v2Colors.greenShade2} style={{marginTop: 5}}>
-            Uploaded images should be recent and clearly display the yard’s
-            terrain.
-          </Text>
-        </>
-      ) : (
-        <View style={{height: 100, width: '100%'}}>
-          <FlatList
-            data={addPropURIList}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{
-              paddingHorizontal: 20,
-            }}
-            renderItem={renderImages}
-            keyExtractor={(item, index) => `${index}${item}`}
-          />
-        </View>
-      )}
-      <View style={styles.imageUploadSelectContainer}>
-        <ImageUploadAction icon={<GALLERY />} actionType="gallery" />
-      </View>
-    </View>
-  );
-
-  const ImageUploadAction = (props: any) => (
-    <TouchableOpacity
-      onPress={() => {
-        setImageAction('gallery');
-      }}
-      style={[styles.buttonSelectImage, {opacity: 1}]}>
-      {props.icon}
-      <Text color={v2Colors.green} style={{fontSize: 12, marginLeft: 10}}>
-        From Gallery
-      </Text>
-    </TouchableOpacity>
+    </Pressable>
   );
 
   const Footer = () => (
@@ -692,10 +635,6 @@ const AddPropertyScreen: React.FC<IAddPropertyScreenProps> = () => {
                   <Spacer2 />
                 </View>
                 <Spacer />
-                {/* <Title text={'Do you have outdoor pets?'} />
-          <SelectionContainer list={PET_SELECTION} type={'pet'} /> */}
-
-                {/* <Title text={'Select Service Type'} /> */}
                 <Text
                   color={v2Colors.green}
                   style={{
@@ -709,8 +648,6 @@ const AddPropertyScreen: React.FC<IAddPropertyScreenProps> = () => {
                   list={MOW_TYPE_SELECTION}
                   type={'mow-type'}
                 />
-
-                {/* <Title text={'Select Terrain Type'} /> */}
                 <Text
                   color={v2Colors.green}
                   style={{
@@ -724,9 +661,7 @@ const AddPropertyScreen: React.FC<IAddPropertyScreenProps> = () => {
                   list={TERRAIN_TYPE_SELECTION}
                   type={'terrain-type'}
                 />
-
                 <Spacer />
-
                 <View style={{flexDirection: 'row', marginVertical: 10}}>
                   <Text
                     color={v2Colors.green}
@@ -738,7 +673,7 @@ const AddPropertyScreen: React.FC<IAddPropertyScreenProps> = () => {
 
                 <InputText
                   control={control}
-                  name="remarks"
+                  name="Remarks"
                   label="Notes: Synthetic grass in backyard, trampoline, etc..."
                   style={{
                     height: 80,

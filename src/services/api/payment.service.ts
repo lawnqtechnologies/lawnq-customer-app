@@ -19,7 +19,7 @@ export const onCreateCustomerWallet = async (payload: any) => {
 
 export const onCustomerSetupIntent = async (payload: any) => {
   const response = await nonAuthorizedRequest<AuthenticationObject>().post(
-    `CustomerWallet/CustomerSetupIntent`,
+    `CustomerWallet/CustomerSetupIntentV2`,
     payload,
   );
   return response.data;

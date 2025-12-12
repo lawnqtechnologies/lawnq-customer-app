@@ -2,7 +2,7 @@ import React, {useMemo, useState, useEffect} from 'react';
 import {
   Alert,
   ImageBackground,
-  TouchableOpacity,
+  Pressable,
   View,
   Platform,
 } from 'react-native';
@@ -14,17 +14,14 @@ import Icon, {IconType} from 'react-native-dynamic-vector-icons';
 import Text from '@shared-components/text-wrapper/TextWrapper';
 import {yupResolver} from '@hookform/resolvers/yup';
 import * as NavigationService from 'react-navigation-helpers';
-import messaging from '@react-native-firebase/messaging';
+import { getMessaging, AuthorizationStatus } from '@react-native-firebase/messaging';
 import {
-  check,
   request,
   PERMISSIONS,
   RESULTS,
   openSettings,
-  PermissionStatus,
   requestNotifications,
 } from 'react-native-permissions';
-import auth from '@react-native-firebase/auth';
 /**
  * ? SVGs
  */
@@ -229,13 +226,13 @@ const LoginScreen = () => {
   );
 
   const Forgotpassword = () => (
-    <TouchableOpacity
+    <Pressable
       onPress={onForgotPassword}
       style={styles.forgotpasswordContainer}>
       <Text h3 bold color={'#1E4940'}>
         Forgot Password?
       </Text>
-    </TouchableOpacity>
+    </Pressable>
   );
   /**
 |--------------------------------------------------
@@ -245,7 +242,6 @@ const LoginScreen = () => {
   const {
     control,
     handleSubmit,
-    reset,
     formState: {errors},
     getValues,
   } = useForm<ILoginFormInputs>({
@@ -330,10 +326,11 @@ const LoginScreen = () => {
     NavigationService.push(SCREENS.SIGNUP);
   };
   const requestUserPermissionForFirebase = async () => {
-    const authStatus = await messaging().requestPermission();
+    const messagingInstance = getMessaging();
+    const authStatus = await messagingInstance.requestPermission();
     const enabled =
-      authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-      authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+      authStatus === AuthorizationStatus.AUTHORIZED ||
+      authStatus === AuthorizationStatus.PROVISIONAL;
 
     if (enabled) {
       console.log('Authorization status:', authStatus);
@@ -369,7 +366,7 @@ const LoginScreen = () => {
               name="password"
               label="Enter Password"
               rightIcon={
-                <TouchableOpacity
+                <Pressable
                   onPress={() => {
                     setIsPassVisible(!isPassVisible);
                   }}>
@@ -386,7 +383,7 @@ const LoginScreen = () => {
                       style={styles.rightIcon}
                     />
                   )}
-                </TouchableOpacity>
+                </Pressable>
               }
               isPassword={!isPassVisible}
               isError={errors.password}

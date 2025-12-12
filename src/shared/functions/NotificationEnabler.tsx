@@ -17,11 +17,9 @@ const NotificationEnabler = () => {
   );
 
   const notifPermissionChecker = () => {
-    console.log('permission checkpoint');
     if (Platform.OS === 'android') {
       requestNotificationPermission();
     } else {
-      console.log('permission checkpoint ios');
       requestiOSNotificationPermission();
     }
   };
@@ -71,6 +69,7 @@ const NotificationEnabler = () => {
 
     const {status} = await requestNotifications(['alert', 'sound', 'badge']);
 
+    if (status === 'granted') return;
     console.log('permission checkpoint ios status', status);
 
     switch (status) {
@@ -114,9 +113,6 @@ const NotificationEnabler = () => {
             },
           ],
         );
-        break;
-      case 'granted':
-        console.log('Notification permission granted for iOS.');
         break;
     }
   };

@@ -37,6 +37,8 @@ const getAxiosMultiPartClient = async <T>(
     timeout: 15000,
   };
 
+  console.log(baseURL)
+
   if (!data && method !== 'get') {
     // throw "empty data";
   }

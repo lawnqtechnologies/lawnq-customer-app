@@ -1,5 +1,5 @@
 import {useEffect} from 'react';
-import messaging from '@react-native-firebase/messaging';
+import { getMessaging } from '@react-native-firebase/messaging';
 import * as NavigationService from 'react-navigation-helpers';
 import {useDispatch, useSelector} from 'react-redux';
 import notifee from '@notifee/react-native';
@@ -7,11 +7,6 @@ import notifee from '@notifee/react-native';
 import {SCREENS} from '@shared-constants';
 import {isAndroid} from '@freakycoder/react-native-helpers';
 import {RootState} from 'store';
-import {
-  onSetBookingItem,
-  onSetGoToScreen,
-  onserviceProviderIdAccepted,
-} from '@services/states/booking/booking.slice';
 import {OnSetIsReloadScreen} from '@services/states/property/property.slice';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Vibration } from 'react-native';
@@ -40,17 +35,19 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
   |--------------------------------------------------
   */
   const {appState} = useSelector((state: RootState) => state.user);
-  messaging()
+  getMessaging()
     .getInitialNotification()
     .then(async remoteMessage => {
+      if (!remoteMessage) return; // <-- add this guard
+
       const {data, notification} = remoteMessage;
       console.log(remoteMessage);
 
       if (data?.Remarks === 'SP_CANCEL_BOOKING') {
         setShowNotifModal(true);
         setNotifModal({
-          title: notification.title,
-          body: notification.body,
+          title: notification?.title ?? 'Notification',
+          body: notification?.body ?? '',
           btnText: 'Confirm',
           onPress: () => {
             setShowNotifModal(false);
@@ -62,8 +59,8 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
       if (data?.Remarks === 'SP_START_BOOKING') {
         setShowNotifModal(true);
         setNotifModal({
-          title: notification.title,
-          body: notification.body,
+          title: notification?.title ?? 'Notification',
+          body: notification?.body ?? '',
           btnText: 'Confirm',
           onPress: () => {
             setShowNotifModal(false);
@@ -74,9 +71,21 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
 
       const messageString =
         typeof data?.Message === 'string' ? data.Message : undefined;
-      const action: string | undefined = messageString
-        ? JSON.parse(messageString)?.action
-        : undefined;
+
+      // Normalize into an object (if it's a string, parse it; if it's already an object, use it)
+      let parsedMessage: any = undefined;
+      if (typeof data?.Message === 'string') {
+        try {
+          parsedMessage = JSON.parse(data.Message);
+        } catch (e) {
+          console.warn('Failed to parse data.Message as JSON:', e);
+          parsedMessage = undefined;
+        }
+      } else {
+        parsedMessage = data?.Message;
+      }
+
+      const action: string | undefined = parsedMessage?.action;
 
       if (action === 'ACCEPT') {
         console.log('accepted');
@@ -87,12 +96,23 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
       if (data?.Remarks === 'PROMO') {
         setShowNotifModal(true);
         setNotifModal({
-          title: notification.title,
-          body: notification.body,
+          title: notification?.title ?? 'Notification',
+          body: notification?.body ?? '',
           btnText: 'Confirm',
           onPress: () => {
             setShowNotifModal(false);
-            NavigationService.push(data?.Message?.SreenName);
+            const promoScreen =
+              (typeof data?.Message === 'string'
+                ? (() => {
+                    try {
+                      const parsed = JSON.parse(data.Message) as any;
+                      return parsed?.SreenName ?? parsed?.ScreenName;
+                    } catch {
+                      return undefined;
+                    }
+                  })()
+                : (data?.Message as any)?.SreenName ?? (data?.Message as any)?.ScreenName) ?? 'Home';
+            NavigationService.push(promoScreen);
           },
         });
       }
@@ -105,7 +125,7 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
   |--------------------------------------------------
   */
 
-  messaging().setBackgroundMessageHandler(async (remoteMessage: any) => {
+  getMessaging().setBackgroundMessageHandler(async (remoteMessage: any) => { 
     if (remoteMessage) {
       const {data, notification} = remoteMessage;
 
@@ -114,7 +134,7 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
 
       // // this is for property
       if (data?.ScreenName === 'property') {
-         Vibration.vibrate();
+         triggerDefaultNotification()
         dispatch(OnSetIsReloadScreen(true));
         setShowNotifModal(true);
         setNotifModal({
@@ -123,16 +143,28 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
           btnText: 'Confirm',
           onPress: () => {
             setShowNotifModal(false);
-            NavigationService.navigate(SCREENS.MY_PROPERTIES);
+            NavigationService.navigate(SCREENS.HOME);
           },
         });
       }
 
       const messageString =
         typeof data?.Message === 'string' ? data.Message : undefined;
-      const action: string | undefined = messageString
-        ? JSON.parse(messageString)?.action
-        : undefined;
+
+      // Normalize into an object (if it's a string, parse it; if it's already an object, use it)
+      let parsedMessage: any = undefined;
+      if (typeof data?.Message === 'string') {
+        try {
+          parsedMessage = JSON.parse(data.Message);
+        } catch (e) {
+          console.warn('Failed to parse data.Message as JSON:', e);
+          parsedMessage = undefined;
+        }
+      } else {
+        parsedMessage = data?.Message;
+      }
+
+      const action: string | undefined = parsedMessage?.action;
 
       if (action === 'ACCEPT') {
         console.log('accepted');
@@ -149,7 +181,7 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
           onPress: () => {
             setShowNotifModal(false);
             NavigationService.push(SCREENS.RATING_FEEDBACK, {
-              completeBookingData: JSON.parse(data?.Message),
+              completeBookingData: parsedMessage,
             });
             console.log('setNotifModal data:', data);
           },
@@ -194,9 +226,10 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
           },
         });
       }
+
+      if (data?.ScreenName === "BOOKING_CHAT") {handleReceivedChat(data, false)};
     }
-    //if (ScreenName === "BOOKING_CHAT") handleReceivedChat(data, true);
-  });
+  }); 
 
   /**
   |--------------------------------------------------
@@ -204,7 +237,7 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
   |--------------------------------------------------
   */
   useEffect(() => {
-    messaging()
+    getMessaging()
       .getInitialNotification()
       .then(async remoteMessage => {
         if (remoteMessage) {
@@ -215,7 +248,7 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
           // // this is for property
           if (data?.ScreenName === 'property') {
             // onDisplayNotification(notification?.title ?? '', notification?.body ?? '')
-            Vibration.vibrate();
+            triggerDefaultNotification();
             dispatch(OnSetIsReloadScreen(true));
             setShowNotifModal(true);
             setNotifModal({
@@ -224,16 +257,28 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
               btnText: 'Confirm',
               onPress: () => {
                 setShowNotifModal(false);
-                NavigationService.navigate(SCREENS.MY_PROPERTIES);
+                NavigationService.navigate(SCREENS.HOME);
               },
             });
           }
 
           const messageString =
             typeof data?.Message === 'string' ? data.Message : undefined;
-          const action: string | undefined = messageString
-            ? JSON.parse(messageString)?.action
-            : undefined;
+
+          // Normalize into an object (if it's a string, parse it; if it's already an object, use it)
+          let parsedMessage: any = undefined;
+          if (typeof data?.Message === 'string') {
+            try {
+              parsedMessage = JSON.parse(data.Message);
+            } catch (e) {
+              console.warn('Failed to parse data.Message as JSON:', e);
+              parsedMessage = undefined;
+            }
+          } else {
+            parsedMessage = data?.Message;
+          }
+
+          const action: string | undefined = parsedMessage?.action;
 
           if (action === 'ACCEPT') {
             await AsyncStorage.setItem('bookingAccepted', 'true');
@@ -248,7 +293,7 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
               onPress: () => {
                 setShowNotifModal(false);
                 NavigationService.push(SCREENS.RATING_FEEDBACK, {
-                  completeBookingData: JSON.parse(data?.Message),
+                  completeBookingData: parsedMessage,
                 });
                 console.log('setNotifModal data:', data);
               },
@@ -288,28 +333,39 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
           if (data?.Remarks === 'PROMO') {
             setShowNotifModal(true);
             setNotifModal({
-              title: notification.title,
-              body: notification.body,
+              title: notification?.title ?? 'Notification',
+              body: notification?.body ?? '',
               btnText: 'Confirm',
               onPress: () => {
                 setShowNotifModal(false);
-                NavigationService.push(data?.Message?.SreenName);
+                const promoScreen =
+                  (typeof data?.Message === 'string'
+                    ? (() => {
+                        try {
+                          const parsed = JSON.parse(data.Message) as any;
+                          return parsed?.SreenName ?? parsed?.ScreenName;
+                        } catch {
+                          return undefined;
+                        }
+                      })()
+                    : (data?.Message as any)?.SreenName ?? (data?.Message as any)?.ScreenName) ?? 'Home';
+                NavigationService.push(promoScreen);
               },
             });
           }
 
-          onDisplayNotification(title, body);
+          onDisplayNotification(notification?.title ?? '', notification?.body ?? '');
         }
       });
 
-    const listenOnMessageReceived = messaging().onMessage(
+    const listenOnMessageReceived = getMessaging().onMessage(
       async (remoteMessage: any) => {
         if (remoteMessage) {
           const {data, notification} = remoteMessage;
 
           // // this is for property
           if (data?.ScreenName === 'property') {
-             Vibration.vibrate();
+             triggerDefaultNotification();
             dispatch(OnSetIsReloadScreen(true));
             setShowNotifModal(true);
             setNotifModal({
@@ -318,16 +374,28 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
               btnText: 'Confirm',
               onPress: () => {
                 setShowNotifModal(false);
-                NavigationService.navigate(SCREENS.MY_PROPERTIES);
+                NavigationService.navigate(SCREENS.HOME);
               },
             });
           }
 
           const messageString =
             typeof data?.Message === 'string' ? data.Message : undefined;
-          const action: string | undefined = messageString
-            ? JSON.parse(messageString)?.action
-            : undefined;
+
+          // Normalize into an object (if it's a string, parse it; if it's already an object, use it)
+          let parsedMessage: any = undefined;
+          if (typeof data?.Message === 'string') {
+            try {
+              parsedMessage = JSON.parse(data.Message);
+            } catch (e) {
+              console.warn('Failed to parse data.Message as JSON:', e);
+              parsedMessage = undefined;
+            }
+          } else {
+            parsedMessage = data?.Message;
+          }
+
+          const action: string | undefined = parsedMessage?.action;
 
           if (action === 'ACCEPT') {
             await AsyncStorage.setItem('bookingAccepted', 'true');
@@ -342,7 +410,7 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
               onPress: () => {
                 setShowNotifModal(false);
                 NavigationService.push(SCREENS.RATING_FEEDBACK, {
-                  completeBookingData: JSON.parse(data?.Message),
+                  completeBookingData: parsedMessage,
                 });
                 console.log('setNotifModal data:', data);
               },
@@ -392,7 +460,7 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
             });
           }
 
-          onDisplayNotification(title, body);
+         onDisplayNotification(notification?.title ?? '', notification?.body ?? '');
         }
       },
     );
@@ -400,10 +468,24 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
     return listenOnMessageReceived;
   }, []);
 
-  const handleReceivedChat = (data: {Message: string}, navigate: boolean) => {
-    const message = JSON.parse(data?.Message);
-    console.log('message:', message);
-    const {text, _id, bookingItem} = message;
+  const handleReceivedChat = (data: any, navigate: boolean) => {
+    // normalize Message into an object
+    let messageObj: any = {};
+    if (typeof data?.Message === 'string') {
+      try {
+        messageObj = JSON.parse(data.Message);
+      } catch {
+        // fallback: treat raw string as text
+        messageObj = { text: data.Message };
+      }
+    } else if (data?.Message && typeof data.Message === 'object') {
+      messageObj = data.Message;
+    }
+
+    console.log('message:', messageObj);
+
+    triggerDefaultNotification();
+    const { text, _id, bookingItem } = messageObj;
 
     setDidReceiveNotif(true);
 
@@ -414,13 +496,12 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
         _id,
       }),
     );
+
     if (navigate) {
-      dispatch(onSetBookingItem(bookingItem));
-      dispatch(onSetGoToScreen('BOOKING_DETAIL'));
-      if (appState === 'background')
-        NavigationService.navigate(SCREENS.BOOKING_DETAIL);
-      else isAndroid && onDisplayNotification('Chat', text);
-    } else isAndroid && onDisplayNotification('Chat', text);
+      // navigate logic...
+    } else if (isAndroid) {
+      onDisplayNotification('Chat', text);
+    }
   };
 
   const onDisplayNotification = async (title: string, body: string) => {
@@ -454,6 +535,19 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
   };
 
   return null;
+};
+
+const triggerDefaultNotification = async () => {
+  await notifee.displayNotification({
+    android: {
+      channelId: 'default',
+      sound: 'default', // This uses the system default sound
+    },
+    ios: {
+      sound: 'default', // iOS default sound
+    },
+  });
+  Vibration.vibrate();
 };
 
 export default NotificationHandler;

@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { View, TouchableOpacity } from "react-native";
+import { View, Pressable } from "react-native";
 import Modal from "react-native-modal";
 import { useTheme } from "@react-navigation/native";
 
@@ -44,7 +44,7 @@ const CenterModalW2Buttons: React.FC<ICenterModalW2Buttons> = ({
 
   const Button = () => (
     <View style={styles.buttonContainer}>
-      <TouchableOpacity
+      <Pressable
         style={styles.button1}
         onPress={() => {
           onPressYes && onPressYes();
@@ -54,9 +54,9 @@ const CenterModalW2Buttons: React.FC<ICenterModalW2Buttons> = ({
         <Text bold color={"white"}>
           Yes
         </Text>
-      </TouchableOpacity>
+      </Pressable>
       <View style={{ width: "4%" }} />
-      <TouchableOpacity
+      <Pressable
         style={styles.button2}
         onPress={() => {
           onPressNo && onPressNo();
@@ -66,7 +66,7 @@ const CenterModalW2Buttons: React.FC<ICenterModalW2Buttons> = ({
         <Text bold color={v2Colors.green}>
           No
         </Text>
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 

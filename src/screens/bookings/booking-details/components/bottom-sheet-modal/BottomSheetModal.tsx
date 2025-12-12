@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useMemo, useRef } from "react";
-import { View, StyleProp, ViewStyle, TouchableOpacity } from "react-native";
+import { View, StyleProp, ViewStyle } from "react-native";
 import { useTheme } from "@react-navigation/native";
 import BottomSheet from "@gorhom/bottom-sheet";
 import { isAndroid } from "@freakycoder/react-native-helpers";
@@ -8,13 +8,7 @@ import { isAndroid } from "@freakycoder/react-native-helpers";
  * ? Local imports
  */
 import createStyles from "./BottomSheetModal.style";
-import ChatInput from "../text-input.tsx";
 
-/**
- * ? SVGs
- */
-
-import PHONE from "@assets/v2/chat/icons/phone.svg";
 
 type CustomStyleProp = StyleProp<ViewStyle> | Array<StyleProp<ViewStyle>>;
 
@@ -70,19 +64,6 @@ const BottomContentModal: React.FC<IBottomModalScreenProps> = ({
   /*                               Render Methods                               */
   /* -------------------------------------------------------------------------- */
   const Content = () => <View style={styles.content}>{body}</View>;
-  const InitialContent = () => (
-    <View style={styles.intialContentContainer}>
-      <ChatInput
-        value={text}
-        setValue={setText}
-        setSnapPoint={setSnapPoint}
-        showSoftInputOnFocus={false}
-      />
-      {/* <TouchableOpacity>
-        <PHONE />
-      </TouchableOpacity> */}
-    </View>
-  );
 
   const Sheet = memo(() => (
     <BottomSheet

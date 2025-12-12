@@ -1,5 +1,5 @@
 import React, {useMemo} from 'react';
-import {View, StyleProp, ViewStyle} from 'react-native';
+import {View, StyleProp, ViewStyle,Pressable} from 'react-native';
 import {useTheme} from '@react-navigation/native';
 import Modal from 'react-native-modal';
 import Icon, {IconType} from 'react-native-dynamic-vector-icons';
@@ -10,7 +10,6 @@ import Icon, {IconType} from 'react-native-dynamic-vector-icons';
 import createStyles from './BottomModal.style';
 
 import Text from '@shared-components/text-wrapper/TextWrapper';
-import {TouchableOpacity} from 'react-native-gesture-handler';
 
 type CustomStyleProp = StyleProp<ViewStyle> | Array<StyleProp<ViewStyle>>;
 
@@ -40,11 +39,11 @@ const MiddleModal: React.FC<IMiddleModalScreenProps> = ({
     <View style={styles.content}>
       <Header />
       <View style={styles.body}>{body}</View>
-      <TouchableOpacity style={{flex: 1}} onPress={() => setIsVisible(false)}>
+      <Pressable style={{flex: 1}} onPress={() => setIsVisible(false)}>
         <Text h4 bold color={'black'}>
           {'Done'}
         </Text>
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 
@@ -53,14 +52,14 @@ const MiddleModal: React.FC<IMiddleModalScreenProps> = ({
       <Text h4 bold color={colors.primary}>
         {title}
       </Text>
-      <TouchableOpacity style={{flex: 1}} onPress={() => setIsVisible(false)}>
+      <Pressable style={{flex: 1}} onPress={() => setIsVisible(false)}>
         <Icon
           name="close"
           type={IconType.MaterialIcons}
           color={colors.danger}
           size={25}
         />
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 

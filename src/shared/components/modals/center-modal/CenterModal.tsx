@@ -3,7 +3,7 @@ import {
   View,
   StyleProp,
   ViewStyle,
-  TouchableOpacity,
+  Pressable,
   ScrollView,
 } from 'react-native';
 import {useTheme} from '@react-navigation/native';
@@ -76,11 +76,11 @@ const CenterModal: React.FC<ICenterModalScreenProps> = ({
 
   const Button = () => (
     <View style={styles.buttonContainer}>
-      <TouchableOpacity onPress={onPress} style={styles.button}>
+      <Pressable onPress={onPress} style={styles.button}>
         <Text h4 bold color="white">
           {_.toUpper(buttonText) || ''}
         </Text>
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 

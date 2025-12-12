@@ -1,5 +1,5 @@
-import React, {useMemo, useEffect, useState} from 'react';
-import {View, StyleProp, ViewStyle, TouchableOpacity} from 'react-native';
+import React, {useMemo} from 'react';
+import {View, StyleProp, ViewStyle, Pressable} from 'react-native';
 import {useTheme} from '@react-navigation/native';
 import LottieView from 'lottie-react-native';
 import * as NavigationService from 'react-navigation-helpers';
@@ -54,7 +54,7 @@ const SearchScheduleServiceProviderScreen: React.FC<
 
   const BottomActions = () => (
     <View style={styles.btnContainer}>
-      <TouchableOpacity onPress={onPressHome} style={styles.btn}>
+      <Pressable onPress={onPressHome} style={styles.btn}>
         <Icon
           name="home"
           type={IconType.MaterialIcons}
@@ -65,7 +65,7 @@ const SearchScheduleServiceProviderScreen: React.FC<
         <Text h3 bold color={v2Colors.green}>
           HOME
         </Text>
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 

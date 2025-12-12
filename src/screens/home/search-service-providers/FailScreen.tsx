@@ -1,7 +1,7 @@
 import React, {useEffect, useMemo} from 'react';
-import {View, StyleProp, ViewStyle, TouchableOpacity} from 'react-native';
+import {View, StyleProp, ViewStyle, Pressable} from 'react-native';
 import {useTheme} from '@react-navigation/native';
-import {useDispatch, useSelector} from 'react-redux';
+import {useDispatch} from 'react-redux';
 import * as NavigationService from 'react-navigation-helpers';
 import LottieView from 'lottie-react-native';
 import Icon, {IconType} from 'react-native-dynamic-vector-icons';
@@ -60,19 +60,7 @@ const FailScreen: React.FC<IFailScreenProps> = ({navigation, params}) => {
   /* -------------------------------------------------------------------------- */
   const BottomActions = () => (
     <View style={styles.btnContainer}>
-      {/* <TouchableOpacity onPress={onPressTryAgain} style={styles.btn1}>
-        <Icon
-          name="retweet"
-          type={IconType.AntDesign}
-          color="white"
-          size={20}
-        />
-        <Text h4 bold color="white" style={{paddingLeft: 10}}>
-          Try Again
-        </Text>
-      </TouchableOpacity>
-      <View style={{width: 20}} /> */}
-      <TouchableOpacity onPress={onPressHome}>
+      <Pressable onPress={onPressHome}>
         <Icon
           name="home"
           type={IconType.MaterialIcons}
@@ -80,7 +68,7 @@ const FailScreen: React.FC<IFailScreenProps> = ({navigation, params}) => {
           size={35}
           style={styles.btn2}
         />
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 

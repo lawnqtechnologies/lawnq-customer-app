@@ -3,7 +3,7 @@ import {
   View,
   StyleProp,
   ViewStyle,
-  TouchableOpacity,
+  Pressable,
   Alert,
   TextInput,
 } from "react-native";
@@ -11,7 +11,7 @@ import { useTheme } from "@react-navigation/native";
 import Icon from "react-native-dynamic-vector-icons";
 import { useDispatch, useSelector } from "react-redux";
 import createStyles from "./SupportScreen.style";
-import { RootState } from "../../../../../store";
+import {RootState} from 'store';
 import { SCREENS } from "@shared-constants";
 import Text from "@shared-components/text-wrapper/TextWrapper";
 import KeyboardHandler from "@shared-components/containers/KeyboardHandler";
@@ -87,9 +87,9 @@ const SupportScreen: React.FC<ISupportScreenProps> = ({
   const UploadImage = () => {
     return (
       <View>
-        <TouchableOpacity onPress={selectImage} style={styles.button}>
+        <Pressable onPress={selectImage} style={styles.button}>
           <Text color="white">Select Image</Text>
-        </TouchableOpacity>
+        </Pressable>
         <View style={styles.imageContainer}>
           {imageUri !== null ? (
             <FastImage
@@ -190,6 +190,7 @@ const SupportScreen: React.FC<ISupportScreenProps> = ({
             numberOfLines={2}
             allowFontScaling={false}
             placeholder={"Subject"}
+            placeholderTextColor={theme.colors.primary}
           />
           <TextInput
             ref={textRef}
@@ -203,6 +204,7 @@ const SupportScreen: React.FC<ISupportScreenProps> = ({
             numberOfLines={10}
             allowFontScaling={false}
             placeholder={"Please enter your message here..."}
+            placeholderTextColor={theme.colors.primary}
           />
           <UploadSection />
 

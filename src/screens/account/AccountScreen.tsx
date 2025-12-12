@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
-import {View, StyleProp, ViewStyle, StatusBar} from 'react-native';
+import {View, StyleProp, ViewStyle, StatusBar,Pressable} from 'react-native';
 import {useFocusEffect, useTheme} from '@react-navigation/native';
 import * as NavigationService from 'react-navigation-helpers';
 import FastImage from 'react-native-fast-image';
@@ -15,7 +15,7 @@ import {v2Colors} from '@theme/themes';
 
 import {SCREENS} from '@shared-constants';
 import Text from '@shared-components/text-wrapper/TextWrapper';
-import {ScrollView, TouchableOpacity} from 'react-native-gesture-handler';
+import {ScrollView} from 'react-native-gesture-handler';
 
 /**
  * ? SVGs
@@ -99,22 +99,22 @@ const MenuScreen: React.FC<IMenuScreenProps> = () => {
             <View style={{height: 30}} />
           </View>
 
-          <TouchableOpacity
+          <Pressable
             style={styles.profileButton}
             onPress={() => NavigationService.push(SCREENS.PROFILE)}>
             <Text h5 color={v2Colors.green}>
               Edit Profile
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
-        <TouchableOpacity
+        <Pressable
           onPress={() => {
             dispatch(userLoggedOut());
             NavigationService.navigate(SCREENS.LANDING);
           }}
           style={styles.logoutContainer}>
           <Logout />
-        </TouchableOpacity>
+        </Pressable>
       </View>
     </View>
   );
@@ -122,23 +122,23 @@ const MenuScreen: React.FC<IMenuScreenProps> = () => {
   const Body = () => (
     <View style={{flexGrow: 1, marginTop: 20}}>
       <View style={styles.topContent}>
-        <TouchableOpacity
+        <Pressable
           onPress={() => NavigationService.navigate(SCREENS.PAYMENT)}
           style={styles.squareContainer}>
           <Wallet height={35} width={35} />
           <Text h4 color="black" style={{marginTop: 10}}>
             Wallet
           </Text>
-        </TouchableOpacity>
+        </Pressable>
         <View style={{width: '4%'}} />
-        <TouchableOpacity
+        <Pressable
           onPress={() => NavigationService.navigate(SCREENS.SUPPORT)}
           style={styles.squareContainer}>
           <LifeBuoy height={35} width={35} />
           <Text h4 color="black" style={{marginTop: 10}}>
             Support
           </Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       <View style={{marginTop: 50, marginBottom: 20}}>
@@ -169,14 +169,14 @@ const MenuScreen: React.FC<IMenuScreenProps> = () => {
   );
 
   const ListItem = (icon: JSX.Element, text: string, onPress: () => void) => (
-    <TouchableOpacity style={styles.listItem} onPress={onPress}>
+    <Pressable style={styles.listItem} onPress={onPress}>
       <View style={styles.leftContent}>
         {icon}
         <View style={{width: 12}} />
         <Text h4>{text}</Text>
       </View>
       <ChevronRight />
-    </TouchableOpacity>
+    </Pressable>
   );
 
   const Bottom = () => (

@@ -1,5 +1,5 @@
 import React, {useMemo} from 'react';
-import {View, TouchableOpacity} from 'react-native';
+import {View, Pressable} from 'react-native';
 import Modal from 'react-native-modal';
 import {useTheme} from '@react-navigation/native';
 
@@ -49,7 +49,7 @@ const CenterModalV2: React.FC<ICenterModalV2> = ({
 
   const Button = () => (
     <View style={styles.buttonContainer}>
-      <TouchableOpacity
+      <Pressable
         style={styles.button}
         onPress={() => {
           setTimeout(() => {
@@ -60,7 +60,7 @@ const CenterModalV2: React.FC<ICenterModalV2> = ({
         <Text bold color={'white'}>
           Confirm
         </Text>
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 

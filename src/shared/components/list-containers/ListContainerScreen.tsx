@@ -3,8 +3,7 @@ import {
   View,
   StyleProp,
   ViewStyle,
-  TouchableOpacity,
-  TextInput,
+  Pressable,
   ActivityIndicator,
   FlatList,
   Alert,
@@ -21,13 +20,11 @@ import CHECK_WHITE from '@assets/v2/bookings/icons/check-white.svg';
 import createStyles from './ListContainerScreen.style';
 import Text from '@shared-components/text-wrapper/TextWrapper';
 import {v2Colors} from '@theme/themes';
-import fonts from '@fonts';
 import HeaderContainer from '@shared-components/headers/HeaderContainer';
 
 /**
  * ? SVGs
  */
-import SEARCH from '@assets/v2/list/search.svg';
 import CHEVRON_RIGHT from '@assets/v2/list/chevron-right.svg';
 import AREA from '@assets/v2/list/area.svg';
 import PET from '@assets/v2/list/pet.svg';
@@ -84,12 +81,14 @@ const ListScreen: React.FC<IListScreenProps> = ({route}) => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const dispatch = useDispatch();
-  const {token, customerId, customerInfo, deviceDetails} = useSelector(
+  const {token, deviceDetails} = useSelector(
     (state: RootState) => state.user,
   );
   const {isReloadScreen} = useSelector((state: RootState) => state.property);
 
-  const {data, isSearchable, type, pageTitle, navigateTo} = route.params;
+  const {type, pageTitle, navigateTo} = route.params;
+
+  const [disabled, setDisabled] = useState(false);
 
   /**
    * ? References
@@ -102,8 +101,6 @@ const ListScreen: React.FC<IListScreenProps> = ({route}) => {
    */
   const [items, setItems] = useState<any>();
   const [loading, setLoading] = useState<boolean>(false);
-  const [searchText, setSearchText] = useState<string>('');
-
   /**
   |--------------------------------------------------
   | Side effect
@@ -171,41 +168,6 @@ const ListScreen: React.FC<IListScreenProps> = ({route}) => {
     );
   };
 
-  // ? Search function for finding properties
-  const onSearch = (searchString: string) => {
-    const filteredProperty = items.filter((item: any) =>
-      _.toLower(item.label).includes(searchString.toLowerCase()),
-    );
-
-    setItems(filteredProperty);
-  };
-  const VerifiedStatus = () => (
-    <View style={[styles.statusContainer, {backgroundColor: v2Colors.blue}]}>
-      <Text h4 color={'white'}>
-        {'Verified'}
-      </Text>
-      <View style={{width: 5}} />
-      <CHECK_WHITE />
-    </View>
-  );
-  const PendingStatus = () => (
-    <View style={styles.statusContainer}>
-      <Text h4 color={'white'}>
-        {'Pending'}
-      </Text>
-      <View style={{width: 5}} />
-      <PENDING_WHITE style={{top: 2}} />
-    </View>
-  );
-  const handleReset = () => {
-    setItems([]);
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      setItems(data);
-    }, 1000);
-  };
-
   const addProperty = () => {
     dispatch(onSetIsDefault(false));
     dispatch(onSetPropertyLength(items.length));
@@ -247,6 +209,11 @@ const ListScreen: React.FC<IListScreenProps> = ({route}) => {
      * -----------------------------------------------------
      */
     const handleOnPressPropertyItem = () => {
+        if (disabled) return;
+
+
+        setDisabled(true);
+      setLoading(true);
       if (isActive) {
         if (type === 'property') {
           dispatch(
@@ -277,18 +244,25 @@ const ListScreen: React.FC<IListScreenProps> = ({route}) => {
           dispatch(onSetSelectedServiceType({label, value}));
         type === 'terrainType' &&
           dispatch(onSetSelectedTerrainType({label, value}));
-
+        setLoading(false);
         NavigationService.goBack();
       } else {
+        setLoading(false);
         Alert.alert('This property is not active.');
       }
+       setTimeout(() => setDisabled(false), 500); // re-enable after delay
     };
 
     return (
       <>
-        <TouchableOpacity
+        <Pressable
           onPress={handleOnPressPropertyItem}
-          style={{backgroundColor: isActive ? '#FFFFFF' : '#E1E6E1'}}>
+          onPressIn={() => {setLoading(true)}}
+          onPressOut={() => {setLoading(false)}}
+          style={({pressed}) => ({
+            backgroundColor: isActive ? '#FFFFFF' : '#E1E6E1',
+            opacity: pressed ? 0.7 : 1,
+          })}>
           <View style={styles.topContent}>
             <View style={{width: '85%'}}>
               <View style={styles.isDefaultContainer}>
@@ -357,21 +331,11 @@ const ListScreen: React.FC<IListScreenProps> = ({route}) => {
           <View style={styles.bottomContent}>
             <AREA />
             {renderBottomText(lawnArea)}
-
-            <Separator />
-            <PET />
-            {renderBottomText(!hasPet ? 'No' : 'Yes')}
-
             <Separator />
             <MOW_TYPE />
             {renderBottomText(serviceType.split(' ')[0])}
-
-            <Separator />
-
-            <CHART />
-            {renderBottomText(terrainType)}
           </View>
-        </TouchableOpacity>
+        </Pressable>
       </>
     );
   };
@@ -388,41 +352,17 @@ const ListScreen: React.FC<IListScreenProps> = ({route}) => {
   const Separator = () => <View style={{width: 20}} />;
 
   const AddButton = () => (
-    <TouchableOpacity onPress={() => addProperty()} style={styles.button}>
+    <Pressable onPress={() => addProperty()} style={styles.button}>
       <Text color={'white'}>Add Property</Text>
       <View style={{width: 5}} />
       <PLUS_GREEN />
-    </TouchableOpacity>
+    </Pressable>
   );
 
   return (
     <>
       <HeaderContainer pageTitle={pageTitle} navigateTo={navigateTo} />
       <View style={styles.container}>
-        {/* {isSearchable && (
-          <View style={{marginBottom: 20}}>
-            {!searchText && <SEARCH style={styles.search} />}
-            <TextInput
-              style={styles.searchInputText}
-              placeholder="Search Property"
-              onChangeText={(text: string) => {
-                setLoading(true);
-                setItems([]);
-                setSearchText(() => text);
-
-                setTimeout(() => {
-                  setLoading(false);
-                  onSearch(text);
-                }, 1000);
-              }}
-              defaultValue={searchText}
-              placeholderTextColor={v2Colors.gray}
-              autoCorrect={false}
-              clearButtonMode="always"
-              ref={textRef}
-            />
-          </View>
-        )} */}
 
         {loading && (
           <ActivityIndicator

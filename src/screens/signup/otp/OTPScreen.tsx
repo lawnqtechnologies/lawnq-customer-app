@@ -5,7 +5,7 @@ import {
   ViewStyle,
   Alert,
   ImageBackground,
-  TouchableOpacity,
+  Pressable,
 } from 'react-native';
 import {useFocusEffect, useTheme} from '@react-navigation/native';
 import * as NavigationService from 'react-navigation-helpers';
@@ -16,7 +16,8 @@ import Icon, {IconType} from 'react-native-dynamic-vector-icons';
 import {yupResolver} from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import {useForm} from 'react-hook-form';
-import auth from '@react-native-firebase/auth';
+import auth, { FirebaseAuthTypes } from '@react-native-firebase/auth';
+import { getMessaging, AuthorizationStatus } from '@react-native-firebase/messaging';
 
 /** Local imports */
 import createStyles from './OTPScreen.style';
@@ -39,7 +40,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const IMAGE_BG = '../../../assets/v2/auth/images/image-bg.png';
 const INITIAL_OTP_TIMER = moment().set('minutes', 0).set('second', 30);
-import messaging from '@react-native-firebase/messaging';
 
 type CustomStyleProp = StyleProp<ViewStyle> | Array<StyleProp<ViewStyle>>;
 
@@ -59,14 +59,8 @@ const OTPScreen: React.FC<IOTPScreenProps> = ({route}) => {
   );
 
     const {
-      isUpdate,
-      isUsed,
-      lawnArea,
-      propertyName,
       address,
       geometry,
-      propertyId,
-      addPropURIList,
       selectedPet,
       selectedServiceType,
       selectedTerrainType,
@@ -99,7 +93,7 @@ const OTPScreen: React.FC<IOTPScreenProps> = ({route}) => {
    * State
    */
   const [confirmation, setConfirmation] =
-    useState<auth.ConfirmationResult | null>(null);
+    useState<FirebaseAuthTypes.ConfirmationResult | null>(null);
 
   /** Tracks if user was auto-verified */
   const [isAutoVerified, setIsAutoVerified] = useState<boolean>(false);
@@ -144,7 +138,7 @@ const OTPScreen: React.FC<IOTPScreenProps> = ({route}) => {
 
   // 1) onAuthStateChanged -> detect auto-verification
   useEffect(() => {
-    const subscriber = auth().onAuthStateChanged(async user => {
+    const subscriber = auth().onAuthStateChanged(async (user: FirebaseAuthTypes.User | null) => {
       if (user && !isAutoVerified) {
         setIsAutoVerified(true);
         // Alert.alert('Success', 'Phone number verified automatically!');
@@ -160,7 +154,7 @@ const OTPScreen: React.FC<IOTPScreenProps> = ({route}) => {
                 mobile: route.params?.mobile,
               });
             })
-            .catch(error => {
+            .catch((error: any) => {
               console.error('SignOut error', error);
             });
         } else {
@@ -401,7 +395,7 @@ const OTPScreen: React.FC<IOTPScreenProps> = ({route}) => {
                 AsyncStorage.setItem(CUSTOMER_ID, CustomerId);
                 AsyncStorage.setItem(MOBILE_NO, MobileNuber);
                 dispatch(onUserLogin(CustomerId));
-                // await requestUserPermissionForFirebase();
+                await requestUserPermissionForFirebase();
                 NavigationService.navigate(SCREENS.WELCOME);
               },
             },
@@ -422,10 +416,11 @@ const OTPScreen: React.FC<IOTPScreenProps> = ({route}) => {
   };
 
   const requestUserPermissionForFirebase = async () => {
-    const authStatus = await messaging().requestPermission();
+    const messagingInstance = getMessaging();
+    const authStatus = await messagingInstance.requestPermission();
     const enabled =
-      authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-      authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+      authStatus === AuthorizationStatus.AUTHORIZED ||
+      authStatus === AuthorizationStatus.PROVISIONAL;
 
     if (enabled) {
       console.log('Authorization status:', authStatus);
@@ -447,9 +442,9 @@ const OTPScreen: React.FC<IOTPScreenProps> = ({route}) => {
    */
   const Header = (props: {pageTitle: string}) => (
     <View style={styles.headerContainer}>
-      <TouchableOpacity onPress={() => NavigationService.goBack()}>
+      <Pressable onPress={() => NavigationService.goBack()}>
         <ARROW_LEFT style={{marginTop: 4, marginRight: 10}} />
-      </TouchableOpacity>
+      </Pressable>
       <Text h2 bold color={v2Colors.green}>
         {props.pageTitle}
       </Text>

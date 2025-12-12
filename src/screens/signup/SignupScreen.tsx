@@ -3,7 +3,7 @@ import {
   View,
   StyleProp,
   ViewStyle,
-  TouchableOpacity,
+  Pressable,
   ImageBackground,
   ScrollView,
   Alert,
@@ -270,11 +270,11 @@ const SignupScreen: React.FC<ISignupScreenProps> = ({}) => {
   const SignIn = () => (
     <View style={styles.registerContainer}>
       <Text h4 color={v2Colors.greenShade2}>{`Already have an account? `}</Text>
-      <TouchableOpacity onPress={onLogin}>
+      <Pressable onPress={onLogin}>
         <Text h3 bold style={{paddingVertical: 16}} color={v2Colors.green}>
           Sign In
         </Text>
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 

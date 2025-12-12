@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 import * as NavigationService from 'react-navigation-helpers';
 
@@ -11,7 +11,7 @@ import {useFocusEffect} from '@react-navigation/native';
 import {Alert} from 'react-native';
 import {RootState} from 'store';
 import {onSetLawnURIList} from '@services/states/booking/booking.slice';
-import messaging from '@react-native-firebase/messaging';
+import { getMessaging } from '@react-native-firebase/messaging';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /**
@@ -36,7 +36,7 @@ const SearchSPFunction: React.FC<ISearchSPFunctionProps> = ({params}) => {
   /**
    * ? Redux States
    */
-  const {customerId, token, deviceDetails} = useSelector(
+  const {customerId} = useSelector(
     (state: RootState) => state.user,
   );
   const {property, bookingRefNo, selectedServiceTypeId} = useSelector(
@@ -48,9 +48,7 @@ const SearchSPFunction: React.FC<ISearchSPFunctionProps> = ({params}) => {
   | States
   |--------------------------------------------------s
   */
-  const [waiting, setWaiting] = useState<boolean>(true); // Waiting state
   const [timeLeft, setTimeLeft] = useState<number>(40); // 40-second timer
-  const [timeout, setTimeoutState] = useState<boolean>(false); // Timeout state
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   /**
    * ? On Mount
@@ -73,7 +71,6 @@ const SearchSPFunction: React.FC<ISearchSPFunctionProps> = ({params}) => {
       const bookingAccepted = await AsyncStorage.getItem('bookingAccepted');
       if (bookingAccepted === 'true') {
         clearInterval(interval); // Stop the interval
-        setWaiting(false); // Stop waiting
         console.log('Successfully processed on waiting screen');
         AsyncStorage.removeItem('bookingAccepted');
         NavigationService.navigate(SCREENS.SUCCESS); // Example navigation to success
@@ -88,15 +85,14 @@ const SearchSPFunction: React.FC<ISearchSPFunctionProps> = ({params}) => {
     // Clear the interval if timeLeft reaches 0 or if booking is accepted
     if (timeLeft === 0) {
       clearInterval(interval);
-      setWaiting(false); // Stop waiting
-      setTimeoutState(true); // Mark as timeout
       onQueryFail();
     }
 
     checkBookingAccepted();
 
     // Listen for Firebase Notification for service provider acceptance
-    const unsubscribe = messaging().onMessage(async remoteMessage => {
+    const messagingInstance = getMessaging();
+    const unsubscribe = messagingInstance.onMessage(async remoteMessage => {
       const {data} = remoteMessage;
       const messageString =
         typeof data?.Message === 'string' ? data.Message : undefined;
@@ -106,7 +102,6 @@ const SearchSPFunction: React.FC<ISearchSPFunctionProps> = ({params}) => {
 
       if (action === 'ACCEPT') {
         clearInterval(interval);
-        setWaiting(false); // Stop waiting
         // Navigate to booking success screen
         AsyncStorage.removeItem('bookingAccepted');
         NavigationService.navigate(SCREENS.SUCCESS);
@@ -213,9 +208,7 @@ const SearchSPFunction: React.FC<ISearchSPFunctionProps> = ({params}) => {
         payload,
         (data: any) => {
           if (data.StatusCode === '00') {
-            setWaiting(true);
             setTimeLeft(40); // Reset the timer for retry
-            setTimeoutState(false);
             setIsProcessing(true);
           } else {
             onQueryFail();
@@ -231,9 +224,6 @@ const SearchSPFunction: React.FC<ISearchSPFunctionProps> = ({params}) => {
   };
 
   const onQueryFail = () => {
-    // cancel the payment intent
-
-    setWaiting(false); // Stop waiting
     NavigationService.navigate(SCREENS.FAIL, {params});
   };
   const onFailedAPIcall = () => {

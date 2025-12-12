@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useMemo} from 'react';
-import {View, StyleProp, ViewStyle, TouchableOpacity} from 'react-native';
+import {View, StyleProp, ViewStyle, Pressable} from 'react-native';
 import {useFocusEffect, useTheme} from '@react-navigation/native';
 import * as NavigationService from 'react-navigation-helpers';
 import LottieView from 'lottie-react-native';
@@ -76,7 +76,7 @@ const SuccessScheduleScreen: React.FC<ISuccessScreenProps> = () => {
 
   const ConfirmBtn = () => (
     <View style={styles.confirmBtnContainer}>
-      <TouchableOpacity onPress={onPressContinue} style={styles.confirmBtn}>
+      <Pressable onPress={onPressContinue} style={styles.confirmBtn}>
         <Icon
           name="check"
           type={IconType.Entypo}
@@ -87,7 +87,7 @@ const SuccessScheduleScreen: React.FC<ISuccessScreenProps> = () => {
         <Text h4 bold color="black">
           Continue
         </Text>
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 

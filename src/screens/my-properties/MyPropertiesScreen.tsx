@@ -3,11 +3,10 @@ import {
   View,
   StyleProp,
   ViewStyle,
-  StatusBar,
   FlatList,
-  TextInput,
   ActivityIndicator,
   Alert,
+  Pressable
 } from 'react-native';
 import {useFocusEffect, useTheme} from '@react-navigation/native';
 import * as NavigationService from 'react-navigation-helpers';
@@ -25,7 +24,6 @@ import Text from '@shared-components/text-wrapper/TextWrapper';
 import HeaderContainer from '@shared-components/headers/HeaderContainer';
 
 import {useProperty} from '@services/hooks/useProperty';
-import {TouchableOpacity} from 'react-native-gesture-handler';
 import {v2Colors} from '@theme/themes';
 import WholeScreenLoader from '@shared-components/loaders/WholeScreenLoader';
 /**
@@ -303,7 +301,7 @@ const MyPropertiesScreen: React.FC<IMyPropertiesScreenProps> = () => {
 
     if (!Alias) return null;
     return (
-      <TouchableOpacity
+      <Pressable
         onPress={() =>
           IsActive
             ? onUpdateProperty(item, index)
@@ -374,23 +372,11 @@ const MyPropertiesScreen: React.FC<IMyPropertiesScreenProps> = () => {
         </View>
 
         <View style={styles.bottomContent}>
-          <AREA />
-          {renderBottomText(LawnArea)}
-
-          <Separator />
-          <PET />
-          {renderBottomText(!HasOutdoorPets ? 'No' : 'Yes')}
-
           <Separator />
           <MOW_TYPE />
           {renderBottomText(ServiceType.split(' ')[0])}
-
-          <Separator />
-
-          <CHART />
-          {renderBottomText(TerrainType)}
         </View>
-      </TouchableOpacity>
+      </Pressable>
     );
   };
 
@@ -404,11 +390,11 @@ const MyPropertiesScreen: React.FC<IMyPropertiesScreenProps> = () => {
   );
 
   const AddButton = () => (
-    <TouchableOpacity onPress={() => addProperty()} style={styles.button}>
+    <Pressable onPress={() => addProperty()} style={styles.button}>
       <Text color={'white'}>Add Property</Text>
       <View style={{width: 5}} />
       <PLUS_GREEN />
-    </TouchableOpacity>
+    </Pressable>
   );
 
   return (

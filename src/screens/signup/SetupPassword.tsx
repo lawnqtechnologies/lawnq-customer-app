@@ -3,7 +3,7 @@ import {
   View,
   StyleProp,
   ViewStyle,
-  TouchableOpacity,
+  Pressable,
   ImageBackground,Alert
 } from 'react-native';
 import {useTheme} from '@react-navigation/native';
@@ -174,9 +174,9 @@ const SetupPassword: React.FC<ISetupPasswordScreenProps> = ({route}) => {
 
   const Header = (props: {pageTitle: string}) => (
     <View style={styles.headerContainer}>
-      <TouchableOpacity onPress={() => NavigationService.goBack()}>
+      <Pressable onPress={() => NavigationService.goBack()}>
         <ARROW_LEFT style={{marginTop: 4, marginRight: 10}} />
-      </TouchableOpacity>
+      </Pressable>
       <Text h2 bold color={v2Colors.green}>
         {props.pageTitle}
       </Text>
@@ -259,7 +259,7 @@ const SetupPassword: React.FC<ISetupPasswordScreenProps> = ({route}) => {
               isPassword={!isPassword1Visible}
               isError={errors.password}
               rightIcon={
-                <TouchableOpacity
+                <Pressable
                   onPress={() => {
                     setIsPasswordVisible(!isPassword1Visible);
                   }}>
@@ -276,7 +276,7 @@ const SetupPassword: React.FC<ISetupPasswordScreenProps> = ({route}) => {
                       style={styles.rightIcon}
                     />
                   )}
-                </TouchableOpacity>
+                </Pressable>
               }
             />
           </Tooltip>
@@ -289,7 +289,7 @@ const SetupPassword: React.FC<ISetupPasswordScreenProps> = ({route}) => {
             isPassword={!isPassword1Visible2}
             isError={errors.password2}
             rightIcon={
-              <TouchableOpacity
+              <Pressable
                 onPress={() => {
                   setIsPasswordVisible2(!isPassword1Visible2);
                 }}>
@@ -306,7 +306,7 @@ const SetupPassword: React.FC<ISetupPasswordScreenProps> = ({route}) => {
                     style={styles.rightIcon}
                   />
                 )}
-              </TouchableOpacity>
+              </Pressable>
             }
           />
         </View>

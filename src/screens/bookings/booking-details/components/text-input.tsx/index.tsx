@@ -1,5 +1,5 @@
 import React from "react";
-import { TextInput, TouchableOpacity, View } from "react-native";
+import { TextInput, Pressable, View } from "react-native";
 
 /**
  * ? Local imports
@@ -38,13 +38,13 @@ const ChatInput: React.FC<ITextInput> = ({
         placeholder={"Enter Message"}
       />
       <View style={styles.rightContent}>
-        <TouchableOpacity>
+        <Pressable>
           <SEND />
-        </TouchableOpacity>
+        </Pressable>
 
-        <TouchableOpacity>
+        <Pressable>
           <X />
-        </TouchableOpacity>
+        </Pressable>
       </View>
     </View>
   );

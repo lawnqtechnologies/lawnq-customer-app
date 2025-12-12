@@ -6,7 +6,7 @@ import {
   Platform,
   RefreshControl,
   ScrollView,
-  TouchableOpacity,
+  Pressable,
   View,
 } from 'react-native';
 import {useFocusEffect, useTheme} from '@react-navigation/native';
@@ -122,7 +122,7 @@ const HomeScreen = () => {
   const [selectedGrassHeight, setSelectedGrassHeight] = useState<number>(99);
   const [selectedGrassClippings, setSelectedGrassClippings] =
     useState<number>(2);
-  const [preferredHeight, setPreferredHeight] = useState<number>(99);
+  // const [preferredHeight, setPreferredHeight] = useState<number>(99);
 
   const [error, setError] = useState<Array<any>>([]);
   const [isFetching, setIsFetching] = useState<boolean>(false);
@@ -620,7 +620,7 @@ const HomeScreen = () => {
     request.append('BookingTypeId', selectedServiceType);
     request.append('Remarks', 'Empty');
     request.append('GrassLengthId', selectedGrassHeight || '1');
-    request.append('MowLengthId', preferredHeight || '1');
+    request.append('MowLengthId', '1');
     request.append('BookingServiceTypeId', selectedServiceType || 0);
 
     //--
@@ -663,8 +663,8 @@ const HomeScreen = () => {
       errorArray.push(`Please select a grass height`);
     if (selectedGrassClippings === 2)
       errorArray.push(`Please select grass a clippings option`);
-    if (preferredHeight === 99)
-      errorArray.push(`Please select preffered mow height`);
+    // if (preferredHeight === 99)
+    //   errorArray.push(`Please select preffered mow height`);
 
     if (errorArray.length > 0) {
       setError(errorArray);
@@ -684,8 +684,8 @@ const HomeScreen = () => {
       errorArray.push(`Please select a grass height`);
     if (selectedGrassClippings === 2)
       errorArray.push(`Please select grass a clippings option`);
-    if (preferredHeight === 99)
-      errorArray.push(`Please select preffered mow height`);
+    // if (preferredHeight === 99)
+    //   errorArray.push(`Please select preffered mow height`);
 
     if (errorArray.length > 0) {
       setError(errorArray);
@@ -736,7 +736,7 @@ const HomeScreen = () => {
         STEP 1
       </Text>
       <View style={styles.actionsContainer}>
-        <TouchableOpacity
+        <Pressable
           style={styles.leftActionContainer}
           onPress={handleSelectProperty}>
           <View style={{flexDirection: 'row'}}>
@@ -751,7 +751,7 @@ const HomeScreen = () => {
           </View>
 
           <CHEVRON_RIGHT />
-        </TouchableOpacity>
+        </Pressable>
         <View style={styles.verticalSeparator} />
       </View>
     </>
@@ -762,10 +762,10 @@ const HomeScreen = () => {
       <Text
         color={v2Colors.greenShade2}
         style={{marginBottom: 5, marginTop: 20, fontWeight: 'bold'}}>
-        STEP 6
+        STEP 5
       </Text>
       <View style={styles.dateActionsContainer}>
-        <TouchableOpacity
+        <Pressable
           style={styles.leftActionContainer}
           onPress={async () => {
             if (await _validateBeforeBookSchedule()) {
@@ -791,7 +791,7 @@ const HomeScreen = () => {
             </Text>
           </View>
           <CALENDAR />
-        </TouchableOpacity>
+        </Pressable>
       </View>
     </>
   );
@@ -816,7 +816,7 @@ const HomeScreen = () => {
     const {GrassLengthId, GrassLengthDesc, GrassLengthUnit, PercentageCharge} =
       item.item;
     return (
-      <TouchableOpacity
+      <Pressable
         onPress={() =>
           computeGrassLengthId(GrassLengthId, GrassLengthUnit, PercentageCharge)
         }
@@ -846,7 +846,7 @@ const HomeScreen = () => {
             {GrassLengthUnit}
           </Text>
         </View>
-      </TouchableOpacity>
+      </Pressable>
     );
   };
 
@@ -890,7 +890,7 @@ const HomeScreen = () => {
         Select Lawn Clippings Option
       </Text>
       <View style={styles.grassClippingsContainer}>
-        <TouchableOpacity
+        <Pressable
           onPress={() => {
             setSelectedGrassClippings(0);
             dispatch(onSetGrassClippingsValue({label: 'No', value: '2'}));
@@ -902,10 +902,10 @@ const HomeScreen = () => {
           {selectedGrassClippings === 0 && <GreenCircleCheck />}
           <BIN style={{marginRight: 10}} />
           <Text color={v2Colors.green}>{`I have my\nown bin`}</Text>
-        </TouchableOpacity>
+        </Pressable>
         <View style={{width: '8%'}} />
 
-        <TouchableOpacity
+        <Pressable
           onPress={() => {
             setSelectedGrassClippings(1);
             dispatch(onSetGrassClippingsValue({label: 'Yes', value: '1'}));
@@ -917,76 +917,14 @@ const HomeScreen = () => {
           {selectedGrassClippings === 1 && <GreenCircleCheck />}
           <COLLECT style={{marginRight: 10}} />
           <Text color={v2Colors.green}>{`Collect lawn\nclippings`}</Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
     </>
   );
 
-  const MowCard = (props: {
-    item: {MowLengthId: number; MowLengthDesc: string};
-  }) => {
-    const {MowLengthId, MowLengthDesc} = props.item;
-    return (
-      <TouchableOpacity
-        onPress={() => setPreferredHeight(MowLengthId)}
-        style={[
-          styles.mowHeightCardContainer,
-          preferredHeight === MowLengthId && styles.highlightedBorder,
-        ]}
-        key={MowLengthId}>
-        <Text
-          center
-          color={v2Colors.green}
-          style={{fontSize: 18, marginTop: 30}}>
-          {MowLengthDesc}
-        </Text>
-        {MowLengthId === 1 && (
-          <GRASS_HEIGHT_LOW
-            width={'100%'}
-            style={[styles.grassBottom, {marginBottom: -16}]}
-          />
-        )}
-        {MowLengthId === 2 && (
-          <GRASS_HEIGHT_MEDIUM
-            width={'100%'}
-            style={[styles.grassBottom, {marginBottom: -10}]}
-          />
-        )}
-        {MowLengthId === 3 && (
-          <GRASS_HEIGHT_HIGH width={'100%'} style={[styles.grassBottom]} />
-        )}
-        {preferredHeight === MowLengthId && <GreenCircleCheck />}
-      </TouchableOpacity>
-    );
-  };
-
-  const MowHeight = () => (
-    <>
-      <Text
-        color={v2Colors.greenShade2}
-        style={{marginTop: 30, fontWeight: 'bold'}}>
-        STEP 4
-      </Text>
-      <Text color={v2Colors.green} style={{fontSize: 21}}>
-        Preferred Mowing Height
-      </Text>
-      <Text color={v2Colors.green} style={{marginTop: 5}}>
-        Tip:{' '}
-        <Text color={v2Colors.greenShade2}>
-          Confirm mower height settings with your provider on service day for
-          optimal results
-        </Text>
-      </Text>
-      <View style={styles.mowHeightSelectionContainer}>
-        {mowHeightList.map((item: any, index: number) => {
-          return <MowCard item={item} key={index} />;
-        })}
-      </View>
-    </>
-  );
 
   const ImageUploadAction = (props: any) => (
-    <TouchableOpacity
+    <Pressable
       onPress={() => {
         if (!property.label) {
           const errorArray = ['Please select a property first'];
@@ -1004,7 +942,7 @@ const HomeScreen = () => {
       <Text color={v2Colors.green} style={{fontSize: 12}}>
         {'From Gallery'}
       </Text>
-    </TouchableOpacity>
+    </Pressable>
   );
 
   const renderImages = (value: any) => {
@@ -1023,10 +961,10 @@ const HomeScreen = () => {
       <View style={{flexDirection: 'row'}}>
         <Text
           color={v2Colors.greenShade2}
-          style={{marginBottom: 5, fontWeight: 'bold'}}>
-          STEP 5
+          style={{marginTop: 30,marginBottom:5, fontWeight: 'bold'}}>
+          STEP 4
         </Text>
-        <Text color={v2Colors.orange} style={{marginBottom: 5, marginLeft: 5}}>
+        <Text color={v2Colors.orange} style={{marginTop: 30,marginBottom:10, marginLeft: 5}}>
           (Optional)
         </Text>
       </View>
@@ -1074,7 +1012,7 @@ const HomeScreen = () => {
     </View>
   );
   const DoneButton = ({...props}) => (
-    <TouchableOpacity
+    <Pressable
       style={{
         padding: 20,
         backgroundColor: 'green',
@@ -1092,7 +1030,7 @@ const HomeScreen = () => {
       <Text h3 bold color={'white'}>
         Exit
       </Text>
-    </TouchableOpacity>
+    </Pressable>
   );
   return (
     <>
@@ -1162,9 +1100,6 @@ const HomeScreen = () => {
 
             {/* Collect grass Clippings */}
             <GrassCilippings />
-
-            {/* Preferred mow heigth */}
-            <MowHeight />
 
             {/* Upload Lawn images */}
             <ImageUploads />

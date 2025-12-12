@@ -94,10 +94,12 @@ export default (theme: ExtendedTheme) => {
       alignSelf: "center",
     },
     loadingContainer: {
-      flex: 1,
+      // flex: 1,
+      position:"absolute",
+      alignSelf:"center",
       alignItems: "center",
       justifyContent: "center",
-      marginTop: 50,
+      // marginTop: 50,
     },
     resetContainer: {
       backgroundColor: "rgb(120,0,0)",

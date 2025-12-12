@@ -1,14 +1,15 @@
-import {useFocusEffect, useTheme} from '@react-navigation/native';
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import {useTheme,useIsFocused} from '@react-navigation/native';
+import React, { useEffect, useMemo, useRef, useState} from 'react';
 import {
   ScrollView,
   StyleProp,
   View,
   ViewStyle,
-  TouchableOpacity,
+  Pressable,
   Alert,
+  Linking,
 } from 'react-native';
-import {createPlatformPayPaymentMethod, initPaymentSheet, initStripe, isPlatformPaySupported, PlatformPay, PlatformPayButton, presentPaymentSheet} from '@stripe/stripe-react-native';
+import {initPaymentSheet, initStripe,presentPaymentSheet} from '@stripe/stripe-react-native';
 import {usePayment} from '@services/hooks/usePayment';
 import * as NavigationService from 'react-navigation-helpers';
 import _ from 'lodash';
@@ -28,7 +29,6 @@ import {SCREENS} from '@shared-constants';
 import CommonButton from '@shared-components/buttons/CommonButton';
 import WholeScreenLoader from '@shared-components/loaders/WholeScreenLoader';
 import CenterModalW2Buttons from '@shared-components/modals/center-modal/with-2-buttons';
-import { StripeProvider } from '@stripe/stripe-react-native';
 
 /**
  * ? SVGs
@@ -38,6 +38,7 @@ import VISA from '@assets/v2/payment/images/visa.svg';
 import AMEX from '@assets/v2/payment/images/amex.svg';
 import GREEN_CHECK_CIRCLE from '@assets/v2/common/icons/green-check-circle.svg';
 import {RootState} from 'store';
+import { close } from 'fs';
 
 type CustomStyleProp = StyleProp<ViewStyle> | Array<StyleProp<ViewStyle>>;
 
@@ -95,116 +96,136 @@ const PaymentScreen: React.FC<IPaymentScreenProps> = () => {
   const [showSetDefaultModal, setShowSetDefaultModal] =
     useState<boolean>(false);
   const [showRemoveModal, setShowRemoveModal] = useState<boolean>(false);
-  const [hasFinished, setHasFinished] = useState<boolean>(false);
   const [ready, setReady] = useState<boolean>(false);
-  const [isApplePaySupported, setIsApplePaySupported] = useState(false);
   const [loading, setLoading] = useState<boolean>(false);
-  const [pubkey, setPubkey] = useState<string>('');
-
-  useEffect(() => {
-    (async function () {
-      setIsApplePaySupported(await isPlatformPaySupported());
-    })();
-  }, [isPlatformPaySupported]);
-
-  useFocusEffect(
-    useCallback(() => {
-      getStripeKey();
-      _getWalletInformations();
-    }, []),
-  );
-
+  const [refresh, setRefresh] = useState(0);
   
 
-  const initialisePaymentSheet = async() => {
-      //1) first create setup intent on api
-    const {ClientSecret, CustomerStripeId,StatusCode,StatusMessage} = await _customerSetupIntent()
-      //2) initialize customer intent on stripe
-      console.log(StatusCode,StatusMessage,CustomerStripeId)
+  /**
+   * ? Refs
+   */
+  const initializedRef = useRef(false);  // ✅ prevents multiple init
+  const presentingRef  = useRef(false);  // ✅ prevents double present
 
-        if(StatusCode == "00") {
-        
-      console.log({customerId : CustomerStripeId,
-                setupIntentClientSecret: ClientSecret,
-                merchantDisplayName: "Lawnq",
-                applePay: {
-                  merchantCountryCode: 'AU',
-                },
-                allowsDelayedPaymentMethods: true,})
-
-        const {error} = await initPaymentSheet({
-          customerId : CustomerStripeId,
-          setupIntentClientSecret: ClientSecret,
-          merchantDisplayName: "Lawnq",
-          applePay: {
-            merchantCountryCode: 'AU',
-          },
-          allowsDelayedPaymentMethods: true,
-        });
-
-        if(error) {
-          Alert.alert(`Error code:${error.code}`,error.message);
-          setLoading(false);
-        }else{
-          setReady(true);
-          setLoading(false);
-          _showPaymentSheet();
-        }
-      }
-
+  // this will reload the function everytime screen focused
+const isFocused = useIsFocused();
+useEffect(() => {
+  if (isFocused) {
+    getStripeKey();
+    _getWalletInformations();
   }
+}, [isFocused])
 
-  const _showPaymentSheet =  async()  => {
-    const {error} = await presentPaymentSheet();
-    if(error) {
-      Alert.alert(`Error code: ${error.code}`, error.message);
-      setLoading(false)
-      return;
-    }else{
-      Alert.alert('Success', 'The Subscription was successfully created')
-      setLoading(false)
-      setReady(false)
+const initializePaymentSheet = async () => {
+  if (initializedRef.current) return;
+  try {
+    setLoading(true);
+
+    const { CustomerStripeId, ClientSecret } = await _customerSetupIntent();
+
+    const { error } = await initPaymentSheet({
+      merchantDisplayName: 'Lawnq',
+      customerId: CustomerStripeId,
+      setupIntentClientSecret: ClientSecret,
+      allowsDelayedPaymentMethods: true,
+      defaultBillingDetails: { name: `${customerInfo.Firstname} ${customerInfo.Lastname}` },
+      returnURL:"app.lawnq://app/payment",
+    });
+
+    if (error) {
+      setReady(false);
+      initializedRef.current = false;
+      Alert.alert(`Init error: ${error.code}`, error.message);
+    } else {
+      setReady(true);
+      initializedRef.current = true;
     }
+  } catch (e: any) {
+    setReady(false);
+    initializedRef.current = false;
+    Alert.alert('Initialize error', e?.message ?? 'Unknown error');
+  } finally {
+    setLoading(false);
   }
+};
 
-  //methods
-  // this will get stripe key from the backend
-  const getStripeKey = async () => {
-    const payload = {
-      CustomerToken: token,
-      CustomerId: customerId,
-    };
+const openPaymentSheet = async () => {
+  if (!ready) {
+    Alert.alert('Not ready', 'Payment sheet has not been initialized yet.');
+    return;
+  }
+  if (presentingRef.current) return;    // hard guard
+  presentingRef.current = true;
 
-    customerPaymentKey(
-      payload,
-      (data: any) => {
-        // console.log("customerSetupIntent data:", data);
-        if (data.StatusCode === '00') {
-          data.Data;
-          let stipeKey = data.Data.find(
-            (x: any) => x.StripeKeyName === 'PublishableKey',
-          ).StripeKey;
-          console.log('this is the key');
-          console.log(stipeKey);
-          initStripe({
-            publishableKey: stipeKey,
-            merchantIdentifier: 'merchant.identifier',
-          });
-          // _confirmStripeIntent(data.ClientSecret);
-        } else {
-          Alert.alert(data.StatusMessage);
-        }
-      },
-      (error: any) => {
-        Alert.alert(`Error Code: ${error.code}`, error.message);
-      },
-    );
-  };
+  try {
+    const { error } = await presentPaymentSheet();
+
+    if (error) {
+      // 'Canceled' = user closed; don't re-init, don't re-present
+      if (error.code !== 'Canceled') {
+        // Delay showing an Alert a bit (see #③ below)
+        setTimeout(() => {
+          Alert.alert(`Error code: ${error.code}`, error.message);
+        }, 250);
+
+        NavigationService.replace(SCREENS.PAYMENT);
+
+      }
+    } else {
+      // Delay Alert to avoid re-present flicker (see #③)
+      setTimeout(() => {
+        Alert.alert('Success', 'Your card has been saved!');
+         NavigationService.replace(SCREENS.PAYMENT);
+      }, 250);
+      // To force remount screen 
+      NavigationService.replace(SCREENS.PAYMENT);
+
+    }
+  } finally {
+    presentingRef.current = false;
+    setReady(true);
+    setLoading(false);
+    presentingRef.current = false;
+    _getWalletInformations();
+  }
+};
+
+
+
+// Debounced wrapper: fires immediately once, ignores subsequent taps for 800ms
+const openPaymentSheetDebounced = useMemo(
+  () => _.debounce(() => openPaymentSheet(), 800, { leading: true, trailing: false }),
+  [ready] // rebuild if readiness changes
+);
+
+
+const getStripeKey = () => {
+  const payload = { CustomerToken: token, CustomerId: customerId };
+
+  customerPaymentKey(
+    payload,
+    async (data: any) => {
+      if (data.StatusCode === '00') {
+        const stipeKey = data.Data.find((x: any) => x.StripeKeyName === 'PublishableKey')?.StripeKey;       
+        await initStripe({
+          publishableKey: stipeKey,
+          merchantIdentifier: 'merchant.com.app.lawnq', // or your real merchant id
+          urlScheme: 'app.lawnq',                      // 👈 MUST match Info.plist
+        });
+        await initializePaymentSheet(); // make sure we await this
+      } else {
+        Alert.alert(data.StatusMessage);
+      }
+    },
+    (error: any) => {
+      Alert.alert(`Error Code: ${error.code}`, error.message);
+    },
+  );
+};
 
 const _customerSetupIntent = async (): Promise<ICustomerSetupIntentResponse> => {
 
   setLoading(true);
-
   const payload = {
     CustomerToken: token,
     CustomerId: customerId,
@@ -213,9 +234,6 @@ const _customerSetupIntent = async (): Promise<ICustomerSetupIntentResponse> => 
     Phone: customerInfo.MobileNumber,
     deviceDetails: deviceDetails,
   };
-
-  console.log('payload for setupintent')
-  console.log(payload)
 
   return new Promise<ICustomerSetupIntentResponse>((resolve, reject) => {
     customerSetupIntent(
@@ -237,77 +255,74 @@ const _customerSetupIntent = async (): Promise<ICustomerSetupIntentResponse> => 
   });
 };
 
-  const _getWalletInformations = async () => {
-    const payload = {
-      CustomerToken: token,
-      CustomerId: customerId,
-      PaymentType: 'card',
-      ...deviceDetails,
-    };
+const _getWalletInformations = async () => {
+  const payload = {
+    CustomerToken: token,
+    CustomerId: customerId,
+    PaymentType: 'card',
+    ...deviceDetails,
+  };
+  customerPaymentMethodList(
+    payload,
+    (data: any) => {
+      let resultData = Object.values(data.Data as Array<any>);
+      console.log('resultData:', resultData);
+      let postData = Array<ICustomerPaymentInfo>();
 
-    console.log('----this is always calling----');
+      const hasDefault = resultData.filter(item => item.IsDefault === 1);
+      console.log('hasDefault:', hasDefault);
+      // if (!hasDefault?.length && resultData.length > 0)
+      //   return onSetDefaultCard(resultData[0]?.CustomerStripePaymentId);
 
-    customerPaymentMethodList(
-      payload,
-      (data: any) => {
-        let resultData = Object.values(data.Data as Array<any>);
-        console.log('resultData:', resultData);
-        let postData = Array<ICustomerPaymentInfo>();
+      resultData.map((card: any) => {
+        const {Cards, IsDefault, CustomerStripeId, CustomerStripePaymentId} =
+          card;
+        const {ExpMonth, ExpYear, Fingerprint, Last4, Brand} = Cards;
 
-        const hasDefault = resultData.filter(item => item.IsDefault === 1);
-        console.log('hasDefault:', hasDefault);
-        if (!hasDefault?.length && resultData.length > 0)
-          return onSetDefaultCard(resultData[0]?.CustomerStripePaymentId);
+        const StripeCustomerInfomation: ICustomerPaymentInfo = {
+          CustomerStripeId,
+          CustomerStripePaymentId,
+          ExpMonth,
+          ExpYear,
+          Fingerprint,
+          Last4,
+          Brand,
+          IsDefault,
+        };
+        postData.push(StripeCustomerInfomation);
+      });
+      setLoading(false)
+      return setWalletList(postData);
+    },
+    (error: any) => {
+      console.log('error:', error);
+    },
+  );
+};
 
-        resultData.map((card: any) => {
-          const {Cards, IsDefault, CustomerStripeId, CustomerStripePaymentId} =
-            card;
-          const {ExpMonth, ExpYear, Fingerprint, Last4, Brand} = Cards;
-
-          const StripeCustomerInfomation: ICustomerPaymentInfo = {
-            CustomerStripeId,
-            CustomerStripePaymentId,
-            ExpMonth,
-            ExpYear,
-            Fingerprint,
-            Last4,
-            Brand,
-            IsDefault,
-          };
-          postData.push(StripeCustomerInfomation);
-        });
-        setHasFinished(true);
-        return setWalletList(postData);
-      },
-      (error: any) => {
-        console.log('error:', error);
-      },
-    );
+const onSetDefaultCard = (CustomerStripePaymentId?: string) => {
+  const payload = {
+    CustomerToken: token,
+    CustomerId: Number(customerId),
+    CustomerStripePaymentId:
+    CustomerStripePaymentId || selectedCard?.CustomerStripePaymentId,
+    DeviceDetails: deviceDetails,
   };
 
-  const onSetDefaultCard = (CustomerStripePaymentId?: string) => {
-    const payload = {
-      CustomerToken: token,
-      CustomerId: Number(customerId),
-      CustomerStripePaymentId:
-        CustomerStripePaymentId || selectedCard?.CustomerStripePaymentId,
-      DeviceDetails: deviceDetails,
-    };
-
-    console.log('setIsDefaultCustomerCard payload:', payload);
-    setIsDefaultCustomerCard(
-      payload,
-      (data: any) => {
-        console.log('setIsDefaultCustomerCard data:', data);
-        _getWalletInformations();
-        setExpandedKey(() => '');
-      },
-      (err: any) => {
-        console.log(' setIsDefaultCustomerCard err:', err);
-      },
-    );
-  };
-
+  console.log('setIsDefaultCustomerCard payload:', payload);
+  setIsDefaultCustomerCard(
+    payload,
+    (data: any) => {
+      console.log('setIsDefaultCustomerCard data:', data);
+      setExpandedKey(() => '');
+      _getWalletInformations();
+    },
+    (err: any) => {
+      console.log(' setIsDefaultCustomerCard err:', err);
+      _getWalletInformations();
+    },
+  );
+};
   const onRemoveCard = () => {
     const payload = {
       CustomerToken: token,
@@ -409,7 +424,7 @@ const _customerSetupIntent = async (): Promise<ICustomerSetupIntentResponse> => 
 
   const BottomContent = () => (
     <View style={styles.bottomContentContainer}>
-      <TouchableOpacity
+      <Pressable
         style={styles.updateButton}
         onPress={() => setShowSetDefaultModal(true)}>
         <Icon
@@ -420,15 +435,15 @@ const _customerSetupIntent = async (): Promise<ICustomerSetupIntentResponse> => 
         />
         <View style={{width: 10}} />
         <Text color={v2Colors.green}>Set as default</Text>
-      </TouchableOpacity>
+      </Pressable>
       <View style={styles.divider} />
-      <TouchableOpacity
+      <Pressable
         style={styles.deleteButton}
         onPress={() => setShowRemoveModal(true)}>
         <Icon name="delete" size={20} type={IconType.Feather} color={'black'} />
         <View style={{width: 10}} />
         <Text color={'black'}>Remove</Text>
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 
@@ -436,9 +451,7 @@ const _customerSetupIntent = async (): Promise<ICustomerSetupIntentResponse> => 
     <CenterModalW2Buttons
       isVisible={showSetDefaultModal}
       setIsVisible={setShowSetDefaultModal}
-      onPressYes={() => {
-        onSetDefaultCard;
-      }}
+      onPressYes={onSetDefaultCard}
       text={'Set this card as default?'}
     />
   );
@@ -466,40 +479,15 @@ const _customerSetupIntent = async (): Promise<ICustomerSetupIntentResponse> => 
           </View>
         </ScrollView>
         <View style={styles.buttonContainer}>
-          {/* <CommonButton
-            text={'Done'}
-            onPress={() => NavigationService.goBack()}
-            style={{borderRadius: 5, marginVertical: 5}}
-          /> */}
-          <StripeProvider publishableKey={pubkey}>
-           <CommonButton
-            text={'Add Card'}
-            // onPress={() =>
-            //   NavigationService.navigate(SCREENS.ADD_CARD, {
-            //     screen: SCREENS.PAYMENT,
-            //   })
-            // }
-            isFetching={loading}
-            onPress={initialisePaymentSheet}
-            style={{borderRadius: 5}}
+          <CommonButton
+            text={ready ? 'Add Card' : 'Loading...'}
+            isFetching={loading || presentingRef.current}
+            onPress={openPaymentSheetDebounced}
+            disabled={!ready || loading || presentingRef.current}
+            style={{ borderRadius: 5 }}
           />
-          </StripeProvider>
-
         </View>
       </View>
-  {/* <View >
-      {isApplePaySupported && (
-        <PlatformPayButton
-          onPress={createPaymentMethod}
-          type={PlatformPay.ButtonType.SetUp}
-          appearance={PlatformPay.ButtonStyle.WhiteOutline}
-          style={{
-            width: '65%',
-            height: 50,
-          }}
-        />
-      )}
-    </View> */}
       <SetDefaultModal />
       <RemoveModal />
     </>

@@ -4,11 +4,9 @@ import React, {useEffect, useMemo, useState} from 'react';
 import {
   ScrollView,
   StyleProp,
-  TouchableOpacity,
+  Pressable,
   View,
   ViewStyle,
-  Alert,
-  Switch,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -21,7 +19,7 @@ import {yupResolver} from '@hookform/resolvers/yup';
 import createStyles from './SingupAddressScreen.style';
 import {v2Colors} from '@theme/themes';
 import HeaderContainer from '@shared-components/headers/HeaderContainer';
-import {PROPERTY_MESSAGE, SCREENS} from '@shared-constants';
+import {SCREENS} from '@shared-constants';
 import Text from '@shared-components/text-wrapper/TextWrapper';
 import CommonButton from '@shared-components/buttons/CommonButton';
 import ErrorModal from '@shared-components/modals/error-modal/ErrorModal';
@@ -353,7 +351,7 @@ const SingupAddressScreen: React.FC<IAddPropertyScreenProps> = () => {
     length: number;
     type: string;
   }) => (
-    <TouchableOpacity
+    <Pressable
       style={[
         styles.squareContentContainer,
         {
@@ -394,7 +392,7 @@ const SingupAddressScreen: React.FC<IAddPropertyScreenProps> = () => {
           <GREEN_CHECK_CIRCLE />
         </View>
       )}
-    </TouchableOpacity>
+    </Pressable>
   );
 
   const Footer = () => (
