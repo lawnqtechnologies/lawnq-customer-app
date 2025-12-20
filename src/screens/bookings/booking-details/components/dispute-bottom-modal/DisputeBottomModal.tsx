@@ -3,7 +3,7 @@ import {
   View,
   StyleProp,
   ViewStyle,
-  Pressable,
+  TouchableOpacity,
   TextInput,
 } from 'react-native';
 import {useTheme} from '@react-navigation/native';
@@ -153,9 +153,9 @@ const DisputeBottomModal: React.FC<IDisputeBottomModalProps> = ({
   const UploadImage = () => {
     return (
       <View>
-        <Pressable onPress={selectImage} style={styles.button}>
+        <TouchableOpacity onPress={selectImage} style={styles.button}>
           <Text color="white">Select Image</Text>
-        </Pressable>
+        </TouchableOpacity>
         <View style={styles.imageContainer}>
           {imageUri !== null ? (
             <FastImage
@@ -199,7 +199,7 @@ const DisputeBottomModal: React.FC<IDisputeBottomModalProps> = ({
   /* -------------------------------------------------------------------------- */
   const Header = () => (
     <View style={styles.header}>
-      <Pressable
+      <TouchableOpacity
         onPress={() => {
           setIsVisible(false);
         }}
@@ -210,7 +210,7 @@ const DisputeBottomModal: React.FC<IDisputeBottomModalProps> = ({
           color={v2Colors.lightRed}
           size={25}
         />
-      </Pressable>
+      </TouchableOpacity>
       <Text color={v2Colors.green} style={{fontWeight: '700', fontSize: 22}}>
         Dispute Booking
       </Text>

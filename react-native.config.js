@@ -1,3 +1,5 @@
-export const dependencies = {
-    'lottie-ios': { platforms: { ios: null } }, // block iOS autolink
+module.exports = {
+    dependencies: {
+        'lottie-ios': { platforms: { ios: null } }, // block iOS autolink
+    },
 };

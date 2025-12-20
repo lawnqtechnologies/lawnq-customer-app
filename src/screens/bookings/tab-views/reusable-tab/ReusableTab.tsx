@@ -3,7 +3,7 @@ import {
   View,
   StyleProp,
   ViewStyle,
-  Pressable,
+  TouchableOpacity,
   Animated,
 } from 'react-native';
 import {useTheme} from '@react-navigation/native';
@@ -93,7 +93,7 @@ const ReusableTab: React.FC<IReusableTabProps> = ({data, statusType}) => {
 
     if (!data.length) return null;
     return (
-      <Pressable onPress={() => goToBookingDetails(item, s_count)}>
+      <TouchableOpacity onPress={() => goToBookingDetails(item, s_count)}>
         <Animated.View style={[styles.item, {transform: [{scale}], opacity}]}>
           <View style={styles.column_1}>
             <View style={styles.bookingRefContainer}>
@@ -148,7 +148,7 @@ const ReusableTab: React.FC<IReusableTabProps> = ({data, statusType}) => {
               : moment(BookingDate).format('LLL') || ''}
           </Text>
         </View>
-      </Pressable>
+      </TouchableOpacity>
     );
   };
 

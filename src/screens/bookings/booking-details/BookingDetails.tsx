@@ -4,9 +4,10 @@ import {
   StyleProp,
   ViewStyle,
   ScrollView,
-  Pressable,
+  TouchableOpacity,
   Alert,
   Linking,
+  Image,
 } from 'react-native';
 import {useFocusEffect, useTheme} from '@react-navigation/native';
 import * as NavigationService from 'react-navigation-helpers';
@@ -53,15 +54,36 @@ import CenterModalW2Buttons from '@shared-components/modals/center-modal/with-2-
 import DisputeBottomModal from './components/dispute-bottom-modal/DisputeBottomModal';
 import {isAndroid} from '@freakycoder/react-native-helpers';
 import {RootState} from 'store';
+import fonts from '@fonts';
 import RescheduleModal from './components/reschedule-summary/RescheduleSummary';
 import {usePayment} from '@services/hooks/usePayment';
 import {
   CustomerPaymentInfo,
   ICustomerPaymentInfo,
 } from '@services/models/payment';
+import Loader from '@shared-components/loaders/loader';
+import PENDING from '@assets/v2/bookings/icons/pending.svg';
+import CenterModalV2 from '@shared-components/modals/center-modal/CenterModalV2';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 /**
  * ? Constants
  */
+const INITIAL_BOOKING_DATA = {
+  Alias: '',
+  Address1: '',
+  BookingRefNo: '',
+  BookingStatus: '',
+  BookingTypeDesc: '',
+  CustomerId: '',
+  DateCompleted: '',
+  IntervalTimeLabel: '',
+  LawnAreaLabel: '',
+  PropertyAddId: '',
+  ServiceFee: '',
+  ServiceProviderId: '',
+  ServiceTypeDesc: '',
+  BookingDate: '',
+};
 
 type CustomStyleProp = StyleProp<ViewStyle> | Array<StyleProp<ViewStyle>>;
 
@@ -73,6 +95,7 @@ interface IBookingDetailScreenProps {
 
 const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
   const theme = useTheme();
+  const {colors} = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   /**
@@ -485,40 +508,40 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
   const PendingActions = () => (
     <View style={styles.headerBottomContent}>
       {bookingData?.BookingStatus !== 'IN PROGRESS' && (
-        <Pressable
+        <TouchableOpacity
           style={styles.squareContainer}
           onPress={onPressReschedule}>
           <RESCHEDULE />
           <View style={{width: 20}} />
           <Text color={v2Colors.green}>Reschedule</Text>
-        </Pressable>
+        </TouchableOpacity>
       )}
-      <Pressable
+      <TouchableOpacity
         onPress={onShowCancelModal}
         style={styles.squareContainer}>
         <CANCEL />
         <View style={{width: 20}} />
         <Text color={v2Colors.highlight}>Cancel</Text>
-      </Pressable>
+      </TouchableOpacity>
     </View>
   );
 
   const CompletedActions = () => (
     <View style={styles.headerBottomContent}>
-      <Pressable
+      <TouchableOpacity
         style={styles.squareContainer}
         onPress={onShowDisputeModal}>
         <DISPUTE />
         <View style={{width: 20}} />
         <Text color={v2Colors.green}>Dispute</Text>
-      </Pressable>
-      <Pressable
+      </TouchableOpacity>
+      <TouchableOpacity
         style={styles.squareContainer}
         onPress={getBookingReceipt}>
         <RECEIPT />
         <View style={{width: 20}} />
         <Text color={v2Colors.highlight}>Receipt</Text>
-      </Pressable>
+      </TouchableOpacity>
     </View>
   );
 
@@ -673,7 +696,7 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
 
   const CommunicationActions = () => (
     <View style={styles.commsActionsContainer}>
-      <Pressable onPress={() => setInitChat(true)}>
+      <TouchableOpacity onPress={() => setInitChat(true)}>
         <View style={styles.completeButtonContainer}>
           <Text color={'white'}>Message Provider</Text>
         </View>
@@ -684,7 +707,7 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
             </Text>
           </View>
         )}
-      </Pressable>
+      </TouchableOpacity>
     </View>
   );
 
@@ -702,14 +725,21 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
     setIsConfirmReschedule(false);
   };
 
-  const BodyContent = () => (
-    <CustomChatComponent
-      ServiceProviderId={bookingData?.ServiceProviderId}
-      bookingItem={bookingData}
-      SPInfo={SPinfo}
-      setInitChat={setInitChat}
-      setSnapPoint={setSnapPoint}
-    />
+  // Keep bookingItem stable while chat is open; we only need it to change when switching bookings.
+  const bookingItemForChat = useMemo(() => bookingData, [bookingData?.BookingRefNo]);
+
+  const chatBody = useMemo(
+    () => (
+      <CustomChatComponent
+        ServiceProviderId={bookingItemForChat?.ServiceProviderId}
+        bookingItem={bookingItemForChat}
+        SPInfo={SPinfo}
+        setInitChat={setInitChat}
+        setSnapPoint={setSnapPoint}
+      />
+    ),
+    // Keep stable so BottomSheet content doesn't remount/blink on unrelated parent state updates
+    [bookingItemForChat, SPinfo],
   );
 
   return (
@@ -730,7 +760,7 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
         <CommunicationActions />
       </View>
 
-      {snapPoint === 1 && initChat && <ViewOnTop />}
+      {snapPoint === 0 && initChat && <ViewOnTop />}
 
       {initChat && (
         <BottomSheetModal
@@ -738,7 +768,7 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
             setShowChat(false);
             setInitChat(false);
           }}
-          body={<BodyContent />}
+          body={chatBody}
           snapPoint={snapPoint}
           setSnapPoint={setSnapPoint}
           text={text}
