@@ -211,7 +211,7 @@ const BookingsScreen: React.FC<IReservationsScreenProps> = ({
                 newArrayCompleted.push({...d, s_count: 0});
               if (
                 d.BookingStatus === 'ACCEPTED' ||
-                d.BookingStatus === 'IN PROGRESS'|| d.BookingStatus === 'CANCELLED'
+                d.BookingStatus === 'IN PROGRESS'
               )
                 newArrayOutstanding.push({...d, s_count: 0});
               if (d.BookingStatus === 'DISPUTE')
@@ -231,7 +231,7 @@ const BookingsScreen: React.FC<IReservationsScreenProps> = ({
 
                 if (
                   d.BookingStatus === 'ACCEPTED' ||
-                  d.BookingStatus === 'IN PROGRESS'|| d.BookingStatus === 'CANCELLED'
+                  d.BookingStatus === 'IN PROGRESS'
                 ) {
                   newArrayOutstanding.push({...d, s_count: count});
                   hasPendingNotif = true;
@@ -249,7 +249,7 @@ const BookingsScreen: React.FC<IReservationsScreenProps> = ({
               return newArrayCompleted.push({...d, s_count: 0});
             if (
               (d.BookingStatus === 'ACCEPTED' ||
-                d.BookingStatus === 'IN PROGRESS'|| d.BookingStatus === 'CANCELLED') &&
+                d.BookingStatus === 'IN PROGRESS') &&
               !hasPendingNotif
             )
               return newArrayOutstanding.push({...d, s_count: 0});
