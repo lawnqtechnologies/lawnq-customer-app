@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Alert,
   Linking,
-  Image,
 } from 'react-native';
 import {useFocusEffect, useTheme} from '@react-navigation/native';
 import * as NavigationService from 'react-navigation-helpers';
@@ -61,6 +60,7 @@ import {
   CustomerPaymentInfo,
   ICustomerPaymentInfo,
 } from '@services/models/payment';
+
 import Loader from '@shared-components/loaders/loader';
 import PENDING from '@assets/v2/bookings/icons/pending.svg';
 import CenterModalV2 from '@shared-components/modals/center-modal/CenterModalV2';
@@ -95,7 +95,6 @@ interface IBookingDetailScreenProps {
 
 const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
   const theme = useTheme();
-  const {colors} = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   /**
@@ -693,7 +692,6 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
       </View>
     );
   };
-
   const CommunicationActions = () => (
     <View style={styles.commsActionsContainer}>
       <TouchableOpacity onPress={() => setInitChat(true)}>
@@ -724,7 +722,6 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
   const confirmReschedule = () => {
     setIsConfirmReschedule(false);
   };
-
   // Keep bookingItem stable while chat is open; we only need it to change when switching bookings.
   const bookingItemForChat = useMemo(() => bookingData, [bookingData?.BookingRefNo]);
 

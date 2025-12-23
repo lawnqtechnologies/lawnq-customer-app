@@ -3,7 +3,7 @@ import {
   View,
   StyleProp,
   ViewStyle,
-  TouchableOpacity,
+  Pressable,
   Alert,
 } from 'react-native';
 import {useTheme} from '@react-navigation/native';
@@ -226,7 +226,7 @@ const CalendarModal: React.FC<ICalendarModalProps> = ({
           width={75}
           style={{alignSelf: 'center', marginTop: -28}}
         />
-        <TouchableOpacity
+        <Pressable
           onPress={() => {
             setIsVisible(false);
           }}
@@ -237,7 +237,7 @@ const CalendarModal: React.FC<ICalendarModalProps> = ({
             color={v2Colors.lightRed}
             size={25}
           />
-        </TouchableOpacity>
+        </Pressable>
         <Header />
         <CalendarPicker
           startFromMonday

@@ -1,19 +1,14 @@
 import React, {
-  useEffect,
-  useLayoutEffect,
   useMemo,
-  useRef,
   useState,
 } from 'react';
 import {
   View,
   StyleProp,
   ViewStyle,
-  TouchableOpacity,
+  Pressable,
   Alert,
   Vibration,
-  ActivityIndicator,
-  Animated,
 } from 'react-native';
 import {useTheme} from '@react-navigation/native';
 import Modal from 'react-native-modal';
@@ -256,14 +251,14 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
 */
   const Content = () => (
     <View style={styles.content}>
-      <TouchableOpacity style={styles.closeButton} onPress={closeSummaryModal}>
+      <Pressable style={styles.closeButton} onPress={closeSummaryModal}>
         <Icon
           name="close"
           type={IconType.MaterialIcons}
           color={v2Colors.lightRed}
           size={25}
         />
-      </TouchableOpacity>
+      </Pressable>
       {/* <LikeGreenCircle height={75} width={75} style={styles.icon} /> */}
       {isFetching ? <Header2 /> : <Header />}
 
@@ -295,7 +290,7 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
           </Text>
         </View>
 
-        <TouchableOpacity
+        <Pressable
           style={styles.cardContainer}
           onPress={() => {
             setIsVisible(() => false);
@@ -314,7 +309,7 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
             </View>
           </View>
           <CHEVRON_RIGHT />
-        </TouchableOpacity>
+        </Pressable>
       </View>
       <Confirm />
     </View>
