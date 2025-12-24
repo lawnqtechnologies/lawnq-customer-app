@@ -12,7 +12,7 @@ import {
 import database from '@react-native-firebase/database';
 import storage from '@react-native-firebase/storage';
 import notifee from '@notifee/react-native';
-import {Alert, View, TouchableOpacity, Platform, ActivityIndicator, Text, Image, PermissionsAndroid, Modal} from 'react-native';
+import {Alert, View, Pressablety, Platform, ActivityIndicator, Text, Image, PermissionsAndroid, Modal} from 'react-native';
 import moment from 'moment';
 import _ from 'lodash';
 import {useKeyboard} from '@react-native-community/hooks';
@@ -870,7 +870,7 @@ const CustomChatComponent: React.FC<ICustomChatComponent> = ({
         marginBottom: 20,
       }}>
       {/* Gallery */}
-      <TouchableOpacity
+      <Pressablety
         onPress={onPickFromGallery}
         activeOpacity={0.7}
         style={{
@@ -886,9 +886,9 @@ const CustomChatComponent: React.FC<ICustomChatComponent> = ({
           size={22}
           color={isUploading ? v2Colors.border : v2Colors.green}
         />
-      </TouchableOpacity>
+      </Pressablety>
       {/* Camera */}
-      <TouchableOpacity
+      <Pressablety
         onPress={onPickFromCamera}
         activeOpacity={0.7}
         style={{
@@ -908,7 +908,7 @@ const CustomChatComponent: React.FC<ICustomChatComponent> = ({
             color={v2Colors.green}
           />
         )}
-      </TouchableOpacity>
+      </Pressablety>
       <InputToolbar
         {...props}
         containerStyle={{
@@ -1002,7 +1002,7 @@ const CustomChatComponent: React.FC<ICustomChatComponent> = ({
         // IMPORTANT (Android): give the container an explicit size.
         // Absolute-positioned children (remote overlay / loader) won't size the parent, which can
         // make the image "load" but remain invisible (0 height).
-        <TouchableOpacity
+        <Pressablety
           activeOpacity={0.9}
           onPress={openViewer}
           style={{margin: 3, width: 200, height: 200, borderRadius: 13, overflow: 'hidden', position: 'relative'}}>
@@ -1159,7 +1159,7 @@ const CustomChatComponent: React.FC<ICustomChatComponent> = ({
               />
             </View>
           )}
-        </TouchableOpacity>
+        </Pressablety>
       );
     }
     return null;
@@ -1167,14 +1167,14 @@ const CustomChatComponent: React.FC<ICustomChatComponent> = ({
 
   return (
     <View style={{flex: 1}}>
-      <TouchableOpacity
+      <Pressablety
         style={styles.closeButton}
         onPress={() => {
           setInitChat(false);
           setSnapPoint(0);
         }}>
         <X_RED />
-      </TouchableOpacity>
+      </Pressablety>
 
       <PureGiftedChatComponent
         messages={messages}
@@ -1193,7 +1193,7 @@ const CustomChatComponent: React.FC<ICustomChatComponent> = ({
         animationType="fade"
         onRequestClose={() => setIsImageViewerOpen(false)}>
         <View style={{flex: 1, backgroundColor: 'rgba(0,0,0,0.95)'}}>
-          <TouchableOpacity
+          <Pressablety
             onPress={() => setIsImageViewerOpen(false)}
             activeOpacity={0.8}
             style={{
@@ -1214,9 +1214,9 @@ const CustomChatComponent: React.FC<ICustomChatComponent> = ({
               size={22}
               color="white"
             />
-          </TouchableOpacity>
+          </Pressablety>
 
-          <TouchableOpacity
+          <Pressablety
             activeOpacity={1}
             onPress={() => setIsImageViewerOpen(false)}
             style={{flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 16}}>
@@ -1227,7 +1227,7 @@ const CustomChatComponent: React.FC<ICustomChatComponent> = ({
                 resizeMode="contain"
               />
             ) : null}
-          </TouchableOpacity>
+          </Pressablety>
         </View>
       </Modal>
 

@@ -4,7 +4,7 @@ import {
   StyleProp,
   ViewStyle,
   ScrollView,
-  TouchableOpacity,
+  Pressablety,
   Alert,
   Linking,
 } from 'react-native';
@@ -507,40 +507,40 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
   const PendingActions = () => (
     <View style={styles.headerBottomContent}>
       {bookingData?.BookingStatus !== 'IN PROGRESS' && (
-        <TouchableOpacity
+        <Pressablety
           style={styles.squareContainer}
           onPress={onPressReschedule}>
           <RESCHEDULE />
           <View style={{width: 20}} />
           <Text color={v2Colors.green}>Reschedule</Text>
-        </TouchableOpacity>
+        </Pressablety>
       )}
-      <TouchableOpacity
+      <Pressablety
         onPress={onShowCancelModal}
         style={styles.squareContainer}>
         <CANCEL />
         <View style={{width: 20}} />
         <Text color={v2Colors.highlight}>Cancel</Text>
-      </TouchableOpacity>
+      </Pressablety>
     </View>
   );
 
   const CompletedActions = () => (
     <View style={styles.headerBottomContent}>
-      <TouchableOpacity
+      <Pressablety
         style={styles.squareContainer}
         onPress={onShowDisputeModal}>
         <DISPUTE />
         <View style={{width: 20}} />
         <Text color={v2Colors.green}>Dispute</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
+      </Pressablety>
+      <Pressablety
         style={styles.squareContainer}
         onPress={getBookingReceipt}>
         <RECEIPT />
         <View style={{width: 20}} />
         <Text color={v2Colors.highlight}>Receipt</Text>
-      </TouchableOpacity>
+      </Pressablety>
     </View>
   );
 
@@ -694,7 +694,7 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
   };
   const CommunicationActions = () => (
     <View style={styles.commsActionsContainer}>
-      <TouchableOpacity onPress={() => setInitChat(true)}>
+      <Pressablety onPress={() => setInitChat(true)}>
         <View style={styles.completeButtonContainer}>
           <Text color={'white'}>Message Provider</Text>
         </View>
@@ -705,7 +705,7 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
             </Text>
           </View>
         )}
-      </TouchableOpacity>
+      </Pressablety>
     </View>
   );
 
