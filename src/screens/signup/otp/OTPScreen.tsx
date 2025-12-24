@@ -229,7 +229,6 @@ const OTPScreen: React.FC<IOTPScreenProps> = ({route}) => {
   const onSendOTP = useCallback(async () => {
     setIsFetching(true);
     try {
-      console.log(phoneForOTP, 'jmdd');
       const confirmationResult =
         await auth().signInWithPhoneNumber(phoneForOTP);
       setConfirmation(confirmationResult);

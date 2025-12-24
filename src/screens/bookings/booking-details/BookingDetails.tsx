@@ -53,15 +53,37 @@ import CenterModalW2Buttons from '@shared-components/modals/center-modal/with-2-
 import DisputeBottomModal from './components/dispute-bottom-modal/DisputeBottomModal';
 import {isAndroid} from '@freakycoder/react-native-helpers';
 import {RootState} from 'store';
+import fonts from '@fonts';
 import RescheduleModal from './components/reschedule-summary/RescheduleSummary';
 import {usePayment} from '@services/hooks/usePayment';
 import {
   CustomerPaymentInfo,
   ICustomerPaymentInfo,
 } from '@services/models/payment';
+
+import Loader from '@shared-components/loaders/loader';
+import PENDING from '@assets/v2/bookings/icons/pending.svg';
+import CenterModalV2 from '@shared-components/modals/center-modal/CenterModalV2';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 /**
  * ? Constants
  */
+const INITIAL_BOOKING_DATA = {
+  Alias: '',
+  Address1: '',
+  BookingRefNo: '',
+  BookingStatus: '',
+  BookingTypeDesc: '',
+  CustomerId: '',
+  DateCompleted: '',
+  IntervalTimeLabel: '',
+  LawnAreaLabel: '',
+  PropertyAddId: '',
+  ServiceFee: '',
+  ServiceProviderId: '',
+  ServiceTypeDesc: '',
+  BookingDate: '',
+};
 
 type CustomStyleProp = StyleProp<ViewStyle> | Array<StyleProp<ViewStyle>>;
 
@@ -670,7 +692,6 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
       </View>
     );
   };
-
   const CommunicationActions = () => (
     <View style={styles.commsActionsContainer}>
       <Pressable onPress={() => setInitChat(true)}>
@@ -701,15 +722,21 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
   const confirmReschedule = () => {
     setIsConfirmReschedule(false);
   };
+  // Keep bookingItem stable while chat is open; we only need it to change when switching bookings.
+  const bookingItemForChat = useMemo(() => bookingData, [bookingData?.BookingRefNo]);
 
-  const BodyContent = () => (
-    <CustomChatComponent
-      ServiceProviderId={bookingData?.ServiceProviderId}
-      bookingItem={bookingData}
-      SPInfo={SPinfo}
-      setInitChat={setInitChat}
-      setSnapPoint={setSnapPoint}
-    />
+  const chatBody = useMemo(
+    () => (
+      <CustomChatComponent
+        ServiceProviderId={bookingItemForChat?.ServiceProviderId}
+        bookingItem={bookingItemForChat}
+        SPInfo={SPinfo}
+        setInitChat={setInitChat}
+        setSnapPoint={setSnapPoint}
+      />
+    ),
+    // Keep stable so BottomSheet content doesn't remount/blink on unrelated parent state updates
+    [bookingItemForChat, SPinfo],
   );
 
   return (
@@ -730,7 +757,7 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
         <CommunicationActions />
       </View>
 
-      {snapPoint === 1 && initChat && <ViewOnTop />}
+      {snapPoint === 0 && initChat && <ViewOnTop />}
 
       {initChat && (
         <BottomSheetModal
@@ -738,7 +765,7 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
             setShowChat(false);
             setInitChat(false);
           }}
-          body={<BodyContent />}
+          body={chatBody}
           snapPoint={snapPoint}
           setSnapPoint={setSnapPoint}
           text={text}
