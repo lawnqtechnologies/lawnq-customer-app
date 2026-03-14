@@ -15,7 +15,7 @@ import Geocoder from 'react-native-geocoding';
 import BottomSheet from '@gorhom/bottom-sheet';
 import Geolocation from '@react-native-community/geolocation';
 import WholeScreenLoader from '@shared-components/loaders/WholeScreenLoader';
-// import 'react-native-get-random-values';
+import 'react-native-get-random-values';
 /**
  * ? Local imports
  */
@@ -102,6 +102,11 @@ const SignUpLocatePropertyAddress: React.FC<ILocatePropertyAddress> = ({
    */
 
   useEffect(() => {
+    // GooglePlacesAutocomplete expects navigator.geolocation for currentLocation.
+    const globalAny = global as any;
+    globalAny.navigator = globalAny.navigator || {};
+    globalAny.navigator.geolocation = Geolocation;
+
     if (Platform.OS === 'ios') {
       requestLocationPermission();
     } else {
@@ -299,9 +304,10 @@ const SignUpLocatePropertyAddress: React.FC<ILocatePropertyAddress> = ({
               const newLat: number = Number(details?.geometry.location.lat);
               const newLng: number = Number(details?.geometry.location.lng);
               const newUrl: string = details?.url || '';
-
-              console.log('-------details')
-              console.log(details);
+              const selectedDescription: string =
+                data?.description ??
+                data?.structured_formatting?.main_text ??
+                '';
 
               dispatch(
                 onSetGeometry({
@@ -356,7 +362,7 @@ const SignUpLocatePropertyAddress: React.FC<ILocatePropertyAddress> = ({
                   console.log(error);
                 });
 
-              setDesc(data.description);
+              setDesc(selectedDescription);
               setI(() => 0);
               SetURL(newUrl);
 

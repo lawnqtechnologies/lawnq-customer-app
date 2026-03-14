@@ -178,6 +178,7 @@ const Navigation = () => {
       }}
       theme={isDarkMode ? DarkTheme : LightTheme}>
       <Stack.Navigator
+        initialRouteName={SCREENS.WELCOME}
         screenOptions={{headerShown: false, headerMode: 'screen'}}>
         <Stack.Screen name={SCREENS.LANDING} component={LandingScreen} />
         <Stack.Screen name={SCREENS.LOGIN} component={LoginScreen} />

@@ -2439,9 +2439,9 @@ PODS:
   - React-Mapbuffer (0.74.2):
     - glog
     - React-debug
-  - react-native-config (1.6.0):
-    - react-native-config/App (= 1.6.0)
-  - react-native-config/App (1.6.0):
+  - react-native-config (1.6.1):
+    - react-native-config/App (= 1.6.1)
+  - react-native-config/App (1.6.1):
     - React-Core
   - react-native-date-picker (5.0.13):
     - React-Core
@@ -2851,7 +2851,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - RNGestureHandler (2.29.1):
+  - RNGestureHandler (2.16.1):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -2966,7 +2966,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - RNSVG (15.15.0):
+  - RNSVG (15.12.1):
     - React-Core
   - RNVectorIcons (10.3.0):
     - DoubleConversion
@@ -3414,7 +3414,7 @@ SPEC CHECKSUMS:
   React-jsitracing: d56e7d2c109265f1c5cef24cc4a9220a71c396e5
   React-logger: 70e002e04cc56ff5c12157537405d1644c050703
   React-Mapbuffer: 39d399e4d1115ba93442df1470e2ba8baef4b569
-  react-native-config: 0359788b7d461540c4774f52679d5d01fbff79e6
+  react-native-config: 8ebcf99c9ed605aea6ecea5ecb80416c63f0fbdc
   react-native-date-picker: 2eca217a8fb09c517f5bb6b23978718c6cec59ec
   react-native-geolocation: 4ec47ba1f4dd64272eb4179f6e1301432e6828c5
   react-native-get-random-values: d16467cf726c618e9c7a8c3c39c31faa2244bbba
@@ -3462,12 +3462,12 @@ SPEC CHECKSUMS:
   RNFBMessaging: 6857871d9dff8f26b0c325fc7d97ba69cb77d213
   RNFBStorage: f1869dc67955c3cfe17ed7d18e075e9783346c2b
   RNFlashList: af84af3b9975839d449fee88143070c50dd49ca0
-  RNGestureHandler: 1bf09c0b91a5967972c7c24817693d6eca328046
+  RNGestureHandler: 13ac4bbb208df9231e84b21615afcf3a4bda34a2
   RNNotifee: 271cfeb505183d2cd1b858c14c3968b6ca30a642
   RNPermissions: 54817f6eb7d20fdc992b59749add4d60a458d4cf
   RNReanimated: bd8e5335a5b35fab464c8a1317a1884ecce455e6
   RNScreens: 9ffe14a19aa4fecfe49ead4cfea952cba63e02f5
-  RNSVG: adbd96951dce29f1637dd78e0decdd9dc8f19ae7
+  RNSVG: d39a9be65c439dfb061955f7615f1f71a51ecede
   RNVectorIcons: b99459bc8fad0e571c6e11bf38ac25b4b0f0f54c
   SDWebImage: a7f831e1a65eb5e285e3fb046a23fcfbf08e696d
   SDWebImageWebPCoder: 908b83b6adda48effe7667cd2b7f78c897e5111d

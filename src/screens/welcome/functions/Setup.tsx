@@ -13,6 +13,7 @@ import {RootState} from 'store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useAuth} from '@services/hooks/useAuth';
 import {onSetToken, onUserLogin} from '@services/states/user/user.slice';
+import {SystemInfo} from 'utils/system/SystemGetters';
 import {
   onSetBookingIntervalServiceTimeValue,
   onSetBookingServiceTypeValue,
@@ -20,11 +21,6 @@ import {
   onSetLawnImages,
   onSetProperty,
 } from '@services/states/booking/booking.slice';
-
-/**
- * Global Constants
- */
-const TIMER = 5500;
 
 const Setup: React.FC<any> = () => {
   const {TOKEN, CUSTOMER_ID} = AUTHENTICATION;
@@ -61,8 +57,10 @@ const Setup: React.FC<any> = () => {
   */
   const onGetDetails = async () => {
     console.log('onGetDetails');
-    onGetToken();
-    onSetMessagingConfig();
+    const token = await onGetToken();
+    if (token) {
+      onSetMessagingConfig();
+    }
     resetBookingDetails();
   };
 
@@ -85,10 +83,6 @@ const Setup: React.FC<any> = () => {
     messagingInstance
       .getToken()
       .then(token => {
-        console.log('===================================deviceId');
-        console.log(token);
-        console.log('end========================================');
-
         return saveTokenToDatabase(token);
       })
       .catch(err => console.log('getToken error:', err));
@@ -105,13 +99,49 @@ const Setup: React.FC<any> = () => {
 
   const saveTokenToDatabase = async (deviceId: any) => {
     console.log('deviceId:', deviceId);
+    if (!deviceId) return;
+
+    const token = await onGetToken();
     const id = await onGetCustomerId();
+    if (!token || !id) return;
+
+    const fallbackDeviceDetails = {
+      AppVersion: SystemInfo.AppVersion || '0',
+      Platform: SystemInfo.Platform || 'ios',
+      PlatformOs: SystemInfo.PlatformOs || 'ios',
+      DeviceVersion: SystemInfo.DeviceVersion || '0',
+      DeviceModel: SystemInfo.DeviceModel || 'Unknown',
+      MacAddress: SystemInfo.MacAddress || '22:22:22:22:22:22',
+      IpAddress: '000.000.0.0',
+    };
+
+    const normalizedDeviceDetails = {
+      ...fallbackDeviceDetails,
+      ...deviceDetails,
+      AppVersion:
+        (deviceDetails as any)?.AppVersion || fallbackDeviceDetails.AppVersion,
+      Platform:
+        (deviceDetails as any)?.Platform || fallbackDeviceDetails.Platform,
+      PlatformOs:
+        (deviceDetails as any)?.PlatformOs || fallbackDeviceDetails.PlatformOs,
+      DeviceVersion:
+        (deviceDetails as any)?.DeviceVersion ||
+        fallbackDeviceDetails.DeviceVersion,
+      DeviceModel:
+        (deviceDetails as any)?.DeviceModel || fallbackDeviceDetails.DeviceModel,
+      MacAddress:
+        (deviceDetails as any)?.MacAddress || fallbackDeviceDetails.MacAddress,
+      IpAddress:
+        (deviceDetails as any)?.IpAddress ||
+        (deviceDetails as any)?.ipAddress ||
+        fallbackDeviceDetails.IpAddress,
+    };
 
     const payload = {
-      CustomerToken: await onGetToken(),
+      CustomerToken: token,
       CustomerId: id,
       DeviceId: deviceId,
-      DeviceDetails: deviceDetails,
+      DeviceDetails: normalizedDeviceDetails,
     };
 
     updateDeviceId(
@@ -120,8 +150,9 @@ const Setup: React.FC<any> = () => {
         console.log('saveTokenToDatabase data:', data);
         dispatch(onUserLogin(id));
       },
-      error => {
-        console.log('saveTokenToDatabase error:', error);
+      (error: any) => {
+        console.log('saveTokenToDatabase error status:', error?.response?.status);
+        console.log('saveTokenToDatabase error data:', error?.response?.data);
         Alert.alert('System', 'Something went wrong, please try again.', [
           {
             text: 'Confirm',

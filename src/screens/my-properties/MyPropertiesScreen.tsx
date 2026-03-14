@@ -29,12 +29,8 @@ import WholeScreenLoader from '@shared-components/loaders/WholeScreenLoader';
 /**
  * ? SVGs
  */
-import SEARCH from '@assets/v2/list/search.svg';
 import CHEVRON_RIGHT from '@assets/v2/list/chevron-right.svg';
-import AREA from '@assets/v2/list/area.svg';
-import PET from '@assets/v2/list/pet.svg';
 import MOW_TYPE from '@assets/v2/list/mow-type.svg';
-import CHART from '@assets/v2/list/chart.svg';
 import PLUS_GREEN from '@assets/v2/common/icons/plus-green.svg';
 import {RootState} from 'store';
 import {
@@ -307,16 +303,16 @@ const MyPropertiesScreen: React.FC<IMyPropertiesScreenProps> = () => {
             ? onUpdateProperty(item, index)
             : Alert.alert('This property is not active.')
         }
-        style={{backgroundColor: IsActive ? '#FFFFFF' : '#E1E6E1'}}>
+        style={{backgroundColor:'#FFFFFF'}}>
         <View style={styles.topContent}>
           <View style={{width: '85%'}}>
             <View style={styles.isDefaultContainer}>
-              <Text
+              {/* <Text
                 bold
                 color={'rgba(0,0,0,0.7)'}
                 style={{marginBottom: 4, fontSize: 16}}>
                 {_.upperFirst(Alias)}
-              </Text>
+              </Text> */}
               <View style={{flexDirection: 'row'}}>
                 {!IsActive ? (
                   <View style={styles.pendingStatusPropContainer}>
@@ -361,7 +357,7 @@ const MyPropertiesScreen: React.FC<IMyPropertiesScreenProps> = () => {
               </View>
             </View>
             <View style={styles.addressContainer}>
-              <Text h5 color={'rgba(0,0,0,0.7)'}>
+              <Text h5 color={'rgba(0,0,0,0.79)'}>
                 {Address}
               </Text>
             </View>

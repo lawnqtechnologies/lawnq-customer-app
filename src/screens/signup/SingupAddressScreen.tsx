@@ -46,6 +46,7 @@ import CenterModalW2Buttons from '@shared-components/modals/center-modal/with-2-
 import {RootState} from 'store';
 import {
   onResetAddPropertyStates,
+  onSetAddress,
   onSetLawnArea,
   onSetPropertyName,
   onSetRemarks,
@@ -96,6 +97,9 @@ interface IAddPropertyScreenProps {
 }
 
 type PropertyFormData = InferType<typeof PropertySchema>;
+type SignupAddressFormData = PropertyFormData & {
+  confirmedAddress: string;
+};
 
 const SingupAddressScreen: React.FC<IAddPropertyScreenProps> = () => {
   const theme = useTheme();
@@ -145,6 +149,9 @@ const SingupAddressScreen: React.FC<IAddPropertyScreenProps> = () => {
   const [showModal, setShowModal] = useState<boolean>(false);
   const [modalText, setModalText] = useState<string>('');
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
+  const [showConfirmAddress, setShowConfirmAddress] = useState<boolean>(false);
+  const onToggleConfirmAddress = () =>
+    setShowConfirmAddress(previousState => !previousState);
 
   // ? Form
   const {
@@ -153,11 +160,13 @@ const SingupAddressScreen: React.FC<IAddPropertyScreenProps> = () => {
     reset,
     getValues,
     handleSubmit,
-  } = useForm<PropertyFormData>({
+    setValue,
+  } = useForm<SignupAddressFormData>({
     defaultValues: useMemo(() => {
       return {
         propertyName,
         address,
+        confirmedAddress: '',
         lawnArea,
         Country,
         StreetName,
@@ -175,6 +184,7 @@ const SingupAddressScreen: React.FC<IAddPropertyScreenProps> = () => {
     reset({
       propertyName,
       address,
+      confirmedAddress: '',
       lawnArea,
       Country,
       StreetName,
@@ -196,6 +206,12 @@ const SingupAddressScreen: React.FC<IAddPropertyScreenProps> = () => {
     PostalCode,
     Remarks,
   ]);
+
+  useEffect(() => {
+    if (showConfirmAddress) {
+      setValue('confirmedAddress', address ?? '');
+    }
+  }, [address, setValue, showConfirmAddress]);
 
   /**
    * ? On Mount
@@ -264,20 +280,27 @@ const SingupAddressScreen: React.FC<IAddPropertyScreenProps> = () => {
 
 
   const onSaveProperty = async () => {
-    // setIsFetching(true);
-    const values = getValues();
-    let request = new FormData();
-
      onSetShowModal("We’re reviewing your lawn size and terrain type. This usually takes 5 minutes to a few hours. You’ll receive a notification once it’s done, then you can request your free instant quote.");
   };
 
   const setValuesOnChangeScreen = () => {
     const values = getValues();
-    const {propertyName, lawnArea, Remarks} = values;
+    const {propertyName, lawnArea, Remarks, confirmedAddress, address} = values;
+    const dispatchedValues = {
+      Remarks,
+      propertyName,
+      lawnArea,
+      address: showConfirmAddress ? confirmedAddress : address,
+    };
+
+    console.log('Dispatching signup property values:', dispatchedValues);
 
     dispatch(onSetRemarks(Remarks));
     dispatch(onSetPropertyName(propertyName));
     dispatch(onSetLawnArea(lawnArea));
+    // if the user has toggled to change address, we want to save the updated address in redux so that when they come back to this screen,
+    // they can see the updated address in the input field. If they haven't toggled, then we just save the original address in redux again.
+    dispatch(onSetAddress(showConfirmAddress ? confirmedAddress : address));
   };
 
   const onDeleteProperty = () => {
@@ -315,6 +338,12 @@ const SingupAddressScreen: React.FC<IAddPropertyScreenProps> = () => {
   const onGoBack = () => {
     NavigationService.goBack();
     onUnsetShowModal();
+  };
+
+  const onChangeConfirmedAddress = (text: string) => {
+    setValue('confirmedAddress', text);
+    setValue('address', text);
+    dispatch(onSetAddress(text));
   };
 
   /* -------------------------------------------------------------------------- */
@@ -442,25 +471,61 @@ const SingupAddressScreen: React.FC<IAddPropertyScreenProps> = () => {
                   Property Address
                 </Text>
                 <View>
-                  <InputText
-                    control={control}
-                    name="address"
-                    label="Address"
-                    onFocus={locateProperty}
-                    rightIcon={<PIN height={20} width={20} />}
-                    style={{
-                      flex: 1,
-                      height: 80,
-                      alignContent: 'center',
-                      alignItems: 'center',
-                    }}
-                    textStyle={{
-                      textAlignVertical: 'top',
-                      fontSize: 15,
-                      fontFamily: fonts.lexend.regular,
-                    }}
-                    multiline={true}
-                  />
+                  {!showConfirmAddress && (
+                    <InputText
+                      control={control}
+                      name="address"
+                      label="Address"
+                      onFocus={locateProperty}
+                      rightIcon={<PIN height={20} width={20} />}
+                      style={{
+                        flex: 1,
+                        height: 80,
+                        alignContent: 'center',
+                        alignItems: 'center',
+                      }}
+                      textStyle={{
+                        textAlignVertical: 'top',
+                        fontSize: 15,
+                        fontFamily: fonts.lexend.regular,
+                      }}
+                      multiline={true}
+                    />
+                  )}
+                  <Spacer2 />
+                  <Pressable
+                    style={{alignSelf: 'flex-start', marginBottom: 8}}
+                    onPress={onToggleConfirmAddress}>
+                    <Text
+                      color={v2Colors.green}
+                      style={{
+                        fontWeight: '600',
+                        textDecorationLine: 'underline',
+                      }}>
+                      Wrong address? Update it here.
+                    </Text>
+                  </Pressable>
+                  {showConfirmAddress && (
+                    <InputText
+                      control={control}
+                      name="confirmedAddress"
+                      label="Address"
+                      onChangeText={onChangeConfirmedAddress}
+                      rightIcon={<PIN height={20} width={20} />}
+                      style={{
+                        flex: 1,
+                        height: 80,
+                        alignContent: 'center',
+                        alignItems: 'center',
+                      }}
+                      textStyle={{
+                        textAlignVertical: 'top',
+                        fontSize: 15,
+                        fontFamily: fonts.lexend.regular,
+                      }}
+                      multiline={true}
+                    />
+                  )}
                   <Spacer2 />
                 </View>
                 <Spacer />

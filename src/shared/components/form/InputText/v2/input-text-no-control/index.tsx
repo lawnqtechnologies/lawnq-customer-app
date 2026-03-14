@@ -8,7 +8,7 @@ import { View, TextInput, KeyboardTypeOptions } from "react-native";
 import createStyles from "./style";
 
 interface IInputTextNoControl {
-  value: string;
+  value: string | undefined | null;
   setValue: Function;
   label: string;
   contentContainerStyle?: any;
@@ -39,7 +39,7 @@ const InputTextNoControl: React.FC<IInputTextNoControl> = ({
     <View style={[styles.container, contentContainerStyle]}>
       <TextInput
         style={[styles.textInput, style]}
-        defaultValue={value.toString()}
+        defaultValue={(value ?? "").toString()}
         onChangeText={(text: string) => setValue(text)}
         placeholder={label}
         maxLength={maxLength}

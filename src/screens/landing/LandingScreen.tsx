@@ -47,17 +47,20 @@ const LandingScreen: React.FC<ILandingScreenProps> = ({}) => {
   const assessUserToken = async () => {
     const cid = (await AsyncStorage.getItem(CUSTOMER_ID)) || 0;
     dispatch(onUserLogin(cid));
-
+    // When token is absent, navigate to Login Screen
     const token = (await AsyncStorage.getItem(TOKEN)) || '';
-    if (!!token) return NavigationService.navigate(SCREENS.WELCOME);
-    return NavigationService.navigate(SCREENS.LOGIN);
+    console.log('token ---')
+    console.log(token)
+    if (!token) {
+      return NavigationService.navigate(SCREENS.LOGIN);
+    }
   };
 
   const setDeviceDetails = async () => {
     const dispatchDeviceDetails = (ip: string) => {
       const deviceDetails = {
         ...SystemInfo,
-        ipAddress: ip,
+        IpAddress: ip,
       };
       dispatch(onSetDeviceDetails(deviceDetails));
     };

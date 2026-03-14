@@ -16,15 +16,8 @@ import * as NavigationService from 'react-navigation-helpers';
 import createStyles from './WelcomeScreen.style';
 import Setup from './functions/Setup';
 import {SCREENS} from '@shared-constants';
-import {useSelector} from 'react-redux';
-import {RootState} from 'store';
 import LandingScreen from '@screens/landing/LandingScreen';
 
-/**
- * ? Constants
- */
-const ANIMATION =
-  '../../assets/animations/custom-lottie-animation/logo-animation.json';
 const TIMER = 5000;
 
 type CustomStyleProp = StyleProp<ViewStyle> | Array<StyleProp<ViewStyle>>;
@@ -37,11 +30,6 @@ interface IWelcomeScreenProps {
 const WelcomeScreen: React.FC<IWelcomeScreenProps> = () => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
-
-  /**
-   * ? Redux States
-   */
-  const {goToScreen} = useSelector((state: RootState) => state.booking);
 
   /**
    * ? References
@@ -69,22 +57,6 @@ const WelcomeScreen: React.FC<IWelcomeScreenProps> = () => {
       useNativeDriver: true,
     }).start();
   };
-
-  const Animation = () => (
-    <LottieView
-      source={require('@assets/animations/custom-lottie-animation/logo-animation.json')}
-      autoPlay
-      loop={false}
-      style={{flex: 1}}
-      onAnimationFinish={() => {
-        // take note dispatch of onSetGoToScreen will be the exact screen for example SCREENS.BOOKING_DETAIL
-        // this will be available on Notification handler
-        // if (goToScreen) return NavigationService.navigate(SCREENS.HOME);
-        // let _goToScreen = goToScreen !== undefined ? goToScreen : SCREENS.HOME;
-        NavigationService.navigate(SCREENS.HOME);
-      }}
-    />
-  );
 
   return (
     <View style={styles.container}>

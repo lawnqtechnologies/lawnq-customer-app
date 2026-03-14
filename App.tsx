@@ -17,7 +17,7 @@ import BackgroundActivityHandler from 'shared/functions/BackgroundActivityHandle
 import NotificationHandler from 'shared/functions/NoficationHandler';
 import ChatCountHandler from 'shared/functions/ChatCountHandler';
 import CenterModal from '@shared-components/modals/center-modal/CenterModal';
-import {LogBox} from 'react-native';
+import {LogBox, Text} from 'react-native';
 export const queryClient = new QueryClient();
 
 
@@ -61,7 +61,6 @@ const App = () => {
           <SafeAreaProvider>
             <Navigation />
             <BackgroundActivityHandler />
-
             <NotificationHandler
               setNotifModal={setNotifModal}
               setShowNotifModal={setShowNotifModal}

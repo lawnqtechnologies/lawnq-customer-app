@@ -196,7 +196,7 @@ const SignupScreen: React.FC<ISignupScreenProps> = ({}) => {
   };
 
   const onLogin = () => {
-    NavigationService.goBack();
+    NavigationService.navigate(SCREENS.LOGIN);
   };
 
   /**

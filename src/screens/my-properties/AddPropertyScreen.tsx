@@ -120,6 +120,21 @@ interface IAddPropertyScreenProps {
   route?: any;
 }
 
+type AddPropertyFormValues = {
+  propertyName: string;
+  address: string;
+  addressDetails?: string;
+  lawnArea: string;
+  Country: string;
+  StreetName: string;
+  StreetNumber: string;
+  State: string;
+  PostalCode: string;
+  Suburb: string;
+  Remarks?: string | null;
+  confirmedAddress: string;
+};
+
 const AddPropertyScreen: React.FC<IAddPropertyScreenProps> = () => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -162,6 +177,8 @@ const AddPropertyScreen: React.FC<IAddPropertyScreenProps> = () => {
 
   const [isDefault, setIsDefault] = useState(false);
   const toggleSwitch = () => setIsDefault(previousState => !previousState);
+  const onToggleConfirmAddress = () =>
+    setShowConfirmAddress(previousState => !previousState);
 
   // For image related functionality
   const [imageAction, setImageAction] = useState<string>('');
@@ -177,6 +194,8 @@ const AddPropertyScreen: React.FC<IAddPropertyScreenProps> = () => {
   const [showModal, setShowModal] = useState<boolean>(false);
   const [modalText, setModalText] = useState<string>('');
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
+  const [confirmedAddress, setConfirmedAddress] = useState<string>('');
+  const [showConfirmAddress, setShowConfirmAddress] = useState<boolean>(false);
 
   // ? Form
   const {
@@ -185,11 +204,13 @@ const AddPropertyScreen: React.FC<IAddPropertyScreenProps> = () => {
     reset,
     getValues,
     handleSubmit,
-  } = useForm({
+    setValue,
+  } = useForm<AddPropertyFormValues>({
     defaultValues: useMemo(() => {
       return {
         propertyName,
         address,
+        addressDetails: '',
         lawnArea,
         Country,
         StreetName,
@@ -198,6 +219,7 @@ const AddPropertyScreen: React.FC<IAddPropertyScreenProps> = () => {
         PostalCode,
         Suburb,
         Remarks,
+        confirmedAddress, 
       };
     }, [address]),
     shouldUnregister: false,
@@ -207,6 +229,7 @@ const AddPropertyScreen: React.FC<IAddPropertyScreenProps> = () => {
     reset({
       propertyName,
       address,
+      addressDetails: '',
       lawnArea,
       Country,
       StreetName,
@@ -215,6 +238,7 @@ const AddPropertyScreen: React.FC<IAddPropertyScreenProps> = () => {
       Suburb,
       PostalCode,
       Remarks,
+      confirmedAddress,
     });
   }, [
     propertyName,
@@ -229,6 +253,12 @@ const AddPropertyScreen: React.FC<IAddPropertyScreenProps> = () => {
     Remarks,
   ]);
 
+  useEffect(() => {
+    if (showConfirmAddress) {
+      setValue('confirmedAddress', address ?? '');
+    }
+  }, [address, setValue, showConfirmAddress]);
+  
   /**
    * ? On Mount
    */
@@ -239,30 +269,6 @@ const AddPropertyScreen: React.FC<IAddPropertyScreenProps> = () => {
   useEffect(() => {
     setIsDefault(isUsed);
   }, [isUsed]);
-
-  useEffect(() => {
-    console.log('redux dispatch');
-    console.log(
-      isUpdate,
-      isUsed,
-      lawnArea,
-      propertyName,
-      address,
-      geometry,
-      propertyId,
-      addPropURIList,
-      selectedPet,
-      selectedServiceType,
-      selectedTerrainType,
-      Country,
-      StreetName,
-      StreetNumber,
-      State,
-      Suburb,
-      PostalCode,
-      Remarks
-    );
-  }, [address]);
 
   // ? Functions
   const locateProperty = () => {
@@ -310,6 +316,15 @@ const AddPropertyScreen: React.FC<IAddPropertyScreenProps> = () => {
     }
   };
 
+  const logPropertyRequest = (
+    label: string,
+    request: FormData,
+    payload: Record<string, unknown>,
+  ) => {
+    console.log(label, request);
+    console.log(`${label} payload`, payload);
+  };
+
   const onSaveProperty = async () => {
     setIsFetching(true);
     const values = getValues();
@@ -321,7 +336,10 @@ const AddPropertyScreen: React.FC<IAddPropertyScreenProps> = () => {
     request.append('CustomerToken', token);
     request.append('CustomerId', customerId);
     await requestLawnImages();
-    request.append('Address', address);
+    request.append(
+      'Address',
+      showConfirmAddress ? values.confirmedAddress : values.address,
+    );
     request.append('PropertyName', _titleName);
     request.append('Country', Country);
     request.append('State', State);
@@ -345,6 +363,28 @@ const AddPropertyScreen: React.FC<IAddPropertyScreenProps> = () => {
     request.append('DeviceDetails.Platform', deviceDetails.Platform);
     request.append('DeviceDetails.PlatformOs', deviceDetails.PlatformOs);
 
+    // logPropertyRequest('saveCustomerProperty request:', request, {
+    //   CustomerToken: token,
+    //   CustomerId: customerId,
+    //   Address: showConfirmAddress ? values.confirmedAddress : values.address,
+    //   PropertyName: _titleName,
+    //   Country,
+    //   State,
+    //   Suburb,
+    //   StreetNumber,
+    //   PostalCode,
+    //   LawnArea: 0,
+    //   StreetName,
+    //   HasIndoorPets: selectedPet || 0,
+    //   Longitude: geometry.lng,
+    //   Latitude: geometry.lat,
+    //   ServiceTypeId: selectedServiceType || 0,
+    //   TerrainType: selectedTerrainType || '',
+    //   IsDefault: isDefault ? 1 : 0,
+    //   Remarks: values.Remarks,
+    //   DeviceDetails: deviceDetails,
+    // });    
+    
     saveCustomerProperty(request, (data: any) => {
       setIsFetching(false);
 
@@ -388,7 +428,10 @@ const AddPropertyScreen: React.FC<IAddPropertyScreenProps> = () => {
     request.append('CustomerToken', token);
     request.append('CustomerId', customerId);
     await requestLawnImages();
-    request.append('Address', address);
+    request.append(
+      'Address',
+      showConfirmAddress ? values.confirmedAddress : values.address,
+    );
     request.append('PropertyName', _titleName);
     request.append('Country', Country);
     request.append('State', State);
@@ -414,6 +457,29 @@ const AddPropertyScreen: React.FC<IAddPropertyScreenProps> = () => {
     request.append('DeviceDetails.MacAddress', deviceDetails.MacAddress);
     request.append('DeviceDetails.Platform', deviceDetails.Platform);
     request.append('DeviceDetails.PlatformOs', deviceDetails.PlatformOs);
+
+    logPropertyRequest('updateCustomerProperty request:', request, {
+      CustomerToken: token,
+      CustomerId: customerId,
+      Address: showConfirmAddress ? values.confirmedAddress : values.address,
+      PropertyName: _titleName,
+      Country,
+      State,
+      Suburb,
+      StreetNumber,
+      PostalCode,
+      LawnArea: 0,
+      StreetName,
+      HasIndoorPets: selectedPet || 0,
+      Longitude: geometry.lng,
+      Latitude: geometry.lat,
+      ServiceTypeId: selectedServiceType || 0,
+      TerrainType: selectedTerrainType || '',
+      Remarks: values.Remarks || '',
+      IsDefault: isDefault ? 1 : 0,
+      CustomerPropertyId: propertyId,
+      DeviceDetails: deviceDetails,
+    });
 
     updateCustomerProperty(request, (data: any) => {
       if (data[0]?.StatusCode === '01') {
@@ -613,26 +679,79 @@ const AddPropertyScreen: React.FC<IAddPropertyScreenProps> = () => {
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="never">
                 <View>
+                    {!showConfirmAddress && (
+                    <InputText
+                      control={control}
+                      name="address"
+                      label="Address"
+                      onFocus={locateProperty}
+                      rightIcon={<PIN height={20} width={20} />}
+                      style={{
+                        flex: 1,
+                        height: 80,
+                        alignContent: 'center',
+                        alignItems: 'center',
+                      }}
+                      textStyle={{
+                        textAlignVertical: 'top',
+                        fontSize: 15,
+                        fontFamily: fonts.lexend.regular,
+                      }}
+                      multiline={true}
+                    />)}
+                  
+                  <Spacer2 />
+                  <Pressable
+                    style={{alignSelf: 'flex-start', marginBottom: 8}}
+                    onPress={onToggleConfirmAddress}>
+                    <Text
+                      color={v2Colors.green}
+                      style={{fontWeight: '600', textDecorationLine: 'underline'}}>
+                      {showConfirmAddress
+                        ? 'Wrong address? Update it here.'
+                        : 'Wrong address? Update it here.'}
+                    </Text>
+                  </Pressable>
+                  {showConfirmAddress && (
+                      <InputText
+                        control={control}
+                        name="confirmedAddress"
+                        label="Address"
+                        onChangeText={(text: string) => setValue('address', text)}
+                        rightIcon={<PROPERTY_NAME height={20} width={20} />}
+                        style={{
+                          flex: 1,
+                          height: 80,
+                          alignContent: 'center',
+                          alignItems: 'center',
+                        }}
+                        textStyle={{
+                          textAlignVertical: 'top',
+                          fontSize: 15,
+                          fontFamily: fonts.lexend.regular,
+                        }}
+                        multiline={true}
+                      />
+                  )}
+                  <Spacer2 />
+                  {/* <Text
+                    color={v2Colors.green}
+                    style={{marginRight: 5, fontWeight: 'bold', marginBottom: 8}}>
+                    Address details
+                  </Text>
                   <InputText
                     control={control}
-                    name="address"
-                    label="Address"
-                    onFocus={locateProperty}
-                    rightIcon={<PIN height={20} width={20} />}
+                    name="addressDetails"
+                    label="Eg. Floor, unit number"
+                    rightIcon={<PROPERTY_NAME height={20} width={20} />}
                     style={{
-                      flex: 1,
-                      height: 80,
-                      alignContent: 'center',
-                      alignItems: 'center',
+                      height: 60,
                     }}
                     textStyle={{
-                      textAlignVertical: 'top',
                       fontSize: 15,
                       fontFamily: fonts.lexend.regular,
                     }}
-                    multiline={true}
-                  />
-                  <Spacer2 />
+                  /> */}
                 </View>
                 <Spacer />
                 <Text

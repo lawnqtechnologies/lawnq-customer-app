@@ -260,20 +260,12 @@ const ListScreen: React.FC<IListScreenProps> = ({route}) => {
           onPressIn={() => {setLoading(true)}}
           onPressOut={() => {setLoading(false)}}
           style={({pressed}) => ({
-            backgroundColor: isActive ? '#FFFFFF' : '#E1E6E1',
+            backgroundColor: '#FFFFFF',
             opacity: pressed ? 0.7 : 1,
           })}>
           <View style={styles.topContent}>
             <View style={{width: '85%'}}>
               <View style={styles.isDefaultContainer}>
-                {/* Right header */}
-                <Text
-                  bold
-                  color={'rgba(0,0,0,0.7)'}
-                  style={{marginBottom: 4, fontSize: 16}}>
-                  {_.upperFirst(label)}
-                </Text>
-
                 {/* Left header */}
                 <View style={{flexDirection: 'row'}}>
                   {!isActive ? (
@@ -319,7 +311,7 @@ const ListScreen: React.FC<IListScreenProps> = ({route}) => {
                 </View>
               </View>
               <View style={styles.addressContainer}>
-                <Text color={v2Colors.greenShade2} style={{fontSize: 14}}>
+                <Text h5 color={'rgba(0,0,0,0.79)'}>
                   {shortDesc}
                 </Text>
               </View>

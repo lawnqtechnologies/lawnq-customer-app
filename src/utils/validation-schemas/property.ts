@@ -12,6 +12,7 @@ export const PropertySchema = yup
     PostalCode: yup.string().required('Postal Code is required.'),
     Suburb: yup.string().required('Suburb is required.'),
     StreetName: yup.string().required('Street Name is required.'),
-    Remarks: yup.string().nullable()
+    Remarks: yup.string().nullable(),
+    confirmedAddress: yup.string().required('Address confirmation is required.'),
   })
   .required();

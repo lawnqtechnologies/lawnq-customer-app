@@ -13,5 +13,6 @@ export default (theme: ExtendedTheme) => {
       borderWidth: 1,
       borderRadius: 4,
       padding: 16,
+    },
   });
 };

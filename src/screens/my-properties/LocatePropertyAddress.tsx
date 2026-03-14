@@ -9,7 +9,6 @@ import {
   PermissionsAndroid,
 } from 'react-native';
 import {useTheme} from '@react-navigation/native';
-import RNLocation from 'react-native-location';
 import {useDispatch} from 'react-redux';
 import {GooglePlacesAutocomplete} from 'react-native-google-places-autocomplete';
 import Geocoder from 'react-native-geocoding';
@@ -122,6 +121,11 @@ const LocatePropertyAddress: React.FC<ILocatePropertyAddress> = ({
    */
 
   useEffect(() => {
+    // GooglePlacesAutocomplete expects navigator.geolocation for currentLocation.
+    const globalAny = global as any;
+    globalAny.navigator = globalAny.navigator || {};
+    globalAny.navigator.geolocation = Geolocation;
+
     if (Platform.OS === 'ios') {
       requestLocationPermission();
     } else {
@@ -319,6 +323,10 @@ const LocatePropertyAddress: React.FC<ILocatePropertyAddress> = ({
               const newLat: number = Number(details?.geometry.location.lat);
               const newLng: number = Number(details?.geometry.location.lng);
               const newUrl: string = details?.url || '';
+              const selectedDescription: string =
+                data?.description ??
+                data?.structured_formatting?.main_text ??
+                '';
 
               dispatch(
                 onSetGeometry({
@@ -373,7 +381,7 @@ const LocatePropertyAddress: React.FC<ILocatePropertyAddress> = ({
                   console.log(error);
                 });
 
-              setDesc(data.description);
+              setDesc(selectedDescription);
               setI(() => 0);
               SetURL(newUrl);
 
@@ -470,7 +478,7 @@ const LocatePropertyAddress: React.FC<ILocatePropertyAddress> = ({
           {!i ? (
             <>
               <View style={{marginTop: 10}}>
-                <AddressInput />
+                    <AddressInput />
                 <View style={{height: 15}} />
                 <ConfirmButton />
               </View>

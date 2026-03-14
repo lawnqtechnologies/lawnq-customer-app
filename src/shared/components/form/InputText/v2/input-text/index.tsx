@@ -44,6 +44,7 @@ const InputText: React.FC<IInputText> = ({
   keyboardType = 'default',
   rightIcon,
   onFocus,
+  onChangeText,
   prefix,
   isPassword = false,
   isError,
@@ -80,7 +81,10 @@ const InputText: React.FC<IInputText> = ({
                 </>
               )}
               <TextInput
-                onChangeText={onChange}
+                onChangeText={(text: string) => {
+                  onChange(text);
+                  onChangeText?.(text);
+                }}
                 onBlur={onBlur}
                 defaultValue={value ?? ''}
                 style={[styles.textInput, textStyle]}

@@ -1,4 +1,3 @@
-import fonts from "@fonts";
 import { ExtendedTheme } from "@react-navigation/native";
 import { v2Colors } from "@theme/themes";
 import { ViewStyle, StyleSheet } from "react-native";
@@ -22,8 +21,6 @@ interface Style {
 }
 
 export default (theme: ExtendedTheme) => {
-  const { colors } = theme;
-
   return StyleSheet.create<Style>({
     container: {
       flex: 1,
@@ -61,10 +58,7 @@ export default (theme: ExtendedTheme) => {
       paddingRight: 70,
       minHeight: 50,
       marginHorizontal: 30,
-      fontFamily: fonts.lexend.regular,
-      fontSize: 16,
       backgroundColor: "white",
-
       shadowColor: "#000",
       shadowOffset: {
         width: 0,

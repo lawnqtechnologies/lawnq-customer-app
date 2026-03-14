@@ -2,12 +2,10 @@ import React, {useMemo, useState, memo, useEffect} from 'react';
 import {View, StyleProp, ViewStyle, Dimensions, Platform} from 'react-native';
 import {useTheme} from '@react-navigation/native';
 import MapView, {
-  Marker,
   PROVIDER_GOOGLE,
   PROVIDER_DEFAULT,
 } from 'react-native-maps';
-import Icon from 'react-native-dynamic-vector-icons';
-import {useSelector} from 'react-redux';
+import MAP_PIN from '@assets/v2/common/icons/map-pin.svg';
 
 /**
  * ? Local imports
@@ -73,6 +71,18 @@ const Map: React.FC<IMapProps> = ({style, region, onWatchCoords}) => {
           loadingBackgroundColor="#eeeeee"
           // showsUserLocation={true}
           zoomControlEnabled={true}></MapView>
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            marginLeft: -14,
+            marginTop: -42,
+            alignItems: 'center',
+          }}>
+          <MAP_PIN width={28} height={42} />
+        </View>
       </>
     );
   });

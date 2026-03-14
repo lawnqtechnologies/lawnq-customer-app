@@ -13,8 +13,6 @@ import {yupResolver} from '@hookform/resolvers/yup';
 import FastImage from 'react-native-fast-image';
 import Icon, {IconType} from 'react-native-dynamic-vector-icons';
 import {useDispatch, useSelector} from 'react-redux';
-import {size} from 'lodash';
-import Tooltip from 'react-native-walkthrough-tooltip';
 
 /**
  * ? Local imports
@@ -43,6 +41,12 @@ import {useAuth} from '@services/hooks/useAuth';
 const LOOK = '../../assets/icons/gray/look.png';
 const UNSEE = '../../assets/icons/gray/unsee.png';
 const IMAGE_BG = '../../assets/v2/auth/images/image-bg.png';
+const PASSWORD_REQUIREMENTS = [
+  'Eight (8) characters',
+  'One (1) lowercase letter',
+  'One (1) uppercase letter',
+  'One (1) number',
+];
 
 type CustomStyleProp = StyleProp<ViewStyle> | Array<StyleProp<ViewStyle>>;
 
@@ -68,14 +72,12 @@ const SetupPassword: React.FC<ISetupPasswordScreenProps> = ({route}) => {
    */
   const [isPassword1Visible, setIsPasswordVisible] = useState<boolean>(false);
   const [isPassword1Visible2, setIsPasswordVisible2] = useState<boolean>(false);
-  const [isError, setIsError] = useState<boolean>(false);
-  const [collectErrors, setCollectErrors] = useState<Array<string>>();
-  const [showTip, setTip] = useState(false);
   const {
     control,
     handleSubmit,
-    formState: {errors},
+    formState: {errors, submitCount},
     getValues,
+    watch,
   } = useForm({
     defaultValues: {
       password: password1,
@@ -135,42 +137,56 @@ const SetupPassword: React.FC<ISetupPasswordScreenProps> = ({route}) => {
     );
    
   };
-
-  /**
-   * ? Watchers
-   */
-  // Checks if error sets in to view ErrorMessage and Tooltip error message
-  useEffect(() => {
-    if (size(errors) === 0) {
-      setIsError(false);
-      setTip(false);
-    } else {
-      setIsError(true);
-      setTip(true);
-    }
-
-    async function testValidate() {
-      try {
-        const results = await SetupPasswordSchema.validate(
-          {
-            password: '',
-          },
-          {abortEarly: false},
-        );
-        console.log(`Results - ${results}`);
-      } catch (e: any) {
-        console.log(`Error - ${e?.errors}`);
-        const collectedErrors = e?.errors;
-        console.log('collectedErrors: ', collectedErrors);
-        setCollectErrors(collectedErrors);
-      }
-    }
-    testValidate();
-  }, [errors]);
   /* -------------------------------------------------------------------------- */
   /*                               Render Methods                               */
   /* -------------------------------------------------------------------------- */
   const Separator = () => <View style={{height: 20}} />;
+  const passwordValue = watch('password');
+  const password2Value = watch('password2');
+  const ErrorCard = (props: {title: string; messages: string[]}) => (
+    <View
+      style={{
+        backgroundColor: 'white',
+        marginTop: 8,
+        marginHorizontal: 12,
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#E7E1D6',
+        shadowColor: '#000',
+        shadowOffset: {
+          width: 0,
+          height: 4,
+        },
+        shadowOpacity: 0.08,
+        shadowRadius: 10,
+        elevation: 2,
+      }}>
+      <View
+        style={{
+          flexDirection: 'row',
+          flex: 1,
+          marginBottom: 10,
+        }}>
+        <Icon
+          style={{marginRight: 10}}
+          name="warning"
+          type={IconType.AntDesign}
+          color={v2Colors.green}
+          size={15}
+        />
+        <Text h5 bold color={v2Colors.green} style={{fontSize: 18}}>
+          {props.title}
+        </Text>
+      </View>
+      {props.messages.map((item: string, index: number) => (
+        <Text key={`${item}-${index}`} color={v2Colors.green} style={{fontSize: 14}}>
+          {item}
+        </Text>
+      ))}
+    </View>
+  );
 
   const Header = (props: {pageTitle: string}) => (
     <View style={styles.headerContainer}>
@@ -213,73 +229,39 @@ const SetupPassword: React.FC<ISetupPasswordScreenProps> = ({route}) => {
             contain at least one letter, one special character, one number and
             capital letter.
           </Text>
-
-          <Tooltip
-            isVisible={showTip}
-            backgroundColor={'transparent'}
-            showChildInTooltip={false}
-            contentStyle={{backgroundColor: 'white', marginLeft: 40}}
-            content={
-              <View style={{padding: 10}}>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    flex: 1,
-                    marginBottom: 10,
-                  }}>
-                  <Icon
-                    style={{marginRight: 10}}
-                    name="warning"
-                    type={IconType.AntDesign}
-                    color={v2Colors.green}
-                    size={15}
+          <InputText
+            control={control}
+            name="password"
+            label="Enter Password"
+            isPassword={!isPassword1Visible}
+            isError={errors.password}
+            rightIcon={
+              <Pressable
+                onPress={() => {
+                  setIsPasswordVisible(!isPassword1Visible);
+                }}>
+                {!isPassword1Visible ? (
+                  <FastImage
+                    key={'look'}
+                    source={require(LOOK)}
+                    style={styles.rightIcon}
                   />
-                  <Text h5 bold color={v2Colors.green} style={{fontSize: 18}}>
-                    Must contain at least:
-                  </Text>
-                </View>
-                {collectErrors?.map((item: string) => {
-                  if (item.includes('Password')) {
-                    return null;
-                  }
-                  return (
-                    <Text color={v2Colors.green} style={{fontSize: 14}}>
-                      {item}
-                    </Text>
-                  );
-                })}
-              </View>
+                ) : (
+                  <FastImage
+                    key={'unsee'}
+                    source={require(UNSEE)}
+                    style={styles.rightIcon}
+                  />
+                )}
+              </Pressable>
             }
-            onClose={() => setTip(false)}
-            placement="bottom">
-            <InputText
-              control={control}
-              name="password"
-              label="Enter Password"
-              isPassword={!isPassword1Visible}
-              isError={errors.password}
-              rightIcon={
-                <Pressable
-                  onPress={() => {
-                    setIsPasswordVisible(!isPassword1Visible);
-                  }}>
-                  {!isPassword1Visible ? (
-                    <FastImage
-                      key={'look'}
-                      source={require(LOOK)}
-                      style={styles.rightIcon}
-                    />
-                  ) : (
-                    <FastImage
-                      key={'unsee'}
-                      source={require(UNSEE)}
-                      style={styles.rightIcon}
-                    />
-                  )}
-                </Pressable>
-              }
+          />
+          {errors.password && (
+            <ErrorCard
+              title="Must contain at least:"
+              messages={PASSWORD_REQUIREMENTS}
             />
-          </Tooltip>
+          )}
 
           <Separator />
           <InputText
@@ -309,6 +291,13 @@ const SetupPassword: React.FC<ISetupPasswordScreenProps> = ({route}) => {
               </Pressable>
             }
           />
+          {(submitCount > 0 || Boolean(passwordValue) || Boolean(password2Value)) &&
+            errors.password2?.message && (
+            <ErrorCard
+              title="Confirm password:"
+              messages={[errors.password2.message]}
+            />
+          )}
         </View>
        {route.params?.fromForgotPassword?
         <SetNewPassword />
