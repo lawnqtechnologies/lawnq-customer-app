@@ -7,6 +7,10 @@ apply from: "../../node_modules/react-native-vector-icons/fonts.gradle"
 def enableProguardInReleaseBuilds = false
 def jscFlavor = "org.webkit:android-jsc:+"
 
+react {
+  autolinkLibrariesWithApp()
+}
+
 android {
   namespace "com.lawnqapp"
   compileSdk rootProject.ext.compileSdkVersion
@@ -92,6 +96,3 @@ dependencies {
 tasks.register("testClasses") {
     // This task is a placeholder to satisfy the IDE/Gradle requirements
 }
-
-apply from: file("../../node_modules/@react-native-community/cli-platform-android/native_modules.gradle")
-applyNativeModulesAppBuildGradle(project)

@@ -42,6 +42,14 @@ npm run ios
 yarn ios
 ```
 
+## Team Note
+
+This project applies a React Native postinstall patch after `npm install` via [package.json](/Users/mm/lawnq-customer-app/package.json).
+
+The script [patch-react-native-private-api.sh](/Users/mm/lawnq-customer-app/scripts/patch-react-native-private-api.sh) removes private iOS selector references from React Native's `RCTKeyCommands.m`. This is required to avoid App Store submission warnings for non-public API usage.
+
+If you install dependencies with `npm install`, the patch runs automatically. If you install with scripts disabled, such as `npm install --ignore-scripts`, the patch will not be applied.
+
 If everything is set up _correctly_, you should see your new app running in your _Android Emulator_ or _iOS Simulator_ shortly provided you have set up your emulator/simulator correctly.
 
 This is one way to run your app — you can also run it directly from within Android Studio and Xcode respectively.
