@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import {useFocusEffect, useTheme} from '@react-navigation/native';
 import VideoPlayer from 'react-native-video-controls';
-import notifee from '@notifee/react-native';
 
 // local imports
 import createStyles from './HomeScreen.style';
@@ -182,7 +181,6 @@ const HomeScreen = () => {
   );
 
   const onLoadOfHome = () => {
-    notifee.requestPermission();
     setIsLoading(true);
     fetchCustomerInfo();
     appversionCheck();

@@ -1,6 +1,7 @@
 import React, {useMemo} from 'react';
 import {View, ImageBackground} from 'react-native';
 import {useTheme} from '@react-navigation/native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import * as _ from 'lodash';
 
 /**
@@ -29,7 +30,8 @@ interface IHeaderHomeProps {
 
 const HeaderHome: React.FC<IHeaderHomeProps> = ({name = ''}) => {
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const {top} = useSafeAreaInsets();
+  const styles = useMemo(() => createStyles(theme, top), [theme, top]);
 
   const Content = () => (
     <View style={styles.content}>

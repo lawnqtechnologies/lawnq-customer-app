@@ -7,6 +7,7 @@ import {useDispatch, useSelector} from 'react-redux';
 import {startCase} from 'lodash';
 import {getReadableVersion} from 'react-native-device-info';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 /**
  * ? Local imports
  */
@@ -43,7 +44,8 @@ interface IMenuScreenProps {
 const MenuScreen: React.FC<IMenuScreenProps> = () => {
   const theme = useTheme();
   const {colors} = theme;
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const {top} = useSafeAreaInsets();
+  const styles = useMemo(() => createStyles(theme, top), [theme, top]);
   const dispatch = useDispatch();
   const [imageUri, setImageUri] = useState<any>(null);
 

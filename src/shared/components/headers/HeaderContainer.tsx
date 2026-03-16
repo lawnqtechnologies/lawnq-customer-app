@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { View, Pressable, StatusBar } from "react-native";
 import { useTheme } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as NavigationService from "react-navigation-helpers";
 
 /**
@@ -39,7 +40,8 @@ const HeaderContainer: React.FC<IHeaderContainerProps> = ({
   onDelete,
 }) => {
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { top } = useSafeAreaInsets();
+  const styles = useMemo(() => createStyles(theme, top), [theme, top]);
   const [isPressed, setIsPressed] = useState(false);
 
   const handleBack = () => {

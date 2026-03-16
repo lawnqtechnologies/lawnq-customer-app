@@ -2,6 +2,7 @@ import {useFocusEffect} from '@react-navigation/native';
 import {useCallback} from 'react';
 import {Alert, Platform} from 'react-native';
 import {
+  checkNotifications,
   PERMISSIONS,
   RESULTS,
   openSettings,
@@ -67,7 +68,7 @@ const NotificationEnabler = () => {
   const requestiOSNotificationPermission = async (): Promise<void> => {
     if (Platform.OS !== 'ios') return; // Ensure this runs only on iOS
 
-    const {status} = await requestNotifications(['alert', 'sound', 'badge']);
+    const {status} = await checkNotifications();
 
     if (status === 'granted') return;
     console.log('permission checkpoint ios status', status);
@@ -77,39 +78,29 @@ const NotificationEnabler = () => {
         Alert.alert('Notifications are not available on this device.');
         break;
       case 'denied':
-        Alert.alert(
-          'Notification Permission',
-          'This app needs access to notifications. Tap "Allow Access" to enable them.',
-          [
-            {
-              text: 'Allow Access',
-              onPress: async () => {
-                const {status} = await requestNotifications([
-                  'alert',
-                  'sound',
-                  'badge',
-                ]);
-                console.log('iOS Notification Permission Status:', status);
-              },
-            },
-          ],
-        );
+        try {
+          const {status: requestedStatus} = await requestNotifications([
+            'alert',
+            'sound',
+            'badge',
+          ]);
+          console.log('iOS Notification Permission Status:', requestedStatus);
+        } catch (error) {
+          console.log('Failed to request iOS notification permission:', error);
+        }
         break;
       case 'blocked':
         Alert.alert(
           'Notification Permission',
-          'This app needs access to notifications. Tap "Allow Access" to enable them.',
+          'This app needs access to notifications. Please enable them in Settings.',
           [
             {
-              text: 'Allow Access',
-              onPress: async () => {
-                const {status} = await requestNotifications([
-                  'alert',
-                  'sound',
-                  'badge',
-                ]);
-                console.log('iOS Notification Permission Status:', status);
-              },
+              text: 'Cancel',
+              style: 'cancel',
+            },
+            {
+              text: 'Open Settings',
+              onPress: () => openSettings(),
             },
           ],
         );

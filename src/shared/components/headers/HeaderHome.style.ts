@@ -1,6 +1,5 @@
 import { ExtendedTheme } from "@react-navigation/native";
-import { ViewStyle, StyleSheet, NativeModules } from "react-native";
-const { StatusBarManager } = NativeModules;
+import { ViewStyle, StyleSheet } from "react-native";
 
 interface Style {
   container: ViewStyle;
@@ -10,13 +9,13 @@ interface Style {
   rightContainer: ViewStyle;
 }
 
-export default (theme: ExtendedTheme) => {
+export default (theme: ExtendedTheme, topInset: number = 0) => {
   const { colors } = theme;
 
   return StyleSheet.create<Style>({
     container: {
-      paddingTop: StatusBarManager.HEIGHT,
-      minHeight: 140 + StatusBarManager.HEIGHT,
+      paddingTop: topInset,
+      minHeight: 140 + topInset,
     },
     bgImage: {
       position: "absolute",

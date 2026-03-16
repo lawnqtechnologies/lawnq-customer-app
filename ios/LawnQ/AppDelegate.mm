@@ -18,7 +18,7 @@
   return [super application:application didFinishLaunchingWithOptions:launchOptions];
 }
 -(BOOL) application:(UIApplication *)app openURL:(NSURL *)url options:(NSDictionary<UIApplicationOpenURLOptionsKey,id> *)options {
-  return YES;
+  return [RCTLinkingManager application:app openURL:url options:options];
 }
 - (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))completionHandler {
     NSLog(@"Received Remote Notification in Background");

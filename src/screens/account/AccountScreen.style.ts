@@ -1,7 +1,6 @@
 import { ExtendedTheme } from "@react-navigation/native";
 import { v2Colors } from "@theme/themes";
-import { ViewStyle, StyleSheet, Dimensions, NativeModules } from "react-native";
-const { StatusBarManager } = NativeModules;
+import { ViewStyle, StyleSheet, Dimensions } from "react-native";
 import { ImageStyle } from "react-native-fast-image";
 
 const { height, width } = Dimensions.get("window");
@@ -23,7 +22,7 @@ interface Style {
   bottomContentContainer: ViewStyle;
 }
 
-export default (theme: ExtendedTheme) => {
+export default (theme: ExtendedTheme, topInset: number = 0) => {
   const { colors } = theme;
 
   return StyleSheet.create<Style>({
@@ -36,14 +35,14 @@ export default (theme: ExtendedTheme) => {
       paddingHorizontal: 20,
     },
     headerContainer: {
-      height: 150 + StatusBarManager.HEIGHT,
+      height: 150 + topInset,
       width: "100%",
       backgroundColor: v2Colors.green,
       alignItems: "center",
       flexDirection: "row",
       justifyContent: "center",
       paddingBottom: "5%",
-      paddingTop: 30 + StatusBarManager.HEIGHT,
+      paddingTop: 30 + topInset,
     },
     subHeaderContainer: {
       paddingHorizontal: 20,
