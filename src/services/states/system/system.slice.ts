@@ -5,6 +5,9 @@ interface SystemSlice {
     text: string;
     show: boolean;
     _id: string;
+    image?: string;
+    imageName?: string;
+    imageType?: string;
   };
   totalChatCount: number;
   pendingChatCount: number;

@@ -47,13 +47,14 @@ const HeaderContainer: React.FC<IHeaderContainerProps> = ({
   const handleBack = () => {
     if (isPressed) return;
     setIsPressed(true);
-    if(backValue){
-    NavigationService.goBack()
+
+    if (backValue || !navigateTo) {
+      NavigationService.goBack();
+    } else {
+      NavigationService.navigate(navigateTo);
     }
-    else {
-      NavigationService.push(navigateTo)
-      setTimeout(() => setIsPressed(false), 500); // re-enable after delay
-    }
+
+    setTimeout(() => setIsPressed(false), 500); // re-enable after delay
   };
 
   return (

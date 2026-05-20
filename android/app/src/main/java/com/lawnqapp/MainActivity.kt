@@ -28,8 +28,9 @@ class MainActivity : ReactActivity() {
 //        super.onCreate(savedInstanceState) // super.onCreate(null) with react-native-screens
 //    }
 override fun onCreate(savedInstanceState: Bundle?) {
-    
-    super.onCreate(savedInstanceState) // super.onCreate(null) with react-native-screens
+    // Prevent fragment state restoration issues with react-native-screens
+    // when the activity is recreated after backgrounding.
+    super.onCreate(null)
 }
 
 }

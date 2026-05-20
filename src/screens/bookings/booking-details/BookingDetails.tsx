@@ -118,7 +118,6 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
   }>({DeviceId: '', PlatformOs: ''});
   const [chatCount, setChatCount] = useState<number>(0);
   const [snapPoint, setSnapPoint] = useState<number>(0);
-  const [text, setText] = useState<string>('');
   const [showCalendar, setShowCalendar] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [showCommonError, setShowCommonError] = useState<boolean>(false);
@@ -140,6 +139,17 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
     useState<string>('');
   const [isConfirmReschedule, setIsConfirmReschedule] =
     useState<boolean>(false);
+
+  const getMessagePayload = () => {
+    if (!message) return null;
+
+    try {
+      return JSON.parse(message);
+    } catch (error) {
+      console.log('BookingDetails message parse error:', error);
+      return null;
+    }
+  };
 
   /**
   |--------------------------------------------------
@@ -267,11 +277,19 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
   */
   const onFetchBookingHistory = () => {
     setLoading(true);
+    const parsedMessage = getMessagePayload();
+    const bookingRefNo =
+      bookingItem?.BookingRefNo ?? parsedMessage?.bookingRefNo ?? '';
+
+    if (!bookingRefNo) {
+      setBookingData(bookingItem);
+      setLoading(false);
+      return;
+    }
+
     const payload = {
       CustomerId: customerId,
-      BookingRefNo: !message
-        ? (bookingItem?.BookingRefNo ?? '')
-        : (JSON?.parse(message).bookingRefNo ?? ''),
+      BookingRefNo: bookingRefNo,
       DeviceDetails: deviceDetails,
     };
 
@@ -279,12 +297,10 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
       payload,
       (data: any) => {
         console.log('---onFetchBookingHistory---');
-        console.log('onFetchBookingHistory data:', data[0]);
+        console.log('onFetchBookingHistory data:', data?.[0]);
         console.log('----------------------------');
-        if (data) {
-          setBookingData(data[0]);
-          setLoading(false);
-        }
+        setBookingData(data?.[0] ?? bookingItem);
+        setLoading(false);
       },
       error => {
         console.log('error:', error);
@@ -293,10 +309,9 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
     );
   };
   const getBookingReceipt = () => {
+    const parsedMessage = getMessagePayload();
     const payload = {
-      BookingRefNo: !message
-        ? bookingItem?.BookingRefNo
-        : JSON?.parse(message).bookingRefNo,
+      BookingRefNo: bookingItem?.BookingRefNo ?? parsedMessage?.bookingRefNo,
     };
 
     getReceipt(
@@ -427,8 +442,6 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
   /* -------------------------------------------------------------------------- */
   /*                               Render Methods                               */
   /* -------------------------------------------------------------------------- */
-
-  const ViewOnTop = () => <View style={styles.viewOnTop} />;
 
   const PendingStatus = () => (
     <View
@@ -646,9 +659,10 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
             fontWeight: 'thin',
             fontSize: 12,
             marginTop: 10,
+            marginHorizontal:10,
             alignSelf: 'center',
           }}>
-          Note: On-demand bookings may take up to 24 hours.
+          Note: Dates are indicative and may be adjusted based on availability and conditions.
         </Text>
       </View>
       <View style={{height: 100}} />
@@ -673,7 +687,11 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
 
   const CommunicationActions = () => (
     <View style={styles.commsActionsContainer}>
-      <Pressable onPress={() => setInitChat(true)}>
+      <Pressable
+        onPress={() => {
+          setSnapPoint(0);
+          setInitChat(true);
+        }}>
         <View style={styles.completeButtonContainer}>
           <Text color={'white'}>Message Provider</Text>
         </View>
@@ -730,8 +748,6 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
         <CommunicationActions />
       </View>
 
-      {snapPoint === 1 && initChat && <ViewOnTop />}
-
       {initChat && (
         <BottomSheetModal
           handleClose={() => {
@@ -741,8 +757,6 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
           body={<BodyContent />}
           snapPoint={snapPoint}
           setSnapPoint={setSnapPoint}
-          text={text}
-          setText={setText}
         />
       )}
 

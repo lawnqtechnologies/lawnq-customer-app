@@ -2,7 +2,6 @@ import {useTheme} from '@react-navigation/native';
 import * as NavigationService from 'react-navigation-helpers';
 import React, {useEffect, useMemo, useState} from 'react';
 import {
-  FlatList,
   ScrollView,
   StyleProp,
   Pressable,
@@ -15,7 +14,6 @@ import {
 } from 'react-native';
 import {useForm} from 'react-hook-form';
 import {useDispatch, useSelector} from 'react-redux';
-import FastImage from 'react-native-fast-image';
 
 import * as _ from 'lodash';
 import {yupResolver} from '@hookform/resolvers/yup';
@@ -40,19 +38,14 @@ import {useProperty} from '@services/hooks/useProperty';
  */
 import PROPERTY_NAME from '@assets/v2/properties/icons/property-name.svg';
 import PIN from '@assets/v2/properties/icons/pin.svg';
-import AREA from '@assets/v2/properties/icons/area.svg';
 
 import GREEN_CHECK_CIRCLE from '@assets/v2/common/icons/green-check-circle.svg';
-import HAS_PET from '@assets/v2/properties/icons/has-pet.svg';
-import NO_PET from '@assets/v2/properties/icons/no-pet.svg';
 import PUSH_MOWER from '@assets/v2/properties/icons/push-mower.svg';
 import RIDE_ON_MOWER from '@assets/v2/properties/icons/ride-on-mower.svg';
 import FLAT_TERRAIN from '@assets/v2/properties/icons/flat-terrain.svg';
 import STEEP_TERRAIN from '@assets/v2/properties/icons/steep-terrain.svg';
 import MIXED_TERRAIN from '@assets/v2/properties/icons/mixed-terrain.svg';
 
-import GALLERY from '@assets/v2/homescreen/icons/gallery.svg';
-import CAMERA from '@assets/v2/homescreen/icons/camera.svg';
 import CenterModalV2 from '@shared-components/modals/center-modal/CenterModalV2';
 import CenterModalW2Buttons from '@shared-components/modals/center-modal/with-2-buttons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -70,19 +63,10 @@ import fonts from '@fonts';
 import KeyboardHandler from '@shared-components/containers/KeyboardHandler';
 
 // ? Constants
-const CONTAINER = 'Lawns';
-const PET_SELECTION = [
-  {
-    id: 1,
-    icon: <HAS_PET />,
-    text: 'Yes',
-  },
-  {
-    id: 0,
-    icon: <NO_PET />,
-    text: 'No Pets',
-  },
-];
+const DEFAULT_SWITCH_TRACK_COLOR = {
+  false: v2Colors.border,
+  true: v2Colors.green,
+};
 const MOW_TYPE_SELECTION = [
   {
     id: 1,
@@ -184,7 +168,7 @@ const AddPropertyScreen: React.FC<IAddPropertyScreenProps> = () => {
   const [imageAction, setImageAction] = useState<string>('');
   const [onUpload, setOnUpload] = useState<boolean>(false);
   const [isUploading, setIsUploading] = useState<boolean>(false);
-  const [isDoneUploading, setIsDoneUploading] = useState<boolean>(false);
+  const [, setIsDoneUploading] = useState<boolean>(false);
 
   // Modal States
   const [error, setError] = useState<Array<any>>([]);
@@ -194,16 +178,14 @@ const AddPropertyScreen: React.FC<IAddPropertyScreenProps> = () => {
   const [showModal, setShowModal] = useState<boolean>(false);
   const [modalText, setModalText] = useState<string>('');
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
-  const [confirmedAddress, setConfirmedAddress] = useState<string>('');
+  const [confirmedAddress] = useState<string>('');
   const [showConfirmAddress, setShowConfirmAddress] = useState<boolean>(false);
 
   // ? Form
   const {
     control,
-    formState: {errors},
     reset,
     getValues,
-    handleSubmit,
     setValue,
   } = useForm<AddPropertyFormValues>({
     defaultValues: useMemo(() => {
@@ -545,14 +527,6 @@ const AddPropertyScreen: React.FC<IAddPropertyScreenProps> = () => {
   const Spacer = () => <View style={{marginTop: 10}} />;
   const Spacer2 = () => <View style={{marginTop: 20}} />;
 
-  const Title = (props: {text: string}) => (
-    <View style={styles.titleContainer}>
-      <Text h4 bold color={v2Colors.green}>
-        {props.text}
-      </Text>
-    </View>
-  );
-
   const SelectionContainer = (props: {list: Array<any>; type: string}) => {
     return (
       <View style={styles.selectionContainer}>
@@ -645,14 +619,15 @@ const AddPropertyScreen: React.FC<IAddPropertyScreenProps> = () => {
 
   const SetAsDefault = () => (
     <View style={styles.setAsDefaultContainer}>
-      <Text color="black" style={{marginRight: 10}}>
+      <Text color="black" style={styles.setAsDefaultLabel}>
         Set as default
       </Text>
       <Switch
-        trackColor={{false: '#767577', true: v2Colors.green}}
-        thumbColor={isDefault ? 'white' : '#f4f3f4'}
-        ios_backgroundColor="#3e3e3e"
+        trackColor={DEFAULT_SWITCH_TRACK_COLOR}
+        // thumbColor={Platform.OS === 'android' ? '#FFFFFF' : undefined}
+        // ios_backgroundColor={v2Colors.border}
         onValueChange={toggleSwitch}
+        style={styles.defaultSwitch}
         value={isDefault}
       />
     </View>

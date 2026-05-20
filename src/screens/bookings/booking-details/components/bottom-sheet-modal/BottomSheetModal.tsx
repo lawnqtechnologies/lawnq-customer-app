@@ -1,5 +1,5 @@
-import React, { memo, useCallback, useMemo, useRef } from "react";
-import { View, StyleProp, ViewStyle } from "react-native";
+import React, { useCallback, useMemo, useRef } from "react";
+import { StyleProp, ViewStyle } from "react-native";
 import { useTheme } from "@react-navigation/native";
 import BottomSheet from "@gorhom/bottom-sheet";
 import { isAndroid } from "@freakycoder/react-native-helpers";
@@ -18,8 +18,6 @@ interface IBottomModalScreenProps {
   setSnapPoint: Function;
   body: any;
   handleClose: any;
-  text: string;
-  setText: Function;
 }
 
 const BottomContentModal: React.FC<IBottomModalScreenProps> = ({
@@ -27,8 +25,6 @@ const BottomContentModal: React.FC<IBottomModalScreenProps> = ({
   setSnapPoint,
   body,
   handleClose,
-  text,
-  setText,
 }) => {
   const theme = useTheme();
   //   const { colors } = theme;
@@ -50,39 +46,30 @@ const BottomContentModal: React.FC<IBottomModalScreenProps> = ({
   const handleSheetChanges = useCallback((index: number) => {
     if (index === -1) {
       handleClose();
-      setSnapPoint(0);
+      return;
     }
-    if (index === 0) {
-      setSnapPoint(0);
-    }
-    if (index === 1) {
-      setSnapPoint(1);
-    }
-  }, []);
 
-  /* -------------------------------------------------------------------------- */
-  /*                               Render Methods                               */
-  /* -------------------------------------------------------------------------- */
-  const Content = () => <View style={styles.content}>{body}</View>;
+    setSnapPoint(index);
+  }, [handleClose, setSnapPoint]);
 
-  const Sheet = memo(() => (
+  return (
     <BottomSheet
       ref={bottomSheetRef}
       index={snapPoint}
+      animateOnMount={false}
       snapPoints={snapPoints}
       onChange={handleSheetChanges}
       enablePanDownToClose
+      enableContentPanningGesture={false}
       backgroundStyle={styles.contentContainer}
-      android_keyboardInputMode="adjustResize"
+      keyboardBehavior="interactive"
+      keyboardBlurBehavior="restore"
       // sets scrolling for android
       activeOffsetY={isAndroid ? 50 : 0}
     >
-      {snapPoint === 0 && <Content />}
-      {snapPoint === 1 && <Content />}
+      {body}
     </BottomSheet>
-  ));
-
-  return <Sheet />;
+  );
 };
 
 export default BottomContentModal;

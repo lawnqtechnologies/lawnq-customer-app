@@ -1,21 +1,30 @@
 import React, {useCallback, useEffect, useState} from 'react';
 import {useSelector} from 'react-redux';
-import {
-  GiftedChat,
-  Bubble,
-  MessageText,
-  Composer,
-  InputToolbar,
-  Send,
-} from 'react-native-gifted-chat';
 import database from '@react-native-firebase/database';
+import storage from '@react-native-firebase/storage';
 import notifee from '@notifee/react-native';
-import {Alert, View, Pressable,Vibration} from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  Modal,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from 'react-native';
+import {
+  BottomSheetFlatList,
+  BottomSheetTextInput,
+} from '@gorhom/bottom-sheet';
+import {
+  ImageLibraryOptions,
+  launchImageLibrary,
+} from 'react-native-image-picker';
 import moment from 'moment';
 import _ from 'lodash';
 import {useBooking} from '@services/hooks/useBooking';
 import {v2Colors} from '@theme/themes';
-import fonts from '@fonts';
 import styles from './styles';
 
 /**
@@ -23,6 +32,7 @@ import styles from './styles';
  */
 import SEND from '@assets/v2/chat/icons/send.svg';
 import X_RED from '@assets/v2/chat/icons/x-red.svg';
+import GALLERY from '@assets/v2/homescreen/icons/gallery.svg';
 import {RootState} from 'store';
 import {NOTIFICATION_SOUNDS} from '@shared-constants';
 
@@ -34,47 +44,10 @@ interface ICustomChatComponent {
   setSnapPoint: Function;
 }
 
-interface IPureGiftedChatComponent {
-  messages: any;
-  onSend: any;
-  renderBubble: any;
-  renderMessageText: any;
-  renderInputToolbar: any;
-  renderComposer: any;
-  renderSend: any;
-}
-
-class PureGiftedChatComponent extends React.PureComponent<IPureGiftedChatComponent> {
-  render() {
-    const {
-      messages,
-      onSend,
-      renderBubble,
-      renderMessageText,
-      renderInputToolbar,
-      renderComposer,
-      renderSend,
-    } = this.props;
-
-    return (
-      <GiftedChat
-        messages={messages}
-        onSend={messages => onSend(messages)}
-        user={{
-          _id: 1,
-        }}
-        infiniteScroll
-        renderBubble={renderBubble}
-        renderMessageText={renderMessageText}
-        renderInputToolbar={renderInputToolbar}
-        renderComposer={renderComposer}
-        renderSend={renderSend}
-        placeholder={'Enter Message'}
-        minInputToolbarHeight={60}
-        keyboardShouldPersistTaps={'never'}
-      />
-    );
-  }
+interface ChatImageAttachment {
+  image: string;
+  imageName: string;
+  imageType: string;
 }
 
 const CustomChatComponent: React.FC<ICustomChatComponent> = ({
@@ -84,14 +57,12 @@ const CustomChatComponent: React.FC<ICustomChatComponent> = ({
   setInitChat,
   setSnapPoint,
 }) => {
-  const {BookingRefNo} = bookingItem;
+  const {BookingRefNo} = bookingItem ?? {};
 
   /**
    * ? Hooks
    */
   const {sendNotification} = useBooking();
-  // const keyboard = useKeyboard();
-  // const {keyboardShown, keyboardHeight} = keyboard;
 
   /**
    * ? Redux States
@@ -106,46 +77,90 @@ const CustomChatComponent: React.FC<ICustomChatComponent> = ({
    * ? States
    */
   const [messages, setMessages] = useState<Array<any>>([]);
+  const [draftMessage, setDraftMessage] = useState<string>('');
+  const [isUploadingAttachment, setIsUploadingAttachment] =
+    useState<boolean>(false);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string>('');
+  const [imageLoadingMap, setImageLoadingMap] = useState<{
+    [key: string]: boolean;
+  }>({});
+  const [isPreviewImageLoading, setIsPreviewImageLoading] =
+    useState<boolean>(false);
 
   /**
    * ? Variables
    */
-  const onSend = useCallback((messages = []) => {
-    const {text, _id} = messages[0];
-    setMessages((previousMessages: any) => {
+  const onSend = useCallback(
+    () => {
+      if (isUploadingAttachment) return;
+
+      const text = draftMessage.trim();
+      if (!text) return;
+      const _id = `${Date.now()}`;
+
+      const newMessage = {
+        _id,
+        text,
+        createdAt: new Date().toISOString(),
+        user: {
+          _id: 1,
+          name: Firstname,
+        },
+      };
+
       onSendChatNotif(text, _id);
       onGetCustomerChatCount(false);
       onGetSPChatCount(false);
       onSetChatData(text, _id);
-
-      return GiftedChat.append(previousMessages, messages);
-    });
-  }, []);
+      setMessages(previousMessages => [newMessage, ...previousMessages]);
+      setDraftMessage('');
+    },
+    [
+      draftMessage,
+      BookingRefNo,
+      Firstname,
+      SPInfo,
+      ServiceProviderId,
+      customerId,
+      isUploadingAttachment,
+    ],
+  );
 
   /**
    * ? Watchers
    */
 
-
-
   useEffect(() => {
-    if (!customerId || !ServiceProviderId || !Firstname) return;
+    if (!BookingRefNo || !customerId || !ServiceProviderId || !Firstname)
+      return;
 
     onGetCustomerChatCount(true);
     onGetSPChatCount(true);
     onGetChatMessages();
-  }, []);
+  }, [BookingRefNo, customerId, ServiceProviderId, Firstname]);
 
   useEffect(() => {
+    if (!BookingRefNo) return;
     onGetChatMessages();
     // triggerDefaultNotification()
-  }, [receivedChatInfo]);
+  }, [BookingRefNo, receivedChatInfo]);
 
   /**
    * ? Functions
    */
-  const onSendChatNotif = (text: string, _id: string) => {
+  const onSendChatNotif = (
+    text: string,
+    _id: string,
+    attachment?: ChatImageAttachment,
+    notificationBody: string = text,
+  ) => {
     const {DeviceId, PlatformOs} = SPInfo;
+    const messagePayload = {
+      text,
+      _id,
+      bookingItem,
+      ...attachment,
+    };
 
     const notifPayload = {
       DeviceId,
@@ -153,19 +168,20 @@ const CustomChatComponent: React.FC<ICustomChatComponent> = ({
       IsAndroiodDevice: PlatformOs === 'android' ? true : false,
       Data: {
         ScreenName: 'BOOKING_CHAT',
-        Message: JSON.stringify({
-          text,
-          _id,
-          bookingItem,
-        }),
+        Message: JSON.stringify(messagePayload),
         Remarks: '',
       },
       Notification: {
         Title: Firstname,
-        Body: text,
+        Body: notificationBody,
         Sound: NOTIFICATION_SOUNDS.NOTIFICATION_DEFAULT,
       },
     };
+
+    if (attachment?.image) {
+      console.log('Chat image notification message payload:', messagePayload);
+    }
+
     console.log('onSendChatNotif payload:', notifPayload);
     sendNotification(
       notifPayload,
@@ -265,24 +281,53 @@ const CustomChatComponent: React.FC<ICustomChatComponent> = ({
   };
 
   const onGetChatMessages = () => {
+    if (!BookingRefNo) return;
+
     database()
       .ref(`/chats/${BookingRefNo}`)
       .once('value')
       .then(snapshot => {
         const data = snapshot.val();
-        console.log('onGetChatMessages ata:', data);
+        console.log('onGetChatMessages data:', data);
 
         let newArray: Array<any> = [];
 
-        if (!_.size(data)) return;
-        Object?.keys(data).forEach(function (key) {
+        if (!_.size(data)) {
+          setMessages([]);
+          return;
+        }
+
+        Object.keys(data).forEach(function (key) {
           const item = data[key];
-          const {sender, text, type, createdAt, _id} = item;
+          const {
+            sender,
+            text,
+            type,
+            createdAt,
+            _id,
+            image,
+            imageUrl,
+            imageName,
+            imageType,
+          } = item;
+          const imageValue = image || imageUrl || '';
+          let parsedCreatedAt = createdAt;
+
+          if (typeof createdAt === 'string') {
+            try {
+              parsedCreatedAt = JSON.parse(createdAt);
+            } catch {
+              parsedCreatedAt = createdAt;
+            }
+          }
 
           const formedMessage = {
             _id,
-            text,
-            createdAt: JSON.parse(createdAt) || '',
+            text: text || '',
+            image: imageValue,
+            imageName: imageName || '',
+            imageType: imageType || '',
+            createdAt: parsedCreatedAt || new Date(),
             user: {
               _id: type === 'C' ? 1 : 2,
               name: sender,
@@ -297,122 +342,340 @@ const CustomChatComponent: React.FC<ICustomChatComponent> = ({
         );
         console.log('sortedArray:', sortedArray);
         setMessages(sortedArray);
+      })
+      .catch(error => {
+        console.log('onGetChatMessages error:', error);
+        setMessages([]);
       });
   };
 
-  const onSetChatData = (text: string, _id: string) => {
+  const onSetChatData = (
+    text: string,
+    _id: string,
+    attachment?: ChatImageAttachment,
+  ) => {
     const formedData = {
       sender: Firstname,
       type: 'C',
       createdAt: JSON.stringify(moment()),
       text,
       _id,
+      ...attachment,
     };
+
+    if (attachment?.image) {
+      console.log('Chat image database payload:', formedData);
+    }
 
     const newReference = database().ref(`/chats/${BookingRefNo}`).push();
     newReference.set(formedData).then(() => console.log('Data updated.'));
   };
 
-  const renderBubble = (props: any) => (
-    <Bubble
-      {...props}
-      wrapperStyle={{
-        left: {
-          backgroundColor: v2Colors.lightGreen,
+  const getStoragePath = (asset: any, _id: string) => {
+    const extension =
+      asset?.fileName?.split('.').pop() ||
+      asset?.type?.split('/').pop() ||
+      'jpg';
+
+    return `chat-attachments/${BookingRefNo}/${_id}.${extension}`;
+  };
+
+  const uploadChatImage = async (asset: any, _id: string) => {
+    if (!asset?.uri) throw new Error('Image URI is missing.');
+
+    const imageRef = storage().ref(getStoragePath(asset, _id));
+    const uploadUri = asset.uri.startsWith('file://')
+      ? asset.uri.replace('file://', '')
+      : asset.uri;
+
+    await imageRef.putFile(uploadUri);
+
+    const imageUrl = await imageRef.getDownloadURL();
+    console.log('Chat image upload URL:', imageUrl);
+
+    return imageUrl;
+  };
+
+  const onSendImage = async (asset: any) => {
+    const _id = `${Date.now()}`;
+    const text = draftMessage.trim();
+
+    setIsUploadingAttachment(true);
+
+    try {
+      const imageUrl = await uploadChatImage(asset, _id);
+      console.log('Chat image send URL:', imageUrl);
+
+      const imageName = asset?.fileName || `${_id}.jpg`;
+      const imageType = asset?.type || 'image/jpeg';
+      const notificationText = text || 'Sent an image';
+      const attachment = {
+        image: imageUrl,
+        imageName,
+        imageType,
+      };
+      const imagePayload = {
+        _id,
+        bookingRefNo: BookingRefNo,
+        text,
+        localUri: asset?.uri,
+        fileSize: asset?.fileSize,
+        ...attachment,
+      };
+
+      console.log('Chat image payload:', imagePayload);
+
+      const newMessage = {
+        _id,
+        text,
+        ...attachment,
+        createdAt: new Date().toISOString(),
+        user: {
+          _id: 1,
+          name: Firstname,
         },
-        right: {
-          backgroundColor: v2Colors.green,
-        },
-      }}
-    />
-  );
+      };
 
-  const renderMessageText = (props: any) => (
-    <MessageText
-      {...props}
-      textStyle={{
-        left: {color: v2Colors.green, fontFamily: fonts.lexend.regular},
-        right: {color: 'white', fontFamily: fonts.lexend.regular},
-      }}
-      customTextStyle={{fontSize: 16, lineHeight: 24}}
-    />
-  );
+      onSendChatNotif(text, _id, attachment, notificationText);
+      onGetCustomerChatCount(false);
+      onGetSPChatCount(false);
+      onSetChatData(text, _id, attachment);
+      setMessages(previousMessages => [newMessage, ...previousMessages]);
+      setDraftMessage('');
+    } catch (error) {
+      console.log('onSendImage error:', error);
+      Alert.alert('Chat', 'Image upload failed, please try again.');
+    } finally {
+      setIsUploadingAttachment(false);
+    }
+  };
 
-  const renderInputToolbar = (props: any) => (
-    <InputToolbar
-      {...props}
-      containerStyle={{
-        width: '85%',
-        borderRadius: 7,
-        backgroundColor: '#FFFFFF',
-        paddingHorizontal: 10,
-        marginHorizontal: 14,
-        marginBottom: 20,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: v2Colors.border,
+  const onSelectImage = () => {
+    if (isUploadingAttachment) return;
 
-        shadowColor: '#000',
-        shadowOffset: {
-          width: 0,
-          height: 2,
-        },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
-        elevation: 1,
-      }}
-      primaryStyle={{alignItems: 'center'}}
-    />
-  );
+    const options: ImageLibraryOptions = {
+      mediaType: 'photo',
+      maxWidth: 2000,
+      maxHeight: 2000,
+      quality: 0.8,
+      selectionLimit: 1,
+    };
 
-  const renderComposer = (props: any) => (
-    <Composer
-      {...props}
-      textInputStyle={{
-        fontFamily: fonts.lexend.regular,
-        fontSize: 16,
-        color: v2Colors.gray,
-      }}
-    />
-  );
+    launchImageLibrary(options, response => {
+      if (response.didCancel) {
+        console.log('User cancelled image picker');
+        return;
+      }
 
-  const renderSend = (props: any) => (
-    <Send
-      {...props}
-      disabled={!props.text}
-      containerStyle={{
-        width: 44,
-        height: 44,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginLeft: 4,
-      }}>
-      <SEND />
-    </Send>
-  );
+      if (response.errorCode || response.errorMessage) {
+        console.log(
+          'ImagePicker Error: ',
+          response.errorCode || response.errorMessage,
+        );
+        Alert.alert('Chat', 'Unable to select image, please try again.');
+        return;
+      }
+
+      const asset = response.assets?.[0];
+
+      if (!asset?.uri) {
+        Alert.alert('Chat', 'Unable to select image, please try again.');
+        return;
+      }
+
+      onSendImage(asset);
+    });
+  };
+
+  const formatMessageTimestamp = (createdAt: any) => {
+    const timestamp = moment(createdAt);
+
+    if (!timestamp.isValid()) return '';
+
+    return timestamp.format('MMM D, YYYY h:mm A');
+  };
+
+  const openImagePreview = (imageUrl: string) => {
+    setIsPreviewImageLoading(true);
+    setSelectedImageUrl(imageUrl);
+  };
+
+  const closeImagePreview = () => {
+    setSelectedImageUrl('');
+    setIsPreviewImageLoading(false);
+  };
+
+  const setMessageImageLoading = (imageUrl: string, isLoading: boolean) => {
+    setImageLoadingMap(previousValue => ({
+      ...previousValue,
+      [imageUrl]: isLoading,
+    }));
+  };
+
+  const renderMessage = ({item}: {item: any}) => {
+    const isCurrentUser = item?.user?._id === 1;
+    const timestamp = formatMessageTimestamp(item?.createdAt);
+    const imageUri = item?.image || item?.imageUrl || '';
+    const isMessageImageLoading = imageUri
+      ? imageLoadingMap[imageUri] !== false
+      : false;
+
+    if (imageUri) {
+      console.log('Chat image render URL:', imageUri);
+    }
+
+    return (
+      <View
+        style={[
+          styles.messageBubble,
+          isCurrentUser
+            ? styles.messageBubbleRight
+            : styles.messageBubbleLeft,
+          !!imageUri && styles.messageImageBubble,
+        ]}>
+        {!!imageUri && (
+          <Pressable
+            onPress={() => openImagePreview(imageUri)}
+            style={styles.messageImageContainer}>
+            <Image
+              source={{uri: imageUri}}
+              style={styles.messageImage}
+              resizeMode="cover"
+              onLoadStart={() => setMessageImageLoading(imageUri, true)}
+              onLoadEnd={() => setMessageImageLoading(imageUri, false)}
+              onError={() => setMessageImageLoading(imageUri, false)}
+            />
+            {isMessageImageLoading && (
+              <View style={styles.messageImageLoaderOverlay}>
+                <ActivityIndicator size="small" color={v2Colors.green} />
+              </View>
+            )}
+          </Pressable>
+        )}
+        {!!item?.text && (
+          <Text
+            style={[
+              styles.messageText,
+              isCurrentUser ? styles.messageTextRight : styles.messageTextLeft,
+            ]}>
+            {item?.text}
+          </Text>
+        )}
+        {!!timestamp && (
+          <Text
+            style={[
+              styles.messageTimestamp,
+              isCurrentUser
+                ? styles.messageTimestampRight
+                : styles.messageTimestampLeft,
+            ]}>
+            {timestamp}
+          </Text>
+        )}
+      </View>
+    );
+  };
 
   return (
-    <View style={{flex: 1}}>
+    <View style={styles.container}>
       <Pressable
         style={styles.closeButton}
         onPress={() => {
           setInitChat(false);
-          setSnapPoint(0);
+          setSnapPoint(-1);
         }}>
         <X_RED />
       </Pressable>
 
-      <PureGiftedChatComponent
-        messages={messages}
-        onSend={onSend}
-        renderBubble={renderBubble}
-        renderMessageText={renderMessageText}
-        renderInputToolbar={renderInputToolbar}
-        renderComposer={renderComposer}
-        renderSend={renderSend}
+      <BottomSheetFlatList
+        style={styles.messageList}
+        data={messages}
+        keyExtractor={item => String(item._id)}
+        renderItem={renderMessage}
+        inverted
+        contentContainerStyle={styles.messageListContent}
+        nestedScrollEnabled
+        scrollEnabled
+        showsVerticalScrollIndicator
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
       />
 
-      {/* {keyboardShown && isAndroid && <View style={{height: keyboardHeight}} />} */}
+      <View style={styles.inputContainer}>
+        <Pressable
+          onPress={onSelectImage}
+          disabled={isUploadingAttachment}
+          style={[
+            styles.attachmentButton,
+            isUploadingAttachment && styles.attachmentButtonDisabled,
+          ]}>
+          {isUploadingAttachment ? (
+            <ActivityIndicator size="small" color={v2Colors.green} />
+          ) : (
+            <GALLERY height={20} width={20} />
+          )}
+        </Pressable>
+
+        <BottomSheetTextInput
+          value={draftMessage}
+          onChangeText={setDraftMessage}
+          placeholder="Enter Message"
+          placeholderTextColor={v2Colors.gray}
+          returnKeyType="send"
+          onSubmitEditing={onSend}
+          style={styles.textInput}
+        />
+
+        <Pressable
+          onPress={onSend}
+          disabled={!draftMessage.trim() || isUploadingAttachment}
+          style={[
+            styles.sendButton,
+            (!draftMessage.trim() || isUploadingAttachment) &&
+              styles.sendButtonDisabled,
+          ]}>
+          <SEND />
+        </Pressable>
+      </View>
+
+      <Modal
+        visible={!!selectedImageUrl}
+        transparent
+        animationType="fade"
+        onRequestClose={closeImagePreview}>
+        <View style={styles.imagePreviewModal}>
+          <Pressable
+            onPress={closeImagePreview}
+            style={styles.imagePreviewCloseButton}>
+            <X_RED height={18} width={18} />
+          </Pressable>
+
+          <ScrollView
+            style={styles.imagePreviewScroll}
+            contentContainerStyle={styles.imagePreviewScrollContent}
+            centerContent
+            maximumZoomScale={4}
+            minimumZoomScale={1}
+            showsHorizontalScrollIndicator={false}
+            showsVerticalScrollIndicator={false}>
+            {!!selectedImageUrl && (
+              <Image
+                source={{uri: selectedImageUrl}}
+                style={styles.imagePreviewImage}
+                resizeMode="contain"
+                onLoadStart={() => setIsPreviewImageLoading(true)}
+                onLoadEnd={() => setIsPreviewImageLoading(false)}
+                onError={() => setIsPreviewImageLoading(false)}
+              />
+            )}
+          </ScrollView>
+          {isPreviewImageLoading && (
+            <View style={styles.imagePreviewLoaderOverlay}>
+              <ActivityIndicator size="large" color="#FFFFFF" />
+            </View>
+          )}
+        </View>
+      </Modal>
     </View>
   );
 };

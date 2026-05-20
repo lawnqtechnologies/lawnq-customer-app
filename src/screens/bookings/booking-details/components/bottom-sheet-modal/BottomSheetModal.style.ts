@@ -1,6 +1,5 @@
 import { ExtendedTheme } from "@react-navigation/native";
-import { v2Colors } from "@theme/themes";
-import { ViewStyle, StyleSheet, Platform } from "react-native";
+import { ViewStyle, StyleSheet } from "react-native";
 
 interface Style {
   container: ViewStyle;
@@ -13,9 +12,7 @@ interface Style {
   rightContent: ViewStyle;
 }
 
-export default (theme: ExtendedTheme) => {
-  const { colors } = theme;
-
+export default (_theme: ExtendedTheme) => {
   return StyleSheet.create<Style>({
     container: {
       flex: 1,
@@ -27,13 +24,13 @@ export default (theme: ExtendedTheme) => {
     },
     content: {
       flex: 1,
+      height: "100%",
+      width: "100%",
     },
     contentContainer: {
-      height: "100%",
       backgroundColor: "white",
       borderTopLeftRadius: 40,
       borderTopRightRadius: 40,
-      alignItems: "center",
     },
     body: {
       flex: 1,

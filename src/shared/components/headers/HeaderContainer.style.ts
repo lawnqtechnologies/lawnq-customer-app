@@ -10,9 +10,7 @@ interface Style {
   deleteContainer: ViewStyle;
 }
 
-export default (theme: ExtendedTheme, topInset: number = 0) => {
-  const { colors } = theme;
-
+export default (_theme: ExtendedTheme, topInset: number = 0) => {
   return StyleSheet.create<Style>({
     container: {
       backgroundColor: "white",

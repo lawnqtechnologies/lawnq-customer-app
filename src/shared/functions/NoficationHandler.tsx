@@ -7,6 +7,7 @@ import notifee from '@notifee/react-native';
 import {SCREENS} from '@shared-constants';
 import {isAndroid} from '@freakycoder/react-native-helpers';
 import {OnSetIsReloadScreen} from '@services/states/property/property.slice';
+import {systemActions} from '@services/states/system/system.slice';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Vibration } from 'react-native';
 
@@ -23,6 +24,7 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
   setDidReceiveNotif,
 }) => {
   const dispatch = useDispatch();
+  const {onSetReceivedChatInfo} = systemActions;
 
   /**
   |--------------------------------------------------
@@ -161,8 +163,8 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
             dispatch(OnSetIsReloadScreen(true));
             setShowNotifModal(true);
             setNotifModal({
-              title: notification.title,
-              body: notification.body,
+              title: notification?.title ?? 'Notification',
+              body: notification?.body ?? '',
               btnText: 'Confirm',
               onPress: () => {
                 setShowNotifModal(false);
@@ -209,8 +211,8 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
           if (data?.Remarks === 'SP_CANCEL_BOOKING') {
             setShowNotifModal(true);
             setNotifModal({
-              title: notification.title,
-              body: notification.body,
+              title: notification?.title ?? 'Notification',
+              body: notification?.body ?? '',
               btnText: 'Confirm',
               onPress: () => {
                 setShowNotifModal(false);
@@ -222,8 +224,8 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
           if (data?.Remarks === 'SP_START_BOOKING') {
             setShowNotifModal(true);
             setNotifModal({
-              title: notification.title,
-              body: notification.body,
+              title: notification?.title ?? 'Notification',
+              body: notification?.body ?? '',
               btnText: 'Confirm',
               onPress: () => {
                 setShowNotifModal(false);
@@ -239,12 +241,24 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
           if (data?.Remarks === 'PROMO') {
             setShowNotifModal(true);
             setNotifModal({
-              title: notification.title,
-              body: notification.body,
+              title: notification?.title ?? 'Notification',
+              body: notification?.body ?? '',
               btnText: 'Confirm',
               onPress: () => {
                 setShowNotifModal(false);
-                NavigationService.push(data?.Message?.SreenName);
+                const promoScreen =
+                  (typeof data?.Message === 'string'
+                    ? (() => {
+                        try {
+                          const parsed = JSON.parse(data.Message) as any;
+                          return parsed?.SreenName ?? parsed?.ScreenName;
+                        } catch {
+                          return undefined;
+                        }
+                      })()
+                    : (data?.Message as any)?.SreenName ??
+                      (data?.Message as any)?.ScreenName) ?? 'Home';
+                NavigationService.push(promoScreen);
               },
             });
           }
@@ -277,22 +291,38 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
     console.log('message:', messageObj);
 
     triggerDefaultNotification();
-    const { text, _id, bookingItem } = messageObj;
+    const {text, _id, bookingItem, imageName, imageType} = messageObj;
+    const image = messageObj?.image || messageObj?.imageUrl || '';
+    const notificationText = text || (image ? 'Sent an image' : '');
+
+    if (image) {
+      console.log('Received chat image payload:', {
+        text,
+        _id,
+        bookingItem,
+        image,
+        imageName,
+        imageType,
+      });
+    }
 
     setDidReceiveNotif(true);
 
     dispatch(
       onSetReceivedChatInfo({
-        text,
+        text: notificationText,
         show: navigate,
         _id,
+        image,
+        imageName,
+        imageType,
       }),
     );
 
     if (navigate) {
       // navigate logic...
     } else if (isAndroid) {
-      onDisplayNotification('Chat', text);
+      onDisplayNotification('Chat', notificationText);
     }
   };
 
@@ -343,11 +373,3 @@ const triggerDefaultNotification = async () => {
 };
 
 export default NotificationHandler;
-function onSetReceivedChatInfo(arg0: {
-  text: any;
-  show: boolean;
-  _id: any;
-}): any {
-  // throw new Error('Function not implemented.');
-  console.log('Function not implemented.');
-}

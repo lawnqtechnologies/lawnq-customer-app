@@ -5,8 +5,6 @@ import {ViewStyle, StyleSheet} from 'react-native';
 interface Style {
   container: ViewStyle;
 
-  viewOnTop: ViewStyle;
-
   headerContainer: ViewStyle;
   headerTopLeftContent: ViewStyle;
   statusContainer: ViewStyle;
@@ -44,14 +42,6 @@ export default (theme: ExtendedTheme) => {
       borderRadius: 9,
       alignItems: 'center',
     },
-    viewOnTop: {
-      position: 'absolute',
-      height: '100%',
-      width: '100%',
-      backgroundColor: v2Colors.green,
-      opacity: 0.75,
-    },
-
     headerContainer: {
       minHeight: 150,
       backgroundColor: v2Colors.lightGreen,

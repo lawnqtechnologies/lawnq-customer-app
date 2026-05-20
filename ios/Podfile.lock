@@ -2816,6 +2816,49 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
+  - react-native-keyboard-controller (1.20.7):
+    - DoubleConversion
+    - glog
+    - hermes-engine
+    - RCT-Folly (= 2024.01.01.00)
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - react-native-keyboard-controller/common (= 1.20.7)
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - Yoga
+  - react-native-keyboard-controller/common (1.20.7):
+    - DoubleConversion
+    - glog
+    - hermes-engine
+    - RCT-Folly (= 2024.01.01.00)
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - Yoga
   - react-native-loader-kit (2.0.8):
     - NVActivityIndicatorView (= 5.1.1)
     - React-Core
@@ -3719,6 +3762,7 @@ DEPENDENCIES:
   - "react-native-geolocation (from `../node_modules/@react-native-community/geolocation`)"
   - react-native-get-random-values (from `../node_modules/react-native-get-random-values`)
   - react-native-image-picker (from `../node_modules/react-native-image-picker`)
+  - react-native-keyboard-controller (from `../node_modules/react-native-keyboard-controller`)
   - react-native-loader-kit (from `../node_modules/react-native-loader-kit`)
   - react-native-maps (from `../node_modules/react-native-maps`)
   - react-native-pager-view (from `../node_modules/react-native-pager-view`)
@@ -3905,6 +3949,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-get-random-values"
   react-native-image-picker:
     :path: "../node_modules/react-native-image-picker"
+  react-native-keyboard-controller:
+    :path: "../node_modules/react-native-keyboard-controller"
   react-native-loader-kit:
     :path: "../node_modules/react-native-loader-kit"
   react-native-maps:
@@ -4089,6 +4135,7 @@ SPEC CHECKSUMS:
   react-native-geolocation: 19e121dda71716926a4558790f69344951f2a3ce
   react-native-get-random-values: d16467cf726c618e9c7a8c3c39c31faa2244bbba
   react-native-image-picker: 3d0b0a3d29c978434e810e92b5da40c995d16a04
+  react-native-keyboard-controller: 1e0ae2eb30543c30b9944320b77e8675c78a726c
   react-native-loader-kit: 46b54fe8b8a21fe8c4d4f5d635faedf187d5ba09
   react-native-maps: 9febd31278b35cd21e4fad2cf6fa708993be5dab
   react-native-pager-view: ec0cc6646b0ed8117d98b5421a3de7fc1c74adcc

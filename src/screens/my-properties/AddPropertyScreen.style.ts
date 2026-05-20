@@ -1,6 +1,6 @@
 import { ExtendedTheme } from "@react-navigation/native";
 import { v2Colors } from "@theme/themes";
-import { ViewStyle, StyleSheet, Dimensions } from "react-native";
+import { ViewStyle, StyleSheet, Dimensions, TextStyle } from "react-native";
 import { ImageStyle } from "react-native-fast-image";
 
 const { height, width } = Dimensions.get("window");
@@ -16,12 +16,14 @@ interface Style {
   lawnImages: ImageStyle;
   dropdown: ViewStyle;
   radio: ViewStyle;
-  imageUploadText: ViewStyle;
+  imageUploadText: TextStyle;
   imageContainer: ViewStyle;
   placeholderContainer: ViewStyle;
   imageUploadSelectContainer: ViewStyle;
   buttonSelectImage: ViewStyle;
   setAsDefaultContainer: ViewStyle;
+  setAsDefaultLabel: TextStyle;
+  defaultSwitch: ViewStyle;
   uploadLoaderContainer: ViewStyle;
 }
 
@@ -129,15 +131,21 @@ export default (theme: ExtendedTheme) => {
       paddingHorizontal: 20,
     },
     setAsDefaultContainer: {
-      marginHorizontal: 10,
       marginTop: 20,
       marginBottom: 10,
       flexDirection: "row",
       width: "100%",
-      paddingHorizontal: 10,
+      paddingRight: 12,
       justifyContent: "space-between",
       alignItems: "center",
       alignSelf: "center",
+    },
+    setAsDefaultLabel: {
+      flex: 1,
+      marginRight: 12,
+    },
+    defaultSwitch: {
+      transform: [{ scaleX: 0.92 }, { scaleY: 0.92 }],
     },
     uploadLoaderContainer: {
       position: "absolute",

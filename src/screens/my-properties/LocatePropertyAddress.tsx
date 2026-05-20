@@ -21,13 +21,11 @@ import 'react-native-get-random-values';
  */
 import createStyles from './LocatePropertyAddress.style';
 import {v2Colors} from '@theme/themes';
-import {SCREENS} from '@shared-constants';
 import HeaderContainer from '@shared-components/headers/HeaderContainer';
 import CommonButton from '@shared-components/buttons/CommonButton';
 import InputTextNoControl from '@shared-components/form/InputText/v2/input-text-no-control';
 import Map from './components/map';
 import {
-  check,
   request,
   PERMISSIONS,
   RESULTS,
@@ -49,38 +47,17 @@ import {
   onSetStreetNumber,
   onSetSuburb,
 } from '@services/states/property/property.slice';
-import {LocationData} from '@interface/map/LocationData';
-import {debounce} from 'lodash';
 
 /**
  * ? Constants
  */
 const {width, height} = Dimensions.get('window');
-const ASPECT_RATIO = width / height;
 const GOOGLE_PLACES_API_KEY = 'AIzaSyAQ_Hd8-sh8uM6rufkNrkvABip3292UoXs';
 const INITIAL_REGION = {
   latitude: -33.7619, // Corrected to use negative latitude for Australia
   longitude: 150.9929,
   // latitudeDelta: 0.0043,
-  // longitudeDelta: 0.0043 * ASPECT_RATIO,
-};
-
-const initialLocationData: LocationData = {
-  coords: {
-    accuracy: 5,
-    altitude: 99.2,
-    heading: 10.979999542236328,
-    latitude: -33.8688, // Sydney latitude
-    longitude: 151.2093, // Sydney longitude
-    speed: 0.8456885814666748,
-  },
-  extras: {
-    maxCn0: 28,
-    meanCn0: 19,
-    satellites: 8,
-  },
-  mocked: false,
-  timestamp: 1734661836000,
+  // longitudeDelta: 0.0043,
 };
 
 type CustomStyleProp = StyleProp<ViewStyle> | Array<StyleProp<ViewStyle>>;
@@ -105,7 +82,6 @@ const LocatePropertyAddress: React.FC<ILocatePropertyAddress> = ({
    */
   const [region, setRegion] = useState<any>(INITIAL_REGION);
 
-  const [URL, SetURL] = useState<string>('');
   const [desc, setDesc] = useState<string>('');
 
   // ? bottom sheet handlers
@@ -224,12 +200,8 @@ const LocatePropertyAddress: React.FC<ILocatePropertyAddress> = ({
     Alert.alert(
       'Please enable location in settings or check your internet connection',
     );
-    navigation.navigate(SCREENS.ADD_PROPERTY);
+    navigation.goBack();
   };
-  const onRegionChange = async (thisRegion: any) => {
-    return thisRegion;
-  };
-
   const onWatchCoords = (thisLat: number, thisLng: number) => {
     dispatch(
       onSetGeometry({
@@ -304,7 +276,7 @@ const LocatePropertyAddress: React.FC<ILocatePropertyAddress> = ({
 
   const navigateBackto = () => {
     dispatch(onSetAddress(desc));
-    navigation.navigate(SCREENS.ADD_PROPERTY);
+    navigation.goBack();
   };
 
   /* -------------------------------------------------------------------------- */
@@ -322,7 +294,6 @@ const LocatePropertyAddress: React.FC<ILocatePropertyAddress> = ({
             onPress={(data: any, details: any = null) => {
               const newLat: number = Number(details?.geometry.location.lat);
               const newLng: number = Number(details?.geometry.location.lng);
-              const newUrl: string = details?.url || '';
               const selectedDescription: string =
                 data?.description ??
                 data?.structured_formatting?.main_text ??
@@ -383,7 +354,6 @@ const LocatePropertyAddress: React.FC<ILocatePropertyAddress> = ({
 
               setDesc(selectedDescription);
               setI(() => 0);
-              SetURL(newUrl);
 
               const thisRegion = {
                 ...region,
@@ -457,11 +427,10 @@ const LocatePropertyAddress: React.FC<ILocatePropertyAddress> = ({
     <View style={styles.container}>
       <HeaderContainer
         pageTitle="Locate Property"
-        navigateTo={SCREENS.ADD_PROPERTY}
+        backValue
       />
       <Map
         region={region}
-        // onRegionChange={onRegionChange}
 
         onWatchCoords={onWatchCoords}
         // setRegion={setRegion}
