@@ -7,6 +7,7 @@ import {View} from 'react-native';
 import styles from './styles';
 import Text from '@shared-components/text-wrapper/TextWrapper';
 import CommonButton from '@shared-components/buttons/CommonButton';
+import {useSafeBottomMargin} from 'shared/functions/useSafeBottomInset';
 // import { ActionSheetComponentRef } from "react-native-actions-sheet";
 
 interface IActionSheetComponentProps {
@@ -22,6 +23,8 @@ const ActionSheetComponent: React.FC<IActionSheetComponentProps> = ({
   onHide,
   onPressConfirm,
 }) => {
+  const confirmBottomMargin = useSafeBottomMargin(50);
+
   const Header = () => (
     <View style={styles.header}>
       <Text h3 bold color="black" style={{textAlign: 'center'}}>
@@ -31,7 +34,7 @@ const ActionSheetComponent: React.FC<IActionSheetComponentProps> = ({
   );
 
   const Confirm = () => (
-    <View style={{marginBottom: 50}}>
+    <View style={confirmBottomMargin}>
       <CommonButton
         text={'Confirm'}
         onPress={() => {

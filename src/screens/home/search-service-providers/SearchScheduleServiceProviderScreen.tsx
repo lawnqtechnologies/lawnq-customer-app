@@ -14,6 +14,7 @@ import {SCREENS} from '@shared-constants';
 import AndroidBackButtonHandler from 'shared/functions/AndroidBackButtonHandler';
 import {v2Colors} from '@theme/themes';
 import SearchScheduleSPFunction from './functions/SearchScheduleSP';
+import {useSafeBottomPadding} from 'shared/functions/useSafeBottomInset';
 
 /**
  * ? Constants
@@ -33,6 +34,7 @@ const SearchScheduleServiceProviderScreen: React.FC<
 > = ({route}) => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const bottomActionPadding = useSafeBottomPadding(20);
 
   /**
    * ? Functions
@@ -53,7 +55,7 @@ const SearchScheduleServiceProviderScreen: React.FC<
   );
 
   const BottomActions = () => (
-    <View style={styles.btnContainer}>
+    <View style={[styles.btnContainer, bottomActionPadding]}>
       <Pressable onPress={onPressHome} style={styles.btn}>
         <Icon
           name="home"

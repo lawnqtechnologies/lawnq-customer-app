@@ -25,6 +25,7 @@ import {useBooking} from '@services/hooks/useBooking';
 import {useSelector} from 'react-redux';
 import {RootState} from 'store';
 import KeyboardHandler from '@shared-components/containers/KeyboardHandler';
+import {useSafeBottomPadding} from 'shared/functions/useSafeBottomInset';
 
 /**
  * ? Constants
@@ -43,6 +44,7 @@ const RatingFeedbackScreen: React.FC<IRatingFeedbackScreenProps> = ({
 }) => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const submitBottomPadding = useSafeBottomPadding(20);
   const {saveFeedback} = useBooking();
 
   const completeBookingPayload = route.params?.completeBookingData;
@@ -159,10 +161,13 @@ const RatingFeedbackScreen: React.FC<IRatingFeedbackScreenProps> = ({
 
   const Submit = () => (
     <View
-      style={{
-        flexGrow: 1,
-        justifyContent: 'flex-end',
-      }}>
+      style={[
+        {
+          flexGrow: 1,
+          justifyContent: 'flex-end',
+        },
+        submitBottomPadding,
+      ]}>
       <CommonButton
         text={'Submit'}
         style={styles.submitBtn}

@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect} from 'react';
-import database from '@react-native-firebase/database';
+import {getDatabase, get, ref} from '@react-native-firebase/database';
 import {useDispatch, useSelector} from 'react-redux';
 import notifee from '@notifee/react-native';
 
@@ -40,13 +40,20 @@ const ChatCountHandler: React.FC<IChatCountHandlerProps> = ({
    * ? Functions
    */
   const fetchChatCount = useCallback(() => {
-    database()
-      .ref(`/chat_count/customer/${customerId}/`)
-      .once('value')
-      .then(snapshot => {
+    if (!customerId) {
+      setDidReceiveNotif(false);
+      return;
+    }
+
+    const db = getDatabase();
+    get(ref(db, `/chat_count/customer/${customerId}/`))
+      .then((snapshot) => {
         const data = snapshot.val();
         // console.log("data:", data);
-        if (!data) return;
+        if (!data) {
+          setDidReceiveNotif(false);
+          return;
+        }
 
         let countArray: Array<any> = [];
         let totalCount: number = 0;
@@ -61,14 +68,20 @@ const ChatCountHandler: React.FC<IChatCountHandlerProps> = ({
         // setChatTotalCount(totalCount);
         appBadgeCountHandler(totalCount || 0);
         setDidReceiveNotif(false);
+      })
+      .catch((error) => {
+        console.warn('Failed to fetch chat count:', error);
+        setDidReceiveNotif(false);
       });
-  }, []);
+  }, [customerId, setDidReceiveNotif]);
 
   // ? App icon badge count handler
   const appBadgeCountHandler = (count: number) => {
     dispatch(onSetTotalChatCount(count));
 
-    notifee.setBadgeCount(count).then(() => {});
+    notifee
+      .setBadgeCount(count)
+      .catch((error) => console.warn('Failed to set badge count:', error));
   };
 
   return null;

@@ -6,7 +6,8 @@ import {
   FlatList,
   ActivityIndicator,
   Alert,
-  Pressable
+  InteractionManager,
+  Pressable,
 } from 'react-native';
 import {useFocusEffect, useTheme} from '@react-navigation/native';
 import * as NavigationService from 'react-navigation-helpers';
@@ -26,6 +27,10 @@ import HeaderContainer from '@shared-components/headers/HeaderContainer';
 import {useProperty} from '@services/hooks/useProperty';
 import {v2Colors} from '@theme/themes';
 import WholeScreenLoader from '@shared-components/loaders/WholeScreenLoader';
+import {
+  useSafeBottomPadding,
+  useSafeBottomPosition,
+} from 'shared/functions/useSafeBottomInset';
 /**
  * ? SVGs
  */
@@ -62,6 +67,8 @@ let SERVICE_TYPE_SELECTION_LIST = [
   {label: 'Ride-on Mowing', value: '2'},
 ];
 
+const PROPERTIES_FOCUS_REFRESH_COOLDOWN_MS = 15000;
+
 type CustomStyleProp = StyleProp<ViewStyle> | Array<StyleProp<ViewStyle>>;
 
 interface IMyPropertiesScreenProps {
@@ -71,6 +78,8 @@ interface IMyPropertiesScreenProps {
 const MyPropertiesScreen: React.FC<IMyPropertiesScreenProps> = () => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const listBottomPadding = useSafeBottomPadding(80);
+  const addButtonBottomPosition = useSafeBottomPosition(20);
   const dispatch = useDispatch();
   const {isReloadScreen} = useSelector((state: RootState) => state.property);
 
@@ -96,20 +105,41 @@ const MyPropertiesScreen: React.FC<IMyPropertiesScreenProps> = () => {
   const [items, setItems] = useState<Array<any>>([]);
   const [searchText, setSearchText] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
+  const isPropertyRequestInFlightRef = React.useRef<boolean>(false);
+  const hasLoadedPropertiesRef = React.useRef<boolean>(false);
+  const lastPropertiesFocusLoadAtRef = React.useRef<number>(0);
 
   /**
    * ? On Mount
    */
   useFocusEffect(
     useCallback(() => {
-      resetAddPropertyFields();
-      fetchCustomerProperties();
+      const task = InteractionManager.runAfterInteractions(() => {
+        resetAddPropertyFields();
+
+        const now = Date.now();
+        if (
+          hasLoadedPropertiesRef.current &&
+          now - lastPropertiesFocusLoadAtRef.current <
+            PROPERTIES_FOCUS_REFRESH_COOLDOWN_MS
+        ) {
+          return;
+        }
+
+        lastPropertiesFocusLoadAtRef.current = now;
+        fetchCustomerProperties();
+      });
+
+      return () => {
+        task.cancel();
+      };
     }, []),
   );
 
   useEffect(() => {
     if (isReloadScreen) {
-      fetchCustomerProperties();
+      lastPropertiesFocusLoadAtRef.current = Date.now();
+      fetchCustomerProperties(true);
     }
   }, [isReloadScreen]);
 
@@ -137,26 +167,33 @@ const MyPropertiesScreen: React.FC<IMyPropertiesScreenProps> = () => {
     dispatch(onResetAddPropertyStates());
   };
 
-  const fetchCustomerProperties = () => {
-    setIsLoading(true);
+  const fetchCustomerProperties = (forceRefresh = false) => {
+    if (isPropertyRequestInFlightRef.current) {
+      return;
+    }
+
+    isPropertyRequestInFlightRef.current = true;
+    setIsLoading(!hasLoadedPropertiesRef.current || forceRefresh);
     const payload = {
       CustomerToken: token,
       PropertyId: 0, // 0 to get all
       ...deviceDetails,
     };
-    console.log('fetchCustomerProperties payload:', payload);
 
     getCustomerProperties(
       payload,
       (data: any) => {
         const fetchedData = data[0].Data;
-        console.log('fetchCustomerProperties fetchedData:', fetchedData);
         setData(fetchedData);
         setItems(fetchedData);
+        hasLoadedPropertiesRef.current = true;
+        isPropertyRequestInFlightRef.current = false;
         setIsLoading(false);
         return;
       },
       error => {
+        hasLoadedPropertiesRef.current = true;
+        isPropertyRequestInFlightRef.current = false;
         setIsLoading(false);
         console.log('error:', error);
       },
@@ -164,8 +201,6 @@ const MyPropertiesScreen: React.FC<IMyPropertiesScreenProps> = () => {
   };
 
   const onSetDefaultProperty = async (data: any) => {
-    console.log('updateCustomerProperty data:', data);
-
     const {
       Address,
       CustomerPropertyAddId,
@@ -209,9 +244,7 @@ const MyPropertiesScreen: React.FC<IMyPropertiesScreenProps> = () => {
       DeviceDetails: deviceDetails,
     };
 
-    console.log('updateCustomerProperty payload:', payload);
     updateCustomerProperty(payload, (data: any) => {
-      console.log('updateCustomerProperty data:', data);
       fetchCustomerProperties();
     }),
       (error: any) => {
@@ -220,10 +253,6 @@ const MyPropertiesScreen: React.FC<IMyPropertiesScreenProps> = () => {
   };
 
   const onUpdateProperty = (item: any, index: number) => {
-
-    console.log('this is the item');
-    console.log(item)
-
     dispatch(onSetIsUpdate(true));
     dispatch(onSetIsDefault(!!item.IsDefault ? true : false));
     dispatch(onSetSelectedPet(item.HasOutdoorPets));
@@ -247,7 +276,6 @@ const MyPropertiesScreen: React.FC<IMyPropertiesScreenProps> = () => {
     let images = item.LawnImages.split(',');
     dispatch(onSetAddPropUriList(images));
     dispatch(onSetRemarks(item.Remarks ?? ''));
-    console.log(item.Remarks)
     NavigationService.push(SCREENS.ADD_PROPERTY);
   };
 
@@ -325,7 +353,7 @@ const MyPropertiesScreen: React.FC<IMyPropertiesScreenProps> = () => {
                       }}>
                       Pending
                     </Text>
-                    <PENDING_WHITE style={{top: 1, margin: 1}} />
+                    <PENDING_WHITE pointerEvents="none" style={{top: 1, margin: 1}} />
                   </View>
                 ) : (
                   <View style={styles.verifiedStatusPropContainer}>
@@ -338,7 +366,7 @@ const MyPropertiesScreen: React.FC<IMyPropertiesScreenProps> = () => {
                       }}>
                       Verified
                     </Text>
-                    <CHECK_WHITE style={{top: 1, margin: 1}} />
+                    <CHECK_WHITE pointerEvents="none" style={{top: 1, margin: 1}} />
                   </View>
                 )}
                 {!!IsDefault && (
@@ -363,13 +391,13 @@ const MyPropertiesScreen: React.FC<IMyPropertiesScreenProps> = () => {
             </View>
           </View>
           <View style={{width: '10%', alignContent: 'center'}}>
-            <CHEVRON_RIGHT />
+            <CHEVRON_RIGHT pointerEvents="none" />
           </View>
         </View>
 
         <View style={styles.bottomContent}>
           <Separator />
-          <MOW_TYPE />
+          <MOW_TYPE pointerEvents="none" />
           {renderBottomText(ServiceType.split(' ')[0])}
         </View>
       </Pressable>
@@ -389,7 +417,7 @@ const MyPropertiesScreen: React.FC<IMyPropertiesScreenProps> = () => {
     <Pressable onPress={() => addProperty()} style={styles.button}>
       <Text color={'white'}>Add Property</Text>
       <View style={{width: 5}} />
-      <PLUS_GREEN />
+      <PLUS_GREEN pointerEvents="none" />
     </Pressable>
   );
 
@@ -435,10 +463,10 @@ const MyPropertiesScreen: React.FC<IMyPropertiesScreenProps> = () => {
         data={items}
         keyExtractor={(_, index) => `${index}`}
         renderItem={renderProperties}
-        contentContainerStyle={styles.propertyContainer}
+        contentContainerStyle={[styles.propertyContainer, listBottomPadding]}
         showsVerticalScrollIndicator={false}
       />
-      <View style={styles.buttonContainer}>
+      <View style={[styles.buttonContainer, addButtonBottomPosition]}>
         <AddButton />
       </View>
       {isLoading && <WholeScreenLoader />}

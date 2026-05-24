@@ -15,6 +15,7 @@ import {SCREENS} from '@shared-constants';
 import Text from '@shared-components/text-wrapper/TextWrapper';
 import AndroidBackButtonHandler from 'shared/functions/AndroidBackButtonHandler';
 import {onSetLawnURIList} from '@services/states/booking/booking.slice';
+import {useSafeBottomMargin} from 'shared/functions/useSafeBottomInset';
 
 /**
  * ? Constants
@@ -27,13 +28,14 @@ type CustomStyleProp = StyleProp<ViewStyle> | Array<StyleProp<ViewStyle>>;
 interface IFailScreenProps {
   style?: CustomStyleProp;
   navigation: any;
-  params: any;
+  route?: any;
 }
 
-const FailScreen: React.FC<IFailScreenProps> = ({navigation, params}) => {
+const FailScreen: React.FC<IFailScreenProps> = ({navigation}) => {
   const theme = useTheme();
   const dispatch = useDispatch();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const bottomActionMargin = useSafeBottomMargin(40);
   /**
    * ? Watchers
    */
@@ -51,15 +53,11 @@ const FailScreen: React.FC<IFailScreenProps> = ({navigation, params}) => {
     dispatch(onSetLawnURIList([]));
   };
 
-  const onPressTryAgain = () => {
-    NavigationService.push(SCREENS.SEARCH_SERVICE_PROVIDERS);
-  };
-
   /* -------------------------------------------------------------------------- */
   /*                               Render Methods                               */
   /* -------------------------------------------------------------------------- */
   const BottomActions = () => (
-    <View style={styles.btnContainer}>
+    <View style={[styles.btnContainer, bottomActionMargin]}>
       <Pressable onPress={onPressHome}>
         <Icon
           name="home"

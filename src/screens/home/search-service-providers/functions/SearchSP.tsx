@@ -11,7 +11,7 @@ import {useFocusEffect} from '@react-navigation/native';
 import {Alert} from 'react-native';
 import {RootState} from 'store';
 import {onSetLawnURIList} from '@services/states/booking/booking.slice';
-import { getMessaging } from '@react-native-firebase/messaging';
+import {getMessaging} from '@react-native-firebase/messaging';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /**
@@ -22,6 +22,21 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 interface ISearchSPFunctionProps {
   params: any;
 }
+
+const getNotificationAction = (remoteMessage: any) => {
+  const message = remoteMessage?.data?.Message;
+
+  if (typeof message === 'string') {
+    try {
+      return JSON.parse(message)?.action;
+    } catch (error) {
+      console.warn('Failed to parse booking notification message:', error);
+      return undefined;
+    }
+  }
+
+  return message?.action;
+};
 
 const SearchSPFunction: React.FC<ISearchSPFunctionProps> = ({params}) => {
   const dispatch = useDispatch();
@@ -36,9 +51,7 @@ const SearchSPFunction: React.FC<ISearchSPFunctionProps> = ({params}) => {
   /**
    * ? Redux States
    */
-  const {customerId} = useSelector(
-    (state: RootState) => state.user,
-  );
+  const {customerId} = useSelector((state: RootState) => state.user);
   const {property, bookingRefNo, selectedServiceTypeId} = useSelector(
     (state: RootState) => state.booking,
   );
@@ -68,18 +81,22 @@ const SearchSPFunction: React.FC<ISearchSPFunctionProps> = ({params}) => {
     // this will only calll on booking today
     // Function to check if booking has already been accepted
     const checkBookingAccepted = async () => {
-      const bookingAccepted = await AsyncStorage.getItem('bookingAccepted');
-      if (bookingAccepted === 'true') {
-        clearInterval(interval); // Stop the interval
-        console.log('Successfully processed on waiting screen');
-        AsyncStorage.removeItem('bookingAccepted');
-        NavigationService.navigate(SCREENS.SUCCESS); // Example navigation to success
+      try {
+        const bookingAccepted = await AsyncStorage.getItem('bookingAccepted');
+        if (bookingAccepted === 'true') {
+          clearInterval(interval); // Stop the interval
+          console.log('Successfully processed on waiting screen');
+          await AsyncStorage.removeItem('bookingAccepted');
+          NavigationService.navigate(SCREENS.SUCCESS); // Example navigation to success
+        }
+      } catch (error) {
+        console.warn('Failed to check booking accepted flag:', error);
       }
     };
 
     // Start the 40-second countdown
     const interval = setInterval(() => {
-      setTimeLeft(prevTime => prevTime - 1);
+      setTimeLeft((prevTime) => prevTime - 1);
     }, 1000);
 
     // Clear the interval if timeLeft reaches 0 or if booking is accepted
@@ -92,19 +109,18 @@ const SearchSPFunction: React.FC<ISearchSPFunctionProps> = ({params}) => {
 
     // Listen for Firebase Notification for service provider acceptance
     const messagingInstance = getMessaging();
-    const unsubscribe = messagingInstance.onMessage(async remoteMessage => {
-      const {data} = remoteMessage;
-      const messageString =
-        typeof data?.Message === 'string' ? data.Message : undefined;
-      const action: string | undefined = messageString
-        ? JSON.parse(messageString)?.action
-        : undefined;
+    const unsubscribe = messagingInstance.onMessage(async (remoteMessage) => {
+      try {
+        const action: string | undefined = getNotificationAction(remoteMessage);
 
-      if (action === 'ACCEPT') {
-        clearInterval(interval);
-        // Navigate to booking success screen
-        AsyncStorage.removeItem('bookingAccepted');
-        NavigationService.navigate(SCREENS.SUCCESS);
+        if (action === 'ACCEPT') {
+          clearInterval(interval);
+          // Navigate to booking success screen
+          await AsyncStorage.removeItem('bookingAccepted');
+          NavigationService.navigate(SCREENS.SUCCESS);
+        }
+      } catch (error) {
+        console.warn('Failed to handle booking notification:', error);
       }
     });
 

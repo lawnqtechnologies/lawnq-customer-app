@@ -1,7 +1,6 @@
-import { isAndroid } from "@freakycoder/react-native-helpers";
 import { v2Colors } from "@theme/themes";
 import React from "react";
-import { View } from "react-native";
+import { Platform, View } from "react-native";
 import LoaderKit from "react-native-loader-kit";
 
 /**
@@ -20,15 +19,15 @@ interface ILoaderProps {
 }
 
 const Loader: React.FC<ILoaderProps> = ({ text = "Loading..." }) => (
-  <View style={styles.uploadLoaderContainer}>
+  <View pointerEvents="none" style={styles.uploadLoaderContainer}>
     <LoaderKit
       style={{ width: 60, height: 60 }}
-      name={isAndroid ? "BallScaleMultiple" : "CircleStrokeSpin"} // Optional: see list of animations below
+      name={Platform.OS === "android" ? "BallScaleMultiple" : "CircleStrokeSpin"} // Optional: see list of animations below
       shouldRasterizeIOS
       // size={60} // Required on iOS
       color={v2Colors.highlight} // Optional: color can be: 'red', 'green',... or '#ddd', '#ffffff',...
     />
-    <MOWER style={{ marginTop: -44 }} />
+    <MOWER pointerEvents="none" style={{ marginTop: -44 }} />
     <Text h3 bold color={"white"} style={{ marginTop: 30 }}>
       {text}
     </Text>

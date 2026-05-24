@@ -31,6 +31,7 @@ import KeyboardHandler from '@shared-components/containers/KeyboardHandler';
 import {ScreenHeight} from '@freakycoder/react-native-helpers';
 import CommonButton from '@shared-components/buttons/CommonButton';
 import {RootState} from 'store';
+import {useSafeBottomMargin} from 'shared/functions/useSafeBottomInset';
 
 type CustomStyleProp = StyleProp<ViewStyle> | Array<StyleProp<ViewStyle>>;
 
@@ -52,6 +53,7 @@ const DisputeBottomModal: React.FC<IDisputeBottomModalProps> = ({
 }) => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const footerBottomMargin = useSafeBottomMargin(30);
   const keyboard = useKeyboard();
   const {keyboardShown, keyboardHeight} = keyboard;
   const [imageName, setImageName] = useState<any>(null);
@@ -218,7 +220,7 @@ const DisputeBottomModal: React.FC<IDisputeBottomModalProps> = ({
   );
 
   const Footer = () => (
-    <View style={{marginBottom: 30, marginHorizontal: 20}}>
+    <View style={[{marginHorizontal: 20}, footerBottomMargin]}>
       <CommonButton
         text={'Send'}
         isFetching={loading}
@@ -237,7 +239,7 @@ const DisputeBottomModal: React.FC<IDisputeBottomModalProps> = ({
       animationOut="slideOutDown"
       animationInTiming={500}
       animationOutTiming={500}
-      useNativeDriver
+      useNativeDriver={false}
       hideModalContentWhileAnimating
       backdropTransitionOutTiming={0}>
       <View

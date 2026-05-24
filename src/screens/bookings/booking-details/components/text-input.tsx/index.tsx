@@ -39,11 +39,11 @@ const ChatInput: React.FC<ITextInput> = ({
       />
       <View style={styles.rightContent}>
         <Pressable>
-          <SEND />
+          <SEND pointerEvents="none" />
         </Pressable>
 
         <Pressable>
-          <X />
+          <X pointerEvents="none" />
         </Pressable>
       </View>
     </View>

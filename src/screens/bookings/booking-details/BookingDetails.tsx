@@ -7,6 +7,7 @@ import {
   Pressable,
   Alert,
   Linking,
+  Platform,
 } from 'react-native';
 import {useFocusEffect, useTheme} from '@react-navigation/native';
 import * as NavigationService from 'react-navigation-helpers';
@@ -51,10 +52,13 @@ import RECEIPT from '@assets/v2/bookings/icons/receipt.svg';
 import CommonAPIalerts from '@shared-components/common-api-alerts/CommonAPIalerts';
 import CenterModalW2Buttons from '@shared-components/modals/center-modal/with-2-buttons';
 import DisputeBottomModal from './components/dispute-bottom-modal/DisputeBottomModal';
-import {isAndroid} from '@freakycoder/react-native-helpers';
 import {RootState} from 'store';
 import RescheduleModal from './components/reschedule-summary/RescheduleSummary';
 import {usePayment} from '@services/hooks/usePayment';
+import {
+  useSafeBottomPadding,
+  useSafeBottomPosition,
+} from 'shared/functions/useSafeBottomInset';
 import {
   CustomerPaymentInfo,
   ICustomerPaymentInfo,
@@ -74,6 +78,8 @@ interface IBookingDetailScreenProps {
 const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const communicationBottomPosition = useSafeBottomPosition(20);
+  const bottomActionPadding = useSafeBottomPadding(20);
 
   /**
   |--------------------------------------------------
@@ -401,7 +407,7 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
     const notifPayload = {
       DeviceId: SPinfo.DeviceId,
       Priority: 'high',
-      IsAndroiodDevice: isAndroid ? true : false,
+      IsAndroiodDevice: Platform.OS === 'android',
       Data: {
         ScreenName: 'BOOKING_DETAILS',
         Message: JSON.stringify({
@@ -458,7 +464,7 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
             : 'Pending'}
         </Text>
         <View style={{width: 5}} />
-        <PENDING_WHITE style={{top: 2}} />
+        <PENDING_WHITE pointerEvents="none" style={{top: 2}} />
       </View>
       <View style={styles.passCodeContainer}>
         <Text
@@ -481,7 +487,7 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
         {'Completed'}
       </Text>
       <View style={{width: 5}} />
-      <CHECK_WHITE />
+      <CHECK_WHITE pointerEvents="none" />
     </View>
   );
 
@@ -491,7 +497,7 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
         {'In Dispute'}
       </Text>
       <View style={{width: 5}} />
-      <ALERT_WHITE />
+      <ALERT_WHITE pointerEvents="none" />
     </View>
   );
 
@@ -501,7 +507,7 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
         <Pressable
           style={styles.squareContainer}
           onPress={onPressReschedule}>
-          <RESCHEDULE />
+          <RESCHEDULE pointerEvents="none" />
           <View style={{width: 20}} />
           <Text color={v2Colors.green}>Reschedule</Text>
         </Pressable>
@@ -509,7 +515,7 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
       <Pressable
         onPress={onShowCancelModal}
         style={styles.squareContainer}>
-        <CANCEL />
+        <CANCEL pointerEvents="none" />
         <View style={{width: 20}} />
         <Text color={v2Colors.highlight}>Cancel</Text>
       </Pressable>
@@ -521,14 +527,14 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
       <Pressable
         style={styles.squareContainer}
         onPress={onShowDisputeModal}>
-        <DISPUTE />
+        <DISPUTE pointerEvents="none" />
         <View style={{width: 20}} />
         <Text color={v2Colors.green}>Dispute</Text>
       </Pressable>
       <Pressable
         style={styles.squareContainer}
         onPress={getBookingReceipt}>
-        <RECEIPT />
+        <RECEIPT pointerEvents="none" />
         <View style={{width: 20}} />
         <Text color={v2Colors.highlight}>Receipt</Text>
       </Pressable>
@@ -541,7 +547,7 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
         {'PAID'}
       </Text>
       <View style={{width: 5}} />
-      <CHECK_WHITE />
+      <CHECK_WHITE pointerEvents="none" />
     </View>
   );
 
@@ -620,38 +626,38 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
         toLower(bookingData?.BookingTypeDesc) === 'queue later'
           ? moment(bookingData?.BookingDate).format('LL')
           : moment(bookingData?.BookingDate).format('LLL'),
-        <CALENDAR_GREEN height={24} width={24} />,
+        <CALENDAR_GREEN pointerEvents="none" height={24} width={24} />,
       )}
       {renderLineItem(
         'Service Type',
         bookingData?.ServiceTypeDesc,
-        <MOWER height={24} width={24} />,
+        <MOWER pointerEvents="none" height={24} width={24} />,
       )}
       {renderLineItem(
         'Service Provider Name',
         bookingData?.ServiceProviderName,
-        <MOWER height={24} width={24} />,
+        <MOWER pointerEvents="none" height={24} width={24} />,
       )}
       {renderLineItem(
         'Property Name',
         bookingData?.Alias,
-        <HOUSE_PROPERY_GREEN height={24} width={24} />,
+        <HOUSE_PROPERY_GREEN pointerEvents="none" height={24} width={24} />,
       )}
       {renderLineItem(
         'Address',
         bookingData?.Address1,
-        <PIN_GREEN height={24} width={24} />,
+        <PIN_GREEN pointerEvents="none" height={24} width={24} />,
       )}
       {!!bookingData?.DateCompleted &&
         renderLineItem(
           'Date Completed',
           bookingData?.DateCompleted,
-          <CALENDAR_GREEN height={24} width={24} />,
+          <CALENDAR_GREEN pointerEvents="none" height={24} width={24} />,
         )}
       {/* {renderLineItem(
         'Outdoor Pets',
         !!Number(bookingData?.HasOutdoorPets) ? 'Yes' : 'No',
-        <PET_GREEN height={30} width={30} />,
+        <PET_GREEN pointerEvents="none" height={30} width={30} />,
       )} */}
       <View style={{alignContent: 'center', justifyContent: 'center'}}>
         <Text
@@ -686,7 +692,7 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
   };
 
   const CommunicationActions = () => (
-    <View style={styles.commsActionsContainer}>
+    <View style={[styles.commsActionsContainer, communicationBottomPosition]}>
       <Pressable
         onPress={() => {
           setSnapPoint(0);
@@ -707,7 +713,7 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
   );
 
   const BottomActions = () => (
-    <View style={styles.bottomContainer}>
+    <View style={[styles.bottomContainer, bottomActionPadding]}>
       <CommonButton
         text="Add Feedback"
         onPress={onRate}

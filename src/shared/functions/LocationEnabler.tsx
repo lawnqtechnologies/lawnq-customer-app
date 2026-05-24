@@ -1,7 +1,3 @@
-import {isAndroid} from '@freakycoder/react-native-helpers';
-// const LocationEnabler = isAndroid
-//   ? require("react-native-location-enabler")
-//   : null;
 import LocationEnabler from 'react-native-location-enabler';
 
 const {

@@ -40,7 +40,7 @@ const AboutUsScreen: React.FC<IProfileScreenProps> = () => {
       <ScrollView style={styles.container}>
         {/** 1st */}
         <View style={styles.titleContainer}>
-          <CONNECT height={50} width={50} />
+          <CONNECT pointerEvents="none" height={50} width={50} />
           <SubHeader text={'We focus on connecting people together'} />
         </View>
         <Body
@@ -57,7 +57,7 @@ const AboutUsScreen: React.FC<IProfileScreenProps> = () => {
 
         {/** 2nd */}
         <View style={styles.titleContainer}>
-          <SUSTAINABILITY height={50} width={50} />
+          <SUSTAINABILITY pointerEvents="none" height={50} width={50} />
           <SubHeader text={'Sustainability'} />
         </View>
         <Body
@@ -69,7 +69,7 @@ const AboutUsScreen: React.FC<IProfileScreenProps> = () => {
 
         {/** 3rd */}
         <View style={styles.titleContainer}>
-          <MOW_AND_BEYOND height={50} width={50} />
+          <MOW_AND_BEYOND pointerEvents="none" height={50} width={50} />
           <SubHeader text={'Mow and beyond'} />
         </View>
         <Body

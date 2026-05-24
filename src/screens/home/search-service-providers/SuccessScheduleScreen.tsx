@@ -17,6 +17,7 @@ import AndroidBackButtonHandler from 'shared/functions/AndroidBackButtonHandler'
 import {onSetFromAccountToPayment} from '@services/states/menu/menu.slice';
 import {v2Colors} from '@theme/themes';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {useSafeBottomMargin} from 'shared/functions/useSafeBottomInset';
 
 /**
  * ? Constants
@@ -35,6 +36,7 @@ interface ISuccessScreenProps {
 const SuccessScheduleScreen: React.FC<ISuccessScreenProps> = () => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const confirmButtonBottomMargin = useSafeBottomMargin(40);
   const dispatch = useDispatch();
 
   /**
@@ -75,7 +77,7 @@ const SuccessScheduleScreen: React.FC<ISuccessScreenProps> = () => {
   );
 
   const ConfirmBtn = () => (
-    <View style={styles.confirmBtnContainer}>
+    <View style={[styles.confirmBtnContainer, confirmButtonBottomMargin]}>
       <Pressable onPress={onPressContinue} style={styles.confirmBtn}>
         <Icon
           name="check"

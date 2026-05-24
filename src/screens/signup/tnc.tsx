@@ -20,6 +20,7 @@ import * as NavigationService from 'react-navigation-helpers';
 
 import {SCREENS} from '@shared-constants';
 import createStyles from './tnc.style';
+import {useSafeBottomPadding} from 'shared/functions/useSafeBottomInset';
 
 type TNCStyleProp = StyleProp<ViewStyle> | Array<StyleProp<ViewStyle>>;
 
@@ -104,10 +105,11 @@ const TNC: React.FC<ITNCProps> = ({route}) => {
   const {width} = useWindowDimensions();
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const acceptBottomPadding = useSafeBottomPadding(50);
   const Header = (props: {pageTitle: string}) => (
     <View style={styles.headerContainer}>
       <Pressable onPress={() => NavigationService.goBack()}>
-        <ARROW_LEFT style={{marginTop: 4, marginRight: 10}} />
+        <ARROW_LEFT pointerEvents="none" style={{marginTop: 4, marginRight: 10}} />
       </Pressable>
       <Text h2 bold color={v2Colors.green}>
         {props.pageTitle}
@@ -115,7 +117,7 @@ const TNC: React.FC<ITNCProps> = ({route}) => {
     </View>
   );
   const Accept = () => (
-    <View style={styles.accept}>
+    <View style={[styles.accept, acceptBottomPadding]}>
       <CommonButton
         text={'ACCEPT'}
         onPress={() => {

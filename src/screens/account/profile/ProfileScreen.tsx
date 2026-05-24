@@ -316,7 +316,7 @@ const ProfileScreen: React.FC<IProfileScreenProps> = ({navigation}) => {
           resizeMode={'contain'}
         />
       ) : (
-        <SampleProfile
+        <SampleProfile pointerEvents="none"
           height={100}
           width={100}
           style={{

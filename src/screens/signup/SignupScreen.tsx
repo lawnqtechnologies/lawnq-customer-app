@@ -38,6 +38,7 @@ import LAWNQ from '@assets/v2/auth/images/lawnq.svg';
 import {RootState} from 'store';
 import {onSaveBasicSignupDetails} from '@services/states/user/user.slice';
 import {useAuth} from '@services/hooks/useAuth';
+import {useSafeBottomPadding} from 'shared/functions/useSafeBottomInset';
 
 /**
  * ? Icon Imports
@@ -69,6 +70,7 @@ const SignupScreen: React.FC<ISignupScreenProps> = ({}) => {
   */
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const screenBottomPadding = useSafeBottomPadding(20);
   const dispatch = useDispatch();
   const {validateRegistration} = useAuth();
 
@@ -282,9 +284,11 @@ const SignupScreen: React.FC<ISignupScreenProps> = ({}) => {
     <ScrollView
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps={'never'}>
-      <ImageBackground style={styles.container} source={require(IMAGE_BG)}>
+      <ImageBackground
+        style={[styles.container, screenBottomPadding]}
+        source={require(IMAGE_BG)}>
         <View style={{alignSelf: 'center', marginVertical: 50}}>
-          <LAWNQ />
+          <LAWNQ pointerEvents="none" />
         </View>
 
         {isError && <ErrorMessage />}
@@ -295,7 +299,7 @@ const SignupScreen: React.FC<ISignupScreenProps> = ({}) => {
             control={control}
             name="firstName"
             label="First Name"
-            rightIcon={<USER />}
+            rightIcon={<USER pointerEvents="none" />}
             isError={errors?.firstName}
           />
           <Separator />
@@ -304,7 +308,7 @@ const SignupScreen: React.FC<ISignupScreenProps> = ({}) => {
             control={control}
             name="lastName"
             label="Last Name"
-            rightIcon={<USER />}
+            rightIcon={<USER pointerEvents="none" />}
             isError={errors.lastName}
           />
           <Separator />
@@ -313,7 +317,7 @@ const SignupScreen: React.FC<ISignupScreenProps> = ({}) => {
             control={control}
             name="mobile"
             label="Mobile Number"
-            rightIcon={<PHONE />}
+            rightIcon={<PHONE pointerEvents="none" />}
             prefix={'+61'}
             maxLength={10}
             isError={errors.mobile}
@@ -325,7 +329,7 @@ const SignupScreen: React.FC<ISignupScreenProps> = ({}) => {
             control={control}
             name="email"
             label="Email"
-            rightIcon={<MAIL />}
+            rightIcon={<MAIL pointerEvents="none" />}
             isError={errors.email}
             keyboardType={"email-address"}
           />

@@ -37,7 +37,7 @@ const HeaderHome: React.FC<IHeaderHomeProps> = ({name = ''}) => {
     <View style={styles.content}>
       <View style={styles.leftContainer}>
         {getGreetingTime() !== 'evening' ? (
-          <SUN
+          <SUN pointerEvents="none"
             width={100}
             height={100}
             style={{
@@ -46,7 +46,7 @@ const HeaderHome: React.FC<IHeaderHomeProps> = ({name = ''}) => {
             }}
           />
         ) : (
-          <MOON width={60} height={60} />
+          <MOON pointerEvents="none" width={60} height={60} />
         )}
 
         {/* <Text color={"white"} style={{ fontSize: 16, paddingLeft: 10 }}>

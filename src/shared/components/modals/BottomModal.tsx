@@ -11,6 +11,7 @@ import createStyles from "./BottomModal.style";
 
 import CommonButton from "@shared-components/buttons/CommonButton";
 import Text from "@shared-components/text-wrapper/TextWrapper";
+import {useSafeBottomPadding} from 'shared/functions/useSafeBottomInset';
 
 type CustomStyleProp = StyleProp<ViewStyle> | Array<StyleProp<ViewStyle>>;
 
@@ -33,12 +34,13 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
   const theme = useTheme();
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const contentBottomPadding = useSafeBottomPadding(20);
 
   /* -------------------------------------------------------------------------- */
   /*                               Render Methods                               */
   /* -------------------------------------------------------------------------- */
   const Content = () => (
-    <View style={styles.content}>
+    <View style={[styles.content, contentBottomPadding]}>
       <View style={styles.bar} />
       <Header />
       <View style={styles.body}>
@@ -85,7 +87,7 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
         animationOut="slideOutDown"
         animationInTiming={500}
         animationOutTiming={500}
-        useNativeDriver
+        useNativeDriver={false}
         hideModalContentWhileAnimating
         backdropTransitionOutTiming={0}
       >

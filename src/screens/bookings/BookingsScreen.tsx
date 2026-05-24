@@ -9,14 +9,14 @@ import {
   View,
   StyleProp,
   ViewStyle,
-  useWindowDimensions,
   Alert,
+  InteractionManager,
+  Pressable,
 } from 'react-native';
 import {useFocusEffect, useTheme} from '@react-navigation/native';
 import {useDispatch, useSelector} from 'react-redux';
 import * as _ from 'lodash';
-import {TabView, SceneMap, TabBar} from 'react-native-tab-view';
-import database from '@react-native-firebase/database';
+import {getDatabase, get, ref} from '@react-native-firebase/database';
 import * as NavigationService from 'react-navigation-helpers';
 
 /**
@@ -37,25 +37,10 @@ import {v2Colors} from '@theme/themes';
 import {RootState} from 'store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-/**
- * ? Constants
- */
-const RESERVATIONS_INITIAL_DATA = [
-  {
-    Address1: '',
-    BookingRefNo: '',
-    BookingStatus: '',
-    BookingTypeDesc: '',
-    CustomerId: '',
-    DateCompleted: '',
-    IntervalTimeLabel: '',
-    LawnAreaLabel: '',
-    PropertyAddId: '',
-    ServiceFee: '',
-    ServiceProviderId: '',
-    ServiceTypeDesc: '',
-  },
-];
+const BOOKINGS_FOCUS_REFRESH_COOLDOWN_MS = 15000;
+const PENDING_BOOKING_STATUSES = new Set(['PENDING', 'ACCEPTED', 'IN PROGRESS']);
+const COMPLETED_BOOKING_STATUS = 'COMPLETED';
+const DISPUTE_BOOKING_STATUS = 'DISPUTE';
 
 interface IReservationsItemProps {
   Address1: string;
@@ -70,7 +55,23 @@ interface IReservationsItemProps {
   ServiceFee: string;
   ServiceProviderId: string;
   ServiceTypeDesc: string;
+  s_count?: number;
 }
+
+const normalizeBookingStatus = (status?: string) =>
+  `${status || ''}`.trim().toUpperCase();
+
+const isPendingBooking = (booking: IReservationsItemProps) =>
+  PENDING_BOOKING_STATUSES.has(normalizeBookingStatus(booking.BookingStatus));
+
+const isCompletedBooking = (booking: IReservationsItemProps) =>
+  normalizeBookingStatus(booking.BookingStatus) === COMPLETED_BOOKING_STATUS;
+
+const isDisputeBooking = (booking: IReservationsItemProps) =>
+  normalizeBookingStatus(booking.BookingStatus) === DISPUTE_BOOKING_STATUS;
+
+const getBookingChatCount = (booking: IReservationsItemProps) =>
+  Number(booking.s_count || 0);
 
 type CustomStyleProp = StyleProp<ViewStyle> | Array<StyleProp<ViewStyle>>;
 
@@ -82,12 +83,10 @@ interface IReservationsScreenProps {
 
 const BookingsScreen: React.FC<IReservationsScreenProps> = ({
   navigation,
-  route,
 }) => {
   const theme = useTheme();
   const {colors} = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const layout = useWindowDimensions();
   const dispatch = useDispatch();
   const [isLoading, setIsLoading] = useState<boolean>(false);
   /**
@@ -127,38 +126,29 @@ const BookingsScreen: React.FC<IReservationsScreenProps> = ({
     Array<IReservationsItemProps>
   >([]);
   const [chatTotalCount, setChatTotalCount] = useState<number>(0);
-
-  /**
-   * ? On Mount
-   */
-  useFocusEffect(
-    useCallback(() => {
-      fetchChatCount();
-    }, [route]),
-  );
-
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      tabBarBadge: !chatTotalCount ? null : chatTotalCount,
-    });
-  }, [chatTotalCount]);
-
-  useEffect(() => {
-    AsyncStorage.setItem('Onboarding', 'true');
-  }, []);
+  const isChatCountRequestInFlight = React.useRef<boolean>(false);
+  const hasLoadedBookingsRef = React.useRef<boolean>(false);
+  const lastBookingsFocusLoadAtRef = React.useRef<number>(0);
 
   /**
    * ? Functions
    */
   const fetchChatCount = useCallback(() => {
-    console.log('fetchChatCount');
-    database()
-      .ref(`/chat_count/customer/${customerId}/`)
-      .once('value')
+    if (isChatCountRequestInFlight.current) {
+      return;
+    }
+
+    isChatCountRequestInFlight.current = true;
+    const db = getDatabase();
+    get(ref(db, `/chat_count/customer/${customerId}/`))
       .then(snapshot => {
         const data = snapshot.val();
         // console.log("data:", data);
-        if (!data) return fetchBookingHistory([]);
+        if (!data) {
+          fetchBookingHistory([]);
+          setChatTotalCount(0);
+          return;
+        }
 
         let countArray: Array<any> = [];
         let totalCount: number = 0;
@@ -172,11 +162,52 @@ const BookingsScreen: React.FC<IReservationsScreenProps> = ({
 
         fetchBookingHistory(countArray);
         setChatTotalCount(totalCount);
+      })
+      .catch(error => {
+        console.log('fetchChatCount error:', error);
+      })
+      .finally(() => {
+        isChatCountRequestInFlight.current = false;
       });
+  }, [customerId]);
+
+  /**
+   * ? On Mount
+   */
+  useFocusEffect(
+    useCallback(() => {
+      const task = InteractionManager.runAfterInteractions(() => {
+        const now = Date.now();
+        if (
+          hasLoadedBookingsRef.current &&
+          now - lastBookingsFocusLoadAtRef.current <
+            BOOKINGS_FOCUS_REFRESH_COOLDOWN_MS
+        ) {
+          return;
+        }
+
+        lastBookingsFocusLoadAtRef.current = now;
+        fetchChatCount();
+      });
+
+      return () => {
+        task.cancel();
+      };
+    }, [fetchChatCount]),
+  );
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      tabBarBadge: !chatTotalCount ? null : chatTotalCount,
+    });
+  }, [chatTotalCount, navigation]);
+
+  useEffect(() => {
+    AsyncStorage.setItem('Onboarding', 'true');
   }, []);
 
   const fetchBookingHistory = async (countArray: Array<any>) => {
-    setIsLoading(true);
+    setIsLoading(!hasLoadedBookingsRef.current);
     // console.log("countArray:", countArray);
     try {
       const payload = {
@@ -189,83 +220,54 @@ const BookingsScreen: React.FC<IReservationsScreenProps> = ({
       let fetchedTotalPendingChatCount: number = 0;
       let fetchedTotalInDisputeChatCount: number = 0;
 
-      console.log('fetchBookingHistory payload:', payload);
       getBookingHistory(
         payload,
         (data: any) => {
-          console.log('response from fetchBookingHistory');
-          console.log(data);
+          const chatCountByBookingRef = new Map(
+            countArray.map((countItem: any) => [
+              countItem.bookingRef,
+              Number(countItem.count || 0),
+            ]),
+          );
 
-          let newArrayCompleted: any = [];
-          let newArrayOutstanding: any = [];
-          let newArrayInDispute: any = [];
+          const reservationsWithChatCount: Array<IReservationsItemProps> = (
+            Array.isArray(data) ? data : []
+          ).map((booking: IReservationsItemProps) => ({
+            ...booking,
+            s_count: chatCountByBookingRef.get(booking.BookingRefNo) || 0,
+          }));
 
-          data?.map((d: any) => {
-            const {BookingRefNo} = d;
-            let hasCompletedNotif = false;
-            let hasPendingNotif = false;
-            let hasInDisputeNotif = false;
+          const newArrayCompleted =
+            reservationsWithChatCount.filter(isCompletedBooking);
+          const newArrayOutstanding =
+            reservationsWithChatCount.filter(isPendingBooking);
+          const newArrayInDispute =
+            reservationsWithChatCount.filter(isDisputeBooking);
 
-            if (!_.size(countArray)) {
-              if (d.BookingStatus === 'COMPLETED')
-                newArrayCompleted.push({...d, s_count: 0});
-              if (
-                d.BookingStatus === 'ACCEPTED' ||
-                d.BookingStatus === 'IN PROGRESS'
-              )
-                newArrayOutstanding.push({...d, s_count: 0});
-              if (d.BookingStatus === 'DISPUTE')
-                newArrayInDispute.push({...d, s_count: 0});
-              return;
-            }
-
-            countArray?.map((countItem: any) => {
-              // console.log("countItem:", countItem);
-              const {bookingRef, count} = countItem;
-              if (BookingRefNo === bookingRef) {
-                if (d.BookingStatus === 'COMPLETED') {
-                  newArrayCompleted.push({...d, s_count: count});
-                  hasCompletedNotif = true;
-                  fetchedTotalCompletedChatCount += count;
-                } else hasCompletedNotif = false;
-
-                if (
-                  d.BookingStatus === 'ACCEPTED' ||
-                  d.BookingStatus === 'IN PROGRESS'
-                ) {
-                  newArrayOutstanding.push({...d, s_count: count});
-                  hasPendingNotif = true;
-                  fetchedTotalPendingChatCount += count;
-                } else hasPendingNotif = false;
-
-                if (d.BookingStatus === 'DISPUTE') {
-                  newArrayInDispute.push({...d, s_count: count});
-                  hasInDisputeNotif = true;
-                  fetchedTotalInDisputeChatCount += count;
-                } else hasInDisputeNotif = false;
-              }
-            });
-            if (d.BookingStatus === 'COMPLETED' && !hasCompletedNotif)
-              return newArrayCompleted.push({...d, s_count: 0});
-            if (
-              (d.BookingStatus === 'ACCEPTED' ||
-                d.BookingStatus === 'IN PROGRESS') &&
-              !hasPendingNotif
-            )
-              return newArrayOutstanding.push({...d, s_count: 0});
-            if (d.BookingStatus === 'DISPUTE' && !hasPendingNotif)
-              return newArrayInDispute.push({...d, s_count: 0});
-          });
+          fetchedTotalCompletedChatCount = newArrayCompleted.reduce(
+            (total, booking) => total + getBookingChatCount(booking),
+            0,
+          );
+          fetchedTotalPendingChatCount = newArrayOutstanding.reduce(
+            (total, booking) => total + getBookingChatCount(booking),
+            0,
+          );
+          fetchedTotalInDisputeChatCount = newArrayInDispute.reduce(
+            (total, booking) => total + getBookingChatCount(booking),
+            0,
+          );
 
           setCompletedReservations(newArrayCompleted);
           setOutstandingReservations(newArrayOutstanding);
           setInDisputeReservations(newArrayInDispute);
+          hasLoadedBookingsRef.current = true;
           setIsLoading(false);
           dispatch(onSetCompletedChatCount(fetchedTotalCompletedChatCount));
           dispatch(onSetPendingChatCount(fetchedTotalPendingChatCount));
           dispatch(onSetInDisputeChatCount(fetchedTotalInDisputeChatCount));
         },
         (error: any) => {
+          hasLoadedBookingsRef.current = true;
           setIsLoading(false);
           Alert.alert(
             'Oops',
@@ -283,6 +285,8 @@ const BookingsScreen: React.FC<IReservationsScreenProps> = ({
         },
       );
     } catch (error) {
+      hasLoadedBookingsRef.current = true;
+      setIsLoading(false);
       Alert.alert(
         'Oops',
         'Something went wrong. Please try again later.',
@@ -304,7 +308,7 @@ const BookingsScreen: React.FC<IReservationsScreenProps> = ({
   /* -------------------------------------------------------------------------- */
   const Count = (props: {count: number}) => {
     return (
-      <View style={styles.chatCountContainer}>
+      <View pointerEvents="none" style={styles.chatCountContainer}>
         <Text bold color="white">
           {props.count}
         </Text>
@@ -315,49 +319,59 @@ const BookingsScreen: React.FC<IReservationsScreenProps> = ({
   /**
    * ? For Tabs
    */
-  const FirstScreen = () => (
-    <Reusable
-      navigation={navigation}
-      data={outstandingReservations}
-      statusType="pending"
-    />
+  const pendingTabReservations = useMemo(
+    () => outstandingReservations.filter(isPendingBooking),
+    [outstandingReservations],
   );
-  const SecondScreen = () => (
-    <Reusable
-      navigation={navigation}
-      data={completedReservations}
-      statusType="completed"
-    />
+  const completedTabReservations = useMemo(
+    () => completedReservations.filter(isCompletedBooking),
+    [completedReservations],
   );
-  const ThirdScreen = () => (
-    <Reusable
-      navigation={navigation}
-      data={inDisputeReservations}
-      statusType="dispute"
-    />
+  const disputeTabReservations = useMemo(
+    () => inDisputeReservations.filter(isDisputeBooking),
+    [inDisputeReservations],
   );
-
-  const renderScene = SceneMap({
-    first: FirstScreen,
-    second: SecondScreen,
-    third: ThirdScreen,
-  });
 
   const [index, setIndex] = useState(0);
-  const [routes] = useState([
-    {
-      key: 'first',
-      title: 'Pending',
-    },
-    {
-      key: 'second',
-      title: 'Completed',
-    },
-    {
-      key: 'third',
-      title: 'In Dispute',
-    },
-  ]);
+  const tabs = useMemo(
+    () => [
+      {key: 'first', title: 'Pending'},
+      {key: 'second', title: 'Completed'},
+      {key: 'third', title: 'In Dispute'},
+    ],
+    [],
+  );
+
+  const activeScene = useMemo(() => {
+    switch (index) {
+      case 0:
+        return (
+          <Reusable
+            navigation={navigation}
+            data={pendingTabReservations}
+            statusType="pending"
+          />
+        );
+      case 1:
+        return (
+          <Reusable
+            navigation={navigation}
+            data={completedTabReservations}
+            statusType="completed"
+          />
+        );
+      case 2:
+        return (
+          <Reusable
+            navigation={navigation}
+            data={disputeTabReservations}
+            statusType="dispute"
+          />
+        );
+      default:
+        return null;
+    }
+  }, [completedTabReservations, disputeTabReservations, index, navigation, pendingTabReservations]);
 
   return (
     <>
@@ -367,49 +381,50 @@ const BookingsScreen: React.FC<IReservationsScreenProps> = ({
         backDisabled={!isFromMenu}
       />
       <View style={styles.container}>
-        <TabView
-          navigationState={{index, routes}}
-          renderScene={renderScene}
-          onIndexChange={setIndex}
-          initialLayout={{width: layout.width}}
-          renderTabBar={props => {
+        <View
+          style={{
+            flexDirection: 'row',
+            backgroundColor: 'white',
+            shadowColor: '#000',
+            shadowOffset: {width: 0, height: 1},
+            shadowOpacity: 0.22,
+            shadowRadius: 2.22,
+            elevation: 3,
+          }}>
+          {tabs.map((tab, tabIndex) => {
+            const isFocused = index === tabIndex;
+
             return (
-              <TabBar
-                {...props}
-                indicatorStyle={{backgroundColor: colors.neonGreen}}
+              <Pressable
+                key={tab.key}
+                onPress={() => setIndex(tabIndex)}
                 style={{
-                  backgroundColor: 'white',
-
-                  shadowColor: '#000',
-                  shadowOffset: {
-                    width: 0,
-                    height: 1,
-                  },
-                  shadowOpacity: 0.22,
-                  shadowRadius: 2.22,
-
-                  elevation: 3,
-                }}
-                pressOpacity={0}
-                renderLabel={({route, focused, color}) => (
-                  <View>
-                    {route.title == 'Pending' && !!pendingChatCount && (
-                      <Count count={pendingChatCount} />
-                    )}
-                    {route.title == 'Completed' && !!completedChatCount && (
-                      <Count count={completedChatCount} />
-                    )}
-                    <Text
-                      color={focused ? v2Colors.green : v2Colors.gray}
-                      style={{fontWeight: '600'}}>
-                      {_.toUpper(route.title)}
-                    </Text>
-                  </View>
-                )}
-              />
+                  flex: 1,
+                  alignItems: 'center',
+                  paddingVertical: 14,
+                  borderBottomWidth: 2,
+                  borderBottomColor: isFocused
+                    ? colors.neonGreen
+                    : 'transparent',
+                }}>
+                <View>
+                  {tab.title === 'Pending' && !!pendingChatCount && (
+                    <Count count={pendingChatCount} />
+                  )}
+                  {tab.title === 'Completed' && !!completedChatCount && (
+                    <Count count={completedChatCount} />
+                  )}
+                  <Text
+                    color={isFocused ? v2Colors.green : v2Colors.gray}
+                    style={{fontWeight: '600'}}>
+                    {_.toUpper(tab.title)}
+                  </Text>
+                </View>
+              </Pressable>
             );
-          }}
-        />
+          })}
+        </View>
+        {activeScene}
       </View>
       {isLoading && <WholeScreenLoader />}
     </>

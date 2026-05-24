@@ -31,6 +31,7 @@ import {
   RESULTS,
   openSettings,
 } from 'react-native-permissions';
+import {useSafeBottomMargin} from 'shared/functions/useSafeBottomInset';
 
 /**
  * ? SVGs
@@ -72,6 +73,7 @@ const LocatePropertyAddress: React.FC<ILocatePropertyAddress> = ({
 }) => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const confirmButtonBottomMargin = useSafeBottomMargin(20);
   const dispatch = useDispatch();
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -400,7 +402,10 @@ const LocatePropertyAddress: React.FC<ILocatePropertyAddress> = ({
   const ConfirmButton = () => {
     return (
       <View
-        style={{height, width: width * 0.92, marginTop: 10, marginBottom: 20}}>
+        style={[
+          {height, width: width * 0.92, marginTop: 10},
+          confirmButtonBottomMargin,
+        ]}>
         <CommonButton
           style={{borderRadius: 5}}
           text="Confirm"
@@ -416,7 +421,7 @@ const LocatePropertyAddress: React.FC<ILocatePropertyAddress> = ({
         value={desc}
         setValue={setDesc}
         label="Enter Address"
-        rightIcon={<TARGET height={20} width={20} />}
+        rightIcon={<TARGET pointerEvents="none" height={20} width={20} />}
         onFocus={_clearAddress}
         contentContainerStyle={{width: width * 0.92}}
       />

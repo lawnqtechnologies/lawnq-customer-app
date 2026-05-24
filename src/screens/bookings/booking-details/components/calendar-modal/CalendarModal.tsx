@@ -9,7 +9,7 @@ import {
 import {useTheme} from '@react-navigation/native';
 import CalendarPicker from 'react-native-calendar-picker';
 import Modal from 'react-native-modal';
-import {useDispatch, useSelector} from 'react-redux';
+import {useSelector} from 'react-redux';
 import Icon, {IconType} from 'react-native-dynamic-vector-icons';
 import * as NavigationService from 'react-navigation-helpers';
 
@@ -31,7 +31,6 @@ import fonts from '@fonts';
 import CommonAPIalerts from '@shared-components/common-api-alerts/CommonAPIalerts';
 import {RootState} from 'store';
 import {useBooking} from '@services/hooks/useBooking';
-import {onSetIsReschedule} from '@services/states/booking/booking.slice';
 import moment from 'moment';
 
 type CustomStyleProp = StyleProp<ViewStyle> | Array<StyleProp<ViewStyle>>;
@@ -54,7 +53,6 @@ interface ICalendarModalProps {
 const CalendarModal: React.FC<ICalendarModalProps> = ({
   isVisible,
   setIsVisible,
-  rescheduleBooking,
   bookingRefNo,
   onSendNotification,
   selectedServiceType,
@@ -74,11 +72,9 @@ const CalendarModal: React.FC<ICalendarModalProps> = ({
 | Redux
 |--------------------------------------------------
 */
-  const {token, customerId, deviceDetails} = useSelector(
+  const {token, customerId} = useSelector(
     (state: RootState) => state.user,
   );
-
-  const dispatch = useDispatch();
 
   /**
 |--------------------------------------------------
@@ -101,10 +97,19 @@ const CalendarModal: React.FC<ICalendarModalProps> = ({
   const onSelectRescheduleDate = (date: any) => {
     let rescheduleDate = JSON.stringify(moment(date));
     let formatedDate = moment(date).format('LLL');
+
+    setLoading(true);
     setFormatedRescheduleDate(formatedDate);
     setReschedDate(rescheduleDate);
-    setIsVisible(false);
-    processScheduleBooking();
+
+    setTimeout(() => {
+      setIsVisible(false);
+      processScheduleBooking();
+
+      setTimeout(() => {
+        setLoading(false);
+      }, 250);
+    }, 450);
   };
 
   useEffect(() => {
@@ -214,14 +219,15 @@ const CalendarModal: React.FC<ICalendarModalProps> = ({
       isVisible={isVisible}
       swipeDirection="down"
       style={styles.modal}
+      animationIn="slideInUp"
       animationOut="slideOutDown"
-      animationInTiming={500}
-      animationOutTiming={500}
-      useNativeDriver
-      hideModalContentWhileAnimating
-      backdropTransitionOutTiming={0}>
+      animationInTiming={1000}
+      animationOutTiming={1000}
+      useNativeDriver={false}
+      hideModalContentWhileAnimating={false}
+      backdropTransitionOutTiming={500}>
       <View style={styles.content}>
-        <CalendarGreenCircle
+        <CalendarGreenCircle pointerEvents="none"
           height={75}
           width={75}
           style={{alignSelf: 'center', marginTop: -28}}
@@ -248,8 +254,8 @@ const CalendarModal: React.FC<ICalendarModalProps> = ({
           onDateChange={thisDate => {
             onSelectRescheduleDate(thisDate);
           }}
-          previousComponent={<ChevronLeft />}
-          nextComponent={<ChevronRight />}
+          previousComponent={<ChevronLeft pointerEvents="none" />}
+          nextComponent={<ChevronRight pointerEvents="none" />}
           textStyle={{
             fontFamily: fonts.lexend.extraBold,
             fontWeight: '700',
@@ -267,15 +273,15 @@ const CalendarModal: React.FC<ICalendarModalProps> = ({
             Booking Rules
           </Text>
           <BottomContent
-            icon={<Message />}
+            icon={<Message pointerEvents="none" />}
             text={`You can chat with the service provider to organise a time suitable for both of you on the selected date.`}
           />
           <BottomContent
-            icon={<XCircle />}
+            icon={<XCircle pointerEvents="none" />}
             text={`Cancel at no charge within 7 days from today.`}
           />
           <BottomContent
-            icon={<SlashCircle />}
+            icon={<SlashCircle pointerEvents="none" />}
             text={`Inaccurate grass height details could result in booking rejection from the service provider.`}
           />
         </View>

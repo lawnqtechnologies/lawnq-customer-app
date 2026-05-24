@@ -34,6 +34,7 @@ import ARROW_LEFT from '@assets/v2/headers/arrow-left.svg';
 import {RootState} from 'store';
 import {onSetPasswords} from '@services/states/user/user.slice';
 import {useAuth} from '@services/hooks/useAuth';
+import {useSafeBottomPadding} from 'shared/functions/useSafeBottomInset';
 /**
  * ? Icon Imports
  */
@@ -58,6 +59,7 @@ interface ISetupPasswordScreenProps {
 const SetupPassword: React.FC<ISetupPasswordScreenProps> = ({route}) => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const signupBottomPadding = useSafeBottomPadding(30);
   const {colors} = theme;
   const dispatch = useDispatch();
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -191,7 +193,7 @@ const SetupPassword: React.FC<ISetupPasswordScreenProps> = ({route}) => {
   const Header = (props: {pageTitle: string}) => (
     <View style={styles.headerContainer}>
       <Pressable onPress={() => NavigationService.goBack()}>
-        <ARROW_LEFT style={{marginTop: 4, marginRight: 10}} />
+        <ARROW_LEFT pointerEvents="none" style={{marginTop: 4, marginRight: 10}} />
       </Pressable>
       <Text h2 bold color={v2Colors.green}>
         {props.pageTitle}
@@ -199,7 +201,7 @@ const SetupPassword: React.FC<ISetupPasswordScreenProps> = ({route}) => {
     </View>
   );
   const SetNewPassword = () => (
-    <View style={styles.signup}>
+    <View style={[styles.signup, signupBottomPadding]}>
       <CommonButton
         text={'Confirm'}
         onPress={handleSubmit(setNewPassword)}
@@ -208,7 +210,7 @@ const SetupPassword: React.FC<ISetupPasswordScreenProps> = ({route}) => {
     </View>
   );
   const SignUp = () => (
-    <View style={styles.signup}>
+    <View style={[styles.signup, signupBottomPadding]}>
       <CommonButton
         text={'Next'}
         onPress={handleSubmit(onRegister)}

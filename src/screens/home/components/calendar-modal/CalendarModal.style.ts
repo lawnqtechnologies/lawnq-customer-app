@@ -1,18 +1,18 @@
-import { ViewStyle, StyleSheet } from "react-native";
+import { ViewStyle, StyleSheet, TextStyle } from "react-native";
 import { ExtendedTheme } from "@react-navigation/native";
-import { ScreenWidth } from "@freakycoder/react-native-helpers";
 
 interface Style {
   modal: ViewStyle;
   closeButton: ViewStyle;
   content: ViewStyle;
   header: ViewStyle;
+  loadingContainer: ViewStyle;
+  loadingText: TextStyle;
   bottomContentContainer: ViewStyle;
   bottomContent: ViewStyle;
 }
 
 export default (theme: ExtendedTheme) => {
-  const { colors } = theme;
   return StyleSheet.create<Style>({
     modal: {
       justifyContent: "flex-end",
@@ -35,6 +35,18 @@ export default (theme: ExtendedTheme) => {
       alignSelf: "center",
       height: 30,
       marginVertical: 10,
+    },
+    loadingContainer: {
+      minHeight: 280,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: 20,
+    },
+    loadingText: {
+      marginTop: 12,
+      fontSize: 14,
+      fontWeight: "500",
+      textAlign: "center",
     },
     bottomContentContainer: {
       marginTop: 30,

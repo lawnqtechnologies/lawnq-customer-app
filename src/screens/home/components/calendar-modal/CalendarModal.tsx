@@ -1,10 +1,11 @@
-import React, {useEffect, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {
   View,
   StyleProp,
   ViewStyle,
   Pressable,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import {useTheme} from '@react-navigation/native';
 import CalendarPicker from 'react-native-calendar-picker';
@@ -53,7 +54,6 @@ const CalendarModal: React.FC<ICalendarModalProps> = ({
   canCollectWaste,
 }) => {
   const theme = useTheme();
-  const {colors} = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
   const dispatch = useDispatch();
 
@@ -64,53 +64,150 @@ const CalendarModal: React.FC<ICalendarModalProps> = ({
 
   const {getAvailableSchedule} = useBooking();
 
-  const [enabledDates, setEnabledDates] = useState([]);
+  const [enabledDates, setEnabledDates] = useState<string[]>([]);
+  const [isFetchingDates, setIsFetchingDates] = useState<boolean>(false);
+  const [isPreparingSelection, setIsPreparingSelection] =
+    useState<boolean>(false);
+
+  const enabledDateSet = useMemo(() => {
+    return new Set(
+      enabledDates.map(date => moment(date).format('YYYY-MM-DD')),
+    );
+  }, [enabledDates]);
+
+  const normalizeAvailableDates = (items: any[] = []) => {
+    return items
+      .flatMap((obj: any) => {
+        if (Array.isArray(obj?.AvailableDates)) {
+          return obj.AvailableDates;
+        }
+
+        return obj?.AvailableDates ? [obj.AvailableDates] : [];
+      })
+      .filter((date: any) => typeof date === 'string');
+  };
+
+  const handleClose = useCallback(() => {
+    if (isPreparingSelection) {
+      return;
+    }
+
+    setIsVisible(false);
+    setIsLoading(false);
+  }, [isPreparingSelection, setIsLoading, setIsVisible]);
 
   useEffect(() => {
+    if (!isVisible) {
+      setEnabledDates([]);
+      setIsFetchingDates(false);
+      setIsPreparingSelection(false);
+      return;
+    }
+
+    let isCancelled = false;
+
     if (isVisible) {
+      setIsFetchingDates(true);
       setIsLoading(true);
       const payload = {
         CustomerId: customerId,
         CustomerToken: token,
-        AddressId: parseInt(addressId),
+        AddressId: parseInt(addressId, 10),
       };
 
       getAvailableSchedule(
         payload,
         (data: any) => {
+          if (isCancelled) {
+            return;
+          }
+
           if (data.StatusCode === '00') {
             if (selectedServiceType === 1) {
-              let filteredByServiceType = data.Data.filter(
+              const filteredByServiceType = data.Data.filter(
                 (x: any) =>
                   x.HasPushMower === 1 &&
                   (canCollectWaste === 0 ||
                     x.CanCollectWaste === canCollectWaste),
-              ).map((obj: any) => obj.AvailableDates);
-              setEnabledDates(filteredByServiceType);
-              setIsLoading(true);
+              );
+              setEnabledDates(normalizeAvailableDates(filteredByServiceType));
+              setIsFetchingDates(false);
+              setIsLoading(false);
             } else {
-              let filteredByServiceType = data.Data.filter(
+              const filteredByServiceType = data.Data.filter(
                 (x: any) =>
                   x.HasRidingMower === 1 &&
                   (canCollectWaste === 0 ||
                     x.CanCollectWaste === canCollectWaste),
-              ).map((obj: any) => obj.AvailableDates);
-              setEnabledDates(filteredByServiceType);
-              setIsLoading(true);
+              );
+              setEnabledDates(normalizeAvailableDates(filteredByServiceType));
+              setIsFetchingDates(false);
+              setIsLoading(false);
             }
           } else {
+            setIsFetchingDates(false);
             Alert.alert('No Available Schedule for this Month');
-            setIsVisible(false);
-            setIsLoading(true);
+            handleClose();
           }
         },
         (err: any) => {
+          if (isCancelled) {
+            return;
+          }
+
           console.log('getAvailableSchedule err:', err);
+          setIsFetchingDates(false);
           setIsLoading(false);
         },
       );
     }
+
+    return () => {
+      isCancelled = true;
+    };
   }, [isVisible]);
+
+  const handleDateChange = useCallback(
+    (thisDate: any) => {
+      if (isPreparingSelection) {
+        return;
+      }
+
+      setIsPreparingSelection(true);
+      setIsLoading(true);
+
+      const displayDate = moment(thisDate).format('ll');
+      const formattedDate1 = moment(thisDate).format('LLL');
+      const formattedDate2 = moment(thisDate).format('DD-MM-YYYY');
+      const rawDate = JSON.stringify(moment(thisDate));
+
+      setBookingDate(displayDate);
+      dispatch(
+        onSetDateAndQueue({
+          queue: 'later',
+          formattedDate1,
+          formattedDate2,
+          rawDate,
+        }),
+      );
+
+      setTimeout(() => {
+        setIsVisible(false);
+
+        setTimeout(() => {
+          setIsPreparingSelection(false);
+          setIsLoading(false);
+        }, 250);
+      }, 450);
+    },
+    [
+      dispatch,
+      isPreparingSelection,
+      setBookingDate,
+      setIsLoading,
+      setIsVisible,
+    ],
+  );
 
   /**
    * ? States
@@ -145,12 +242,10 @@ const CalendarModal: React.FC<ICalendarModalProps> = ({
   // Function to enable only specific dates
   const enableOnlySpecificDates = (date: any) => {
     // Format date to 'YYYY-MM-DD' to match the format in enabledDates array
-    const formattedDate = date.toISOString().split('T')[0];
+    const formattedDate = moment(date).format('YYYY-MM-DD');
 
-    // Check if the formattedDate exists in the enabledDates array
-    const isEnabled = enabledDates.some(
-      (enabledDate: any) => enabledDate.split('T')[0] === formattedDate,
-    );
+    // Constant-time lookup avoids repeated array scans while rendering calendar cells.
+    const isEnabled = enabledDateSet.has(formattedDate);
 
     // Return true if the date is NOT in the enabledDates array (i.e., disable the date)
     return !isEnabled;
@@ -161,23 +256,24 @@ const CalendarModal: React.FC<ICalendarModalProps> = ({
       isVisible={isVisible}
       swipeDirection="down"
       style={styles.modal}
+      animationIn="slideInUp"
       animationOut="slideOutDown"
-      animationInTiming={100}
-      animationOutTiming={200}
-      useNativeDriver
-      hideModalContentWhileAnimating
-      backdropTransitionOutTiming={0}>
+      animationInTiming={1000}
+      animationOutTiming={2000}
+      onSwipeComplete={handleClose}
+      onBackdropPress={handleClose}
+      onBackButtonPress={handleClose}
+      useNativeDriver={false}
+      hideModalContentWhileAnimating={false}
+      backdropTransitionOutTiming={700}>
       <View style={styles.content}>
-        <CalendarGreenCircle
+        <CalendarGreenCircle pointerEvents="none"
           height={75}
           width={75}
           style={{alignSelf: 'center', marginTop: -28}}
         />
         <Pressable
-          onPress={() => {
-            setIsVisible(false);
-            setIsLoading(false);
-          }}
+          onPress={handleClose}
           style={styles.closeButton}>
           <Icon
             name="close"
@@ -187,38 +283,38 @@ const CalendarModal: React.FC<ICalendarModalProps> = ({
           />
         </Pressable>
         <Header />
-        <CalendarPicker
-          startFromMonday
-          minDate={minDate}
-          maxDate={maxDate}
-          disabledDates={enableOnlySpecificDates}
-          todayBackgroundColor={'transparent'}
-          onDateChange={thisDate => {
-            setIsVisible(false);
-            setBookingDate(moment(thisDate).format('ll'));
-            setTimeout(() => {
-              dispatch(
-                onSetDateAndQueue({
-                  queue: 'later',
-                  formattedDate1: moment(thisDate).format('LLL'),
-                  formattedDate2: moment(thisDate).format('DD-MM-YYYY'),
-                  rawDate: JSON.stringify(moment(thisDate)),
-                }),
-              );
-            }, 500);
-            setIsLoading(false);
-          }}
-          previousComponent={<ChevronLeft />}
-          nextComponent={<ChevronRight />}
-          textStyle={{
-            fontFamily: fonts.lexend.extraBold,
-            fontWeight: '700',
-            color: v2Colors.green,
-            fontSize: 15,
-          }}
-          monthTitleStyle={{fontSize: 20, color: v2Colors.green}}
-          yearTitleStyle={{fontSize: 20, color: v2Colors.green}}
-        />
+        {isFetchingDates || isPreparingSelection ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={v2Colors.green} />
+            <Text color={v2Colors.greenShade2} style={styles.loadingText}>
+              {isPreparingSelection
+                ? 'Preparing booking schedule...'
+                : 'Loading available dates...'}
+            </Text>
+          </View>
+        ) : (
+          <CalendarPicker
+            startFromMonday
+            minDate={minDate}
+            maxDate={maxDate}
+            disabledDates={enableOnlySpecificDates}
+            selectedDayColor={v2Colors.green}
+            selectedDayTextColor={'#FFFFFF'}
+            todayBackgroundColor={'transparent'}
+            selectedDayStyle={{backgroundColor: v2Colors.green}}
+            onDateChange={handleDateChange}
+            previousComponent={<ChevronLeft pointerEvents="none" />}
+            nextComponent={<ChevronRight pointerEvents="none" />}
+            textStyle={{
+              fontFamily: fonts.lexend.extraBold,
+              fontWeight: '700',
+              color: v2Colors.green,
+              fontSize: 15,
+            }}
+            monthTitleStyle={{fontSize: 20, color: v2Colors.green}}
+            yearTitleStyle={{fontSize: 20, color: v2Colors.green}}
+          />
+        )}
 
         <View style={styles.bottomContentContainer}>
           <Text
@@ -229,15 +325,15 @@ const CalendarModal: React.FC<ICalendarModalProps> = ({
               : 'Ride-on Mowing Rules'}
           </Text>
           <BottomContent
-            icon={<Message />}
+            icon={<Message pointerEvents="none" />}
             text={`You can chat with the service provider to organise a time suitable for both of you on the selected date.`}
           />
           <BottomContent
-            icon={<XCircle />}
+            icon={<XCircle pointerEvents="none" />}
             text={`Cancel at no charge within 7 days from today.`}
           />
           <BottomContent
-            icon={<SlashCircle />}
+            icon={<SlashCircle pointerEvents="none" />}
             text={`Inaccurate grass height details could result in booking rejection from the service provider.`}
           />
         </View>

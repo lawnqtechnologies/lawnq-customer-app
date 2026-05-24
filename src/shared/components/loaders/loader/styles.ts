@@ -1,16 +1,12 @@
-import { StyleSheet, Dimensions } from "react-native";
-import { palette } from "@theme/themes";
-
-const { height, width } = Dimensions.get("window");
+import { StyleSheet } from "react-native";
 
 const styles = StyleSheet.create({
   uploadLoaderContainer: {
+    ...StyleSheet.absoluteFillObject,
     position: "absolute",
-    height,
-    width,
     zIndex: 3,
-    opacity: 0.8,
-    backgroundColor: palette.darkGray,
+    elevation: 3,
+    backgroundColor: "rgba(96, 96, 96, 0.55)",
     alignItems: "center",
     justifyContent: "center",
     paddingBottom: "50%",
