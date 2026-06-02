@@ -80,7 +80,7 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
         animationOut="slideOutDown"
         animationInTiming={500}
         animationOutTiming={500}
-        useNativeDriver
+        useNativeDriver={false}
         hideModalContentWhileAnimating
         backdropTransitionOutTiming={0}
       >

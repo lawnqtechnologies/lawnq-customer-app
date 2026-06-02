@@ -29,6 +29,7 @@ import {SCREENS} from '@shared-constants';
 import CommonButton from '@shared-components/buttons/CommonButton';
 import WholeScreenLoader from '@shared-components/loaders/WholeScreenLoader';
 import CenterModalW2Buttons from '@shared-components/modals/center-modal/with-2-buttons';
+import {useSafeBottomPadding} from 'shared/functions/useSafeBottomInset';
 
 /**
  * ? SVGs
@@ -67,6 +68,7 @@ interface ICustomerPaymentInfo {
 const PaymentScreen: React.FC<IPaymentScreenProps> = () => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const buttonBottomPadding = useSafeBottomPadding(30);
 
   /**
    * ? Hooks
@@ -347,20 +349,20 @@ const onSetDefaultCard = (CustomerStripePaymentId?: string) => {
   const CardImage = (brand: string, IsDefault: number) => {
     switch (brand) {
       case 'visa': {
-        if (!!IsDefault) return <VISA />;
-        return <VISA height={40} width={40} />;
+        if (!!IsDefault) return <VISA pointerEvents="none" />;
+        return <VISA pointerEvents="none" height={40} width={40} />;
       }
       case 'mastercard': {
-        if (!!IsDefault) return <MASTERCARD />;
-        return <MASTERCARD height={40} width={40} />;
+        if (!!IsDefault) return <MASTERCARD pointerEvents="none" />;
+        return <MASTERCARD pointerEvents="none" height={40} width={40} />;
       }
       case 'amex': {
-        if (!!IsDefault) return <AMEX />;
-        return <AMEX height={40} width={40} />;
+        if (!!IsDefault) return <AMEX pointerEvents="none" />;
+        return <AMEX pointerEvents="none" height={40} width={40} />;
       }
       default: {
-        if (!!IsDefault) return <MASTERCARD />;
-        return <MASTERCARD height={40} width={40} />;
+        if (!!IsDefault) return <MASTERCARD pointerEvents="none" />;
+        return <MASTERCARD pointerEvents="none" height={40} width={40} />;
       }
     }
   };
@@ -406,7 +408,7 @@ const onSetDefaultCard = (CustomerStripePaymentId?: string) => {
                 {CardDetails(item)}
               </View>
               {!!IsDefault && (
-                <GREEN_CHECK_CIRCLE
+                <GREEN_CHECK_CIRCLE pointerEvents="none"
                   style={{
                     marginTop: 6,
                   }}
@@ -478,7 +480,7 @@ const onSetDefaultCard = (CustomerStripePaymentId?: string) => {
               })}
           </View>
         </ScrollView>
-        <View style={styles.buttonContainer}>
+        <View style={[styles.buttonContainer, buttonBottomPadding]}>
           <CommonButton
             text={ready ? 'Add Card' : 'Loading...'}
             isFetching={loading || presentingRef.current}

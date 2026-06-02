@@ -1,8 +1,7 @@
 import React, { useCallback, useMemo, useRef } from "react";
-import { StyleProp, ViewStyle } from "react-native";
+import { Platform, StyleProp, ViewStyle } from "react-native";
 import { useTheme } from "@react-navigation/native";
 import BottomSheet from "@gorhom/bottom-sheet";
-import { isAndroid } from "@freakycoder/react-native-helpers";
 
 /**
  * ? Local imports
@@ -65,7 +64,7 @@ const BottomContentModal: React.FC<IBottomModalScreenProps> = ({
       keyboardBehavior="interactive"
       keyboardBlurBehavior="restore"
       // sets scrolling for android
-      activeOffsetY={isAndroid ? 50 : 0}
+      activeOffsetY={Platform.OS === "android" ? 50 : 0}
     >
       {body}
     </BottomSheet>

@@ -43,6 +43,7 @@ import {RootState} from 'store';
 import {onSetBookingRefNo} from '@services/states/booking/booking.slice';
 import Loader from '@shared-components/loaders/loader';
 import {usePayment} from '@services/hooks/usePayment';
+import {useSafeBottomPadding} from 'shared/functions/useSafeBottomInset';
 
 type CustomStyleProp = StyleProp<ViewStyle> | Array<StyleProp<ViewStyle>>;
 
@@ -89,6 +90,7 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
 }) => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const buttonBottomPadding = useSafeBottomPadding(20);
   const dispatch = useDispatch();
 
   const ONE_SECOND_IN_MS = 1000;
@@ -259,20 +261,20 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
           size={25}
         />
       </Pressable>
-      {/* <LikeGreenCircle height={75} width={75} style={styles.icon} /> */}
+      {/* <LikeGreenCircle pointerEvents="none" height={75} width={75} style={styles.icon} /> */}
       {isFetching ? <Header2 /> : <Header />}
 
       <View style={styles.body}>
         <Item
-          icon={<Calendar height={24} width={24} />}
+          icon={<Calendar pointerEvents="none" height={24} width={24} />}
           text={formatedRescheduleDate}
         />
         <Item
-          icon={<HouseProperty height={24} width={24} />}
+          icon={<HouseProperty pointerEvents="none" height={24} width={24} />}
           text={propertyName}
         />
         <Item
-          icon={<MowerGreen height={24} width={24} />}
+          icon={<MowerGreen pointerEvents="none" height={24} width={24} />}
           text={
             serviceType === 1
               ? 'Trim - Edge - Mow - Blow'
@@ -297,7 +299,7 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
             setTimeout(() => NavigationService.navigate(SCREENS.PAYMENT), 300);
           }}>
           <View style={styles.cardLeftContent}>
-            <VISA height={40} width={40} />
+            <VISA pointerEvents="none" height={40} width={40} />
             <View style={styles.cardMiddleContent}>
               <Text bold color={v2Colors.green}>
                 {`${defaultCard?.Brand}`}
@@ -308,7 +310,7 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
                 }>{`XXXX XXXX XXXX ${defaultCard?.Last4}`}</Text>
             </View>
           </View>
-          <CHEVRON_RIGHT />
+          <CHEVRON_RIGHT pointerEvents="none" />
         </Pressable>
       </View>
       <Confirm />
@@ -357,7 +359,7 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
   );
 
   const Confirm = () => (
-    <View style={styles.buttonContainer}>
+    <View style={[styles.buttonContainer, buttonBottomPadding]}>
       <CommonButton
         text={'Confirm'}
         onPress={() => handleSubmit()}
@@ -377,7 +379,7 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
         animationOut="slideOutDown"
         animationInTiming={100}
         animationOutTiming={100}
-        useNativeDriver
+        useNativeDriver={false}
         hideModalContentWhileAnimating
         backdropTransitionOutTiming={0}>
         <Content />

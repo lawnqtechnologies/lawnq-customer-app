@@ -26,6 +26,7 @@ import CommonButton from "@shared-components/buttons/CommonButton";
 import WholeScreenLoader from "@shared-components/loaders/WholeScreenLoader";
 import HeaderContainer from "@shared-components/headers/HeaderContainer";
 import { onSendEmail } from "@services/api/email.service";
+import {useSafeBottomPadding} from 'shared/functions/useSafeBottomInset';
 
 type CustomStyleProp = StyleProp<ViewStyle> | Array<StyleProp<ViewStyle>>;
 
@@ -49,6 +50,7 @@ const escapeHtml = (value: string) =>
 const SupportScreen: React.FC<ISupportScreenProps> = () => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const submitBottomPadding = useSafeBottomPadding(30);
   const [supportMessage, setSupportMessage] = useState<string>("");
   const [subject, setSubject] = useState<string>("");
   const [selectedImage, setSelectedImage] = useState<Asset | null>(null);
@@ -229,7 +231,7 @@ const SupportScreen: React.FC<ISupportScreenProps> = () => {
   };
 
   const Submit = () => (
-    <View style={styles.submit}>
+    <View style={[styles.submit, submitBottomPadding]}>
       <CommonButton
         text={"Send Mail"}
         onPress={() => sendMail()}

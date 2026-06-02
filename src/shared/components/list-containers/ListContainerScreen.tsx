@@ -59,6 +59,10 @@ import {
 } from '@services/states/property/property.slice';
 import {useProperty} from '@services/hooks/useProperty';
 import {RootState} from 'store';
+import {
+  useSafeBottomPadding,
+  useSafeBottomPosition,
+} from 'shared/functions/useSafeBottomInset';
 
 /**
  * ? Constants
@@ -80,6 +84,8 @@ interface IListScreenProps {
 const ListScreen: React.FC<IListScreenProps> = ({route}) => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const listBottomPadding = useSafeBottomPadding(80);
+  const addButtonBottomPosition = useSafeBottomPosition(20);
   const dispatch = useDispatch();
   const {token, deviceDetails} = useSelector(
     (state: RootState) => state.user,
@@ -279,7 +285,7 @@ const ListScreen: React.FC<IListScreenProps> = ({route}) => {
                         }}>
                         Pending
                       </Text>
-                      <PENDING_WHITE style={{top: 1, margin: 1}} />
+                      <PENDING_WHITE pointerEvents="none" style={{top: 1, margin: 1}} />
                     </View>
                   ) : (
                     <View style={styles.verifiedStatusPropContainer}>
@@ -292,7 +298,7 @@ const ListScreen: React.FC<IListScreenProps> = ({route}) => {
                         }}>
                         Verified
                       </Text>
-                      <CHECK_WHITE style={{top: 1, margin: 1}} />
+                      <CHECK_WHITE pointerEvents="none" style={{top: 1, margin: 1}} />
                     </View>
                   )}
                   {!!isDefault && (
@@ -317,14 +323,14 @@ const ListScreen: React.FC<IListScreenProps> = ({route}) => {
               </View>
             </View>
             <View style={{width: '10%', alignContent: 'center'}}>
-              <CHEVRON_RIGHT />
+              <CHEVRON_RIGHT pointerEvents="none" />
             </View>
           </View>
           <View style={styles.bottomContent}>
-            <AREA />
+            <AREA pointerEvents="none" />
             {renderBottomText(lawnArea)}
             <Separator />
-            <MOW_TYPE />
+            <MOW_TYPE pointerEvents="none" />
             {renderBottomText(serviceType.split(' ')[0])}
           </View>
         </Pressable>
@@ -347,7 +353,7 @@ const ListScreen: React.FC<IListScreenProps> = ({route}) => {
     <Pressable onPress={() => addProperty()} style={styles.button}>
       <Text color={'white'}>Add Property</Text>
       <View style={{width: 5}} />
-      <PLUS_GREEN />
+      <PLUS_GREEN pointerEvents="none" />
     </Pressable>
   );
 
@@ -368,10 +374,10 @@ const ListScreen: React.FC<IListScreenProps> = ({route}) => {
           data={items}
           renderItem={item => renderItem(item)}
           keyExtractor={(_, index) => index.toString()}
-          contentContainerStyle={styles.propertyContainer}
+          contentContainerStyle={[styles.propertyContainer, listBottomPadding]}
           showsVerticalScrollIndicator={false}
         />
-        <View style={styles.buttonContainer}>
+        <View style={[styles.buttonContainer, addButtonBottomPosition]}>
           <AddButton />
         </View>
       </View>

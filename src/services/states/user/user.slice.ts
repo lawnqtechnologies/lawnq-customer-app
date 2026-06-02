@@ -4,6 +4,18 @@ import { AUTHENTICATION } from "@shared-constants";
 
 const { TOKEN, CUSTOMER_ID } = AUTHENTICATION;
 
+const defaultCustomerInfo = {
+  Firstname: "",
+  Lastname: "",
+  MobileNumber: "",
+  EmailAddress: "",
+  Birthday: "",
+  Age: 0,
+  IsSuspended: false,
+  CustomerId: 0,
+  ProfilePictureLink: "",
+};
+
 interface UserState {
   token: string;
   isLoggedin: boolean;
@@ -70,17 +82,7 @@ const initialState: UserState = {
     MacAddress: "",
     IpAddress: "",
   },
-  customerInfo: {
-    Firstname: "",
-    Lastname: "",
-    MobileNumber: "",
-    EmailAddress: "",
-    Birthday: "",
-    Age: 0,
-    IsSuspended: false,
-    CustomerId: 0,
-    ProfilePictureLink:""
-  },
+  customerInfo: {...defaultCustomerInfo},
   isFromMenu: false,
 };
 
@@ -120,7 +122,10 @@ export const userSlice = createSlice({
       state.password2 = action.payload.password2;
     },
     onSetCustomerInfo(state, action: PayloadAction<any>) {
-      state.customerInfo = action.payload;
+      state.customerInfo = {
+        ...defaultCustomerInfo,
+        ...(action.payload || {}),
+      };
     },
     onSetIsFromMenu(state, action: PayloadAction<any>) {
       state.isFromMenu = action.payload;

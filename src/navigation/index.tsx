@@ -1,5 +1,5 @@
-import {View, useColorScheme} from 'react-native';
-import {useEffect} from 'react';
+import React, {useCallback, useEffect, useMemo} from 'react';
+import {Platform, View, useColorScheme} from 'react-native';
 import {isReadyRef, navigationRef} from 'react-navigation-helpers';
 import {SCREENS} from '../constant';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
@@ -40,7 +40,6 @@ import PrivacyScreen from '@screens/account/menu-screens/privacy/PrivacyScreen';
 import FAQScreen from '@screens/account/menu-screens/faq/FAQScreen';
 import BookingDetailScreen from '@screens/bookings/booking-details/BookingDetails';
 import ProfileScreen from '@screens/account/profile/ProfileScreen';
-import BookingDetails from '@screens/bookings/booking-details/BookingDetails';
 import BookingsScreen from '@screens/bookings/BookingsScreen';
 import MyPropertiesScreen from '@screens/my-properties/MyPropertiesScreen';
 import AddPropertyScreen from '@screens/my-properties/AddPropertyScreen';
@@ -53,25 +52,238 @@ import TNC from '@screens/signup/tnc';
 import SupportScreen from '@screens/account/menu-screens/support/SupportScreen';
 import SuccessScheduleScreen from '@screens/home/search-service-providers/SuccessScheduleScreen';
 import SearchScheduleServiceProviderScreen from '@screens/home/search-service-providers/SearchScheduleServiceProviderScreen';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import SingupAddressScreenStyle from '@screens/signup/SingupAddressScreen.style';
 import SingupAddressScreen from '@screens/signup/SingupAddressScreen';
 import SignUpLocatePropertyAddress from '@screens/signup/SignUpLocatePropertyAddress';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 // ? If you want to use stack or tab or both
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
+const HomeTabs: React.FC = React.memo(() => {
+  const {bottom} = useSafeAreaInsets();
+  const isAndroid = Platform.OS === 'android';
+  const detachInactiveScreens = Platform.OS !== 'ios';
+  const TAB_ICON_SIZE = 28;
+  const tabBarBottomPadding = isAndroid ? Math.max(bottom, 24) : 8;
+  const tabBarHeight = isAndroid ? 52 + tabBarBottomPadding : 60;
+
+  const renderActiveIcon = useCallback(
+    (icon: JSX.Element) => (
+      <View
+        pointerEvents="none"
+        style={{borderTopWidth: 2, marginTop: -2, paddingTop: 2}}>
+        {icon}
+      </View>
+    ),
+    [],
+  );
+
+  const renderTabIcon = useCallback(
+    (routeName: string, focused: boolean) => {
+      switch (routeName) {
+        case 'Home':
+          return focused ? (
+            renderActiveIcon(
+              <HomeGreen
+                height={TAB_ICON_SIZE}
+                width={TAB_ICON_SIZE}
+                pointerEvents="none"
+                style={{marginTop: 2}}
+              />,
+            )
+          ) : (
+            <Home
+              height={TAB_ICON_SIZE}
+              width={TAB_ICON_SIZE}
+              pointerEvents="none"
+            />
+          );
+        case 'Bookings':
+          return focused ? (
+            renderActiveIcon(
+              <BookingsGreen
+                height={TAB_ICON_SIZE}
+                width={TAB_ICON_SIZE}
+                pointerEvents="none"
+                style={{marginTop: 2}}
+              />,
+            )
+          ) : (
+            <Bookings
+              height={TAB_ICON_SIZE}
+              width={TAB_ICON_SIZE}
+              pointerEvents="none"
+            />
+          );
+        case 'Properties':
+          return focused ? (
+            renderActiveIcon(
+              <PropertyGreen
+                height={TAB_ICON_SIZE}
+                width={TAB_ICON_SIZE}
+                pointerEvents="none"
+                style={{marginTop: 2}}
+              />,
+            )
+          ) : (
+            <Property
+              height={TAB_ICON_SIZE}
+              width={TAB_ICON_SIZE}
+              pointerEvents="none"
+            />
+          );
+        case SCREENS.INBOX:
+          return focused ? (
+            renderActiveIcon(
+              <MailGreen
+                height={TAB_ICON_SIZE}
+                width={TAB_ICON_SIZE}
+                pointerEvents="none"
+                style={{marginTop: 2}}
+              />,
+            )
+          ) : (
+            <Mail
+              height={TAB_ICON_SIZE}
+              width={TAB_ICON_SIZE}
+              pointerEvents="none"
+            />
+          );
+        case 'Account':
+          return focused ? (
+            renderActiveIcon(
+              <UserGreen
+                height={TAB_ICON_SIZE}
+                width={TAB_ICON_SIZE}
+                pointerEvents="none"
+                style={{marginTop: 2}}
+              />,
+            )
+          ) : (
+            <User
+              height={TAB_ICON_SIZE}
+              width={TAB_ICON_SIZE}
+              pointerEvents="none"
+            />
+          );
+        default:
+          return focused ? (
+            renderActiveIcon(
+              <HomeGreen
+                height={TAB_ICON_SIZE}
+                width={TAB_ICON_SIZE}
+                pointerEvents="none"
+                style={{marginTop: 2}}
+              />,
+            )
+          ) : (
+            <Home
+              height={TAB_ICON_SIZE}
+              width={TAB_ICON_SIZE}
+              pointerEvents="none"
+            />
+          );
+      }
+    },
+    [renderActiveIcon],
+  );
+
+  const tabScreenOptions = useMemo(
+    () => ({
+      headerShown: false,
+      tabBarActiveTintColor: v2Colors.green,
+      tabBarInactiveTintColor: 'gray',
+      lazy: true,
+      unmountOnBlur: false,
+      tabBarStyle: {
+        backgroundColor: '#FFFFFF',
+        borderTopWidth: 0,
+        elevation: 0,
+        height: tabBarHeight,
+        paddingBottom: tabBarBottomPadding,
+        paddingTop: 0,
+        shadowOpacity: 0,
+      },
+      tabBarItemStyle: {
+        minHeight: 52,
+      },
+    }),
+    [tabBarBottomPadding, tabBarHeight],
+  );
+
+  const homeTabOptions = useMemo(
+    () => ({
+      tabBarIcon: ({focused}: {focused: boolean}) =>
+        renderTabIcon('Home', focused),
+    }),
+    [renderTabIcon],
+  );
+
+  const bookingsTabOptions = useMemo(
+    () => ({
+      tabBarIcon: ({focused}: {focused: boolean}) =>
+        renderTabIcon('Bookings', focused),
+    }),
+    [renderTabIcon],
+  );
+
+  const propertiesTabOptions = useMemo(
+    () => ({
+      tabBarIcon: ({focused}: {focused: boolean}) =>
+        renderTabIcon('Properties', focused),
+    }),
+    [renderTabIcon],
+  );
+
+  const accountTabOptions = useMemo(
+    () => ({
+      tabBarIcon: ({focused}: {focused: boolean}) =>
+        renderTabIcon('Account', focused),
+    }),
+    [renderTabIcon],
+  );
+
+  return (
+    <Tab.Navigator
+      detachInactiveScreens={detachInactiveScreens}
+      screenOptions={tabScreenOptions}>
+      <Tab.Screen
+        name={'Home'}
+        component={HomeScreen}
+        options={homeTabOptions}
+      />
+      <Tab.Screen
+        name={'Bookings'}
+        component={BookingsScreen}
+        options={bookingsTabOptions}
+      />
+      <Tab.Screen
+        name={'Properties'}
+        component={MyPropertiesScreen}
+        options={propertiesTabOptions}
+      />
+      {/* <Tab.Screen name={SCREENS.INBOX} component={InboxScreen} /> */}
+      <Tab.Screen
+        name={'Account'}
+        component={AccountScreen}
+        options={accountTabOptions}
+      />
+    </Tab.Navigator>
+  );
+});
+
 const Navigation = () => {
   const scheme = useColorScheme();
   const isDarkMode = scheme === 'dark';
+  const navigationTheme = isDarkMode ? DarkTheme : LightTheme;
+  const detachInactiveScreens = Platform.OS !== 'ios';
 
   /**
     |--------------------------------------------------
     | REDUX
     |--------------------------------------------------
     */
-  const {totalChatCount} = useSelector((state: RootState) => state.system);
   const {fromAccountToPayment} = useSelector((state: RootState) => state.menu);
 
   /**
@@ -83,103 +295,50 @@ const Navigation = () => {
     return () => (isReadyRef.current = false);
   }, []);
 
-  /**
-    |--------------------------------------------------
-    | Local Component
-    |--------------------------------------------------
-    */
-
-  const renderActiveIcon = (icon: JSX.Element) => (
-    <View style={{borderTopWidth: 2, marginTop: -6}}>{icon}</View>
+  const linking = useMemo(
+    () => ({
+      prefixes: ['app.lawnq://app', 'https://lawnq.com.au'],
+      config: {
+        screens: {
+          Payment: 'payment',
+        },
+      },
+    }),
+    [],
   );
 
-  const renderTabIcon = (route: any, focused: boolean) => {
-    switch (route.name) {
-      case 'Home':
-        return focused ? (
-          renderActiveIcon(<HomeGreen style={{marginTop: 6}} />)
-        ) : (
-          <Home />
-        );
-      case 'Bookings':
-        return focused ? (
-          renderActiveIcon(<BookingsGreen style={{marginTop: 6}} />)
-        ) : (
-          <Bookings />
-        );
-      case 'Properties':
-        return focused ? (
-          renderActiveIcon(
-            <PropertyGreen height={23} width={23} style={{marginTop: 6}} />,
-          )
-        ) : (
-          <Property height={23} width={23} />
-        );
-      case SCREENS.INBOX:
-        return focused ? (
-          renderActiveIcon(<MailGreen style={{marginTop: 6}} />)
-        ) : (
-          <Mail />
-        );
-      case 'Account':
-        return focused ? (
-          renderActiveIcon(<UserGreen style={{marginTop: 6}} />)
-        ) : (
-          <User />
-        );
-      default:
-        return focused ? (
-          renderActiveIcon(<HomeGreen style={{marginTop: 6}} />)
-        ) : (
-          <Home />
-        );
-    }
-  };
-
-  const RenderTabNavigation = () => {
-    return (
-      <Tab.Navigator
-        screenOptions={({route}) => ({
-          headerShown: false,
-          tabBarIcon: ({focused}) => renderTabIcon(route, focused),
-          tabBarActiveTintColor: v2Colors.green,
-          tabBarInactiveTintColor: 'gray',
-        })}>
-        <Tab.Screen name={'Home'} component={HomeScreen} />
-        <Tab.Screen
-          name={'Bookings'}
-          component={BookingsScreen}
-          options={{
-            tabBarBadge: !totalChatCount ? undefined : totalChatCount,
-          }}
-        />
-        <Tab.Screen name={'Properties'} component={MyPropertiesScreen} />
-        {/* <Tab.Screen name={SCREENS.INBOX} component={InboxScreen} /> */}
-        <Tab.Screen name={'Account'} component={AccountScreen} />
-      </Tab.Navigator>
-    );
-  };
-
-  const config = {
-    screens: {
-      Payment: "payment"
-    }
-  }
+  const stackScreenOptions = useMemo(
+    () => ({
+      headerShown: false,
+      animationEnabled: Platform.OS !== 'ios',
+      cardStyle: {
+        backgroundColor: navigationTheme.colors.background,
+      },
+    }),
+    [navigationTheme.colors.background],
+  );
+  const successScreenOptions = useMemo(
+    () => ({
+      gestureEnabled: false,
+      cardStyle: {
+        backgroundColor: navigationTheme.colors.lightGray,
+      },
+    }),
+    [navigationTheme.colors.lightGray],
+  );
 
   return (
     <NavigationContainer
       ref={navigationRef}
-      linking={{
-        prefixes:["app.lawnq://app","https://lawnq.com.au"],
-        config
-      }}
+      linking={linking}
       onReady={() => {
         isReadyRef.current = true;
       }}
-      theme={isDarkMode ? DarkTheme : LightTheme}>
+      theme={navigationTheme}>
       <Stack.Navigator
+        detachInactiveScreens={detachInactiveScreens}
         initialRouteName={SCREENS.WELCOME}
-        screenOptions={{headerShown: false, headerMode: 'screen'}}>
+        screenOptions={stackScreenOptions}>
         <Stack.Screen name={SCREENS.LANDING} component={LandingScreen} />
         <Stack.Screen name={SCREENS.LOGIN} component={LoginScreen} />
         <Stack.Screen name={SCREENS.SIGNUP} component={SignupScreen} />
@@ -191,7 +350,7 @@ const Navigation = () => {
         <Stack.Screen name={SCREENS.WELCOME} component={WelcomeScreen} />
         <Stack.Screen
           name={SCREENS.HOME}
-          component={RenderTabNavigation}
+          component={HomeTabs}
           options={{gestureEnabled: false}}
         />
 
@@ -204,7 +363,7 @@ const Navigation = () => {
         <Stack.Screen
           name={SCREENS.SUCCESS}
           component={SuccessScreen}
-          options={{gestureEnabled: false}}
+          options={successScreenOptions}
         />
 
         <Stack.Screen
@@ -223,7 +382,7 @@ const Navigation = () => {
         <Stack.Screen
           name={SCREENS.SUCCESS_SCHEDULE}
           component={SuccessScheduleScreen}
-          options={{gestureEnabled: false}}
+          options={successScreenOptions}
         />
 
         <Stack.Screen name={SCREENS.ACCOUNT} component={AccountScreen} />

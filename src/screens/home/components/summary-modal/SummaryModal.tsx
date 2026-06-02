@@ -44,6 +44,7 @@ import {
   onSetFee,
 } from '@services/states/booking/booking.slice';
 import {usePayment} from '@services/hooks/usePayment';
+import {useSafeBottomPadding} from 'shared/functions/useSafeBottomInset';
 
 type CustomStyleProp = StyleProp<ViewStyle> | Array<StyleProp<ViewStyle>>;
 
@@ -89,6 +90,7 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
 }) => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const buttonBottomPadding = useSafeBottomPadding(20);
   const dispatch = useDispatch();
 
   const ONE_SECOND_IN_MS = 1000;
@@ -240,13 +242,9 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
 
   const onSaveScheduledBooking = async () => {
     const lawnImageRequest = async () => {
-      if (lawnURIList.length > 0) {
-        for (let i = 0; i < lawnURIList.length; i++) {
-          return request.append('LawnImages', lawnURIList[i]);
-        }
-      } else {
-        return request.append('LawnImages', []);
-      }
+      if (lawnURIList[0]) return request.append('LawnImages', lawnURIList[0]);
+
+      return request.append('LawnImages', []);
     };
 
     const payloadObject = Object.fromEntries(payload?._parts || []);
@@ -345,9 +343,7 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
     let request = new FormData();
     request.append('CustomerToken', token);
     request.append('CustomerId', customerId);
-    for (let i = 0; i < lawnURIList.length; i++) {
-      request.append('LawnImages', lawnURIList[i]);
-    }
+    if (lawnURIList[0]) request.append('LawnImages', lawnURIList[0]);
     request.append('AddressId', property.value);
     request.append('ServiceProviderId', 0);
 
@@ -416,7 +412,7 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
             setTimeout(() => NavigationService.navigate(SCREENS.PAYMENT), 300);
           }}>
           <View style={styles.cardLeftContent}>
-            <VISA height={40} width={40} />
+            <VISA pointerEvents="none" height={40} width={40} />
             <View style={styles.cardMiddleContent}>
               <Text bold color={v2Colors.green}>
                 {`${defaultCard?.Brand}`}
@@ -427,7 +423,7 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
                 }>{`XXXX XXXX XXXX ${defaultCard?.Last4}`}</Text>
             </View>
           </View>
-          <CHEVRON_RIGHT />
+          <CHEVRON_RIGHT pointerEvents="none" />
         </Pressable>
       );
     } else {
@@ -457,17 +453,17 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
           size={25}
         />
       </Pressable>
-      <LikeGreenCircle height={75} width={75} style={styles.icon} />
+      <LikeGreenCircle pointerEvents="none" height={75} width={75} style={styles.icon} />
       {isFetching ? <Header2 /> : <Header />}
 
       <View style={styles.body}>
-        <Item icon={<Calendar height={24} width={24} />} text={data?.date} />
+        <Item icon={<Calendar pointerEvents="none" height={24} width={24} />} text={data?.date} />
         <Item
-          icon={<HouseProperty height={24} width={24} />}
+          icon={<HouseProperty pointerEvents="none" height={24} width={24} />}
           text={data?.name}
         />
         <Item
-          icon={<MowerGreen height={24} width={24} />}
+          icon={<MowerGreen pointerEvents="none" height={24} width={24} />}
           text={
             data.serviceName === 1
               ? 'Trim - Edge - Mow - Blow'
@@ -561,7 +557,7 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
   );
 
   const Confirm = () => (
-    <View style={styles.buttonContainer}>
+    <View style={[styles.buttonContainer, buttonBottomPadding]}>
       <CommonButton
         text={'Secure Booking'}
         onPress={() => handleSubmit()}
@@ -575,7 +571,7 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
   const ConditionalConfirm = () => {
     if (defaultCard?.CustomerStripePaymentId !== undefined) {
       return (
-        <View style={styles.buttonContainer}>
+        <View style={[styles.buttonContainer, buttonBottomPadding]}>
           <CommonButton
             text={'Secure Booking'}
             onPress={() => handleSubmit()}
@@ -587,7 +583,7 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
       );
     } else {
       return (
-        <View style={styles.buttonContainer}>
+        <View style={[styles.buttonContainer, buttonBottomPadding]}>
           <CommonButton
             text={'Add Payment Method'}
             onPress={addWalletAndRedirect}
@@ -616,7 +612,7 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
         animationOut="slideOutDown"
         animationInTiming={500}
         animationOutTiming={500}
-        useNativeDriver
+        useNativeDriver={false}
         hideModalContentWhileAnimating
         backdropTransitionOutTiming={0}>
         <Content />

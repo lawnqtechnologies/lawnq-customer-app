@@ -81,7 +81,7 @@ const Map: React.FC<IMapProps> = ({style, region, onWatchCoords}) => {
             marginTop: -42,
             alignItems: 'center',
           }}>
-          <MAP_PIN width={28} height={42} />
+          <MAP_PIN pointerEvents="none" width={28} height={42} />
         </View>
       </>
     );

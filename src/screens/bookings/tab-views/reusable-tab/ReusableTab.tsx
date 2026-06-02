@@ -98,12 +98,12 @@ const ReusableTab: React.FC<IReusableTabProps> = ({data, statusType}) => {
           <View style={styles.column_1}>
             <View style={styles.bookingRefContainer}>
               {statusType === 'pending' && (
-                <PENDING style={{marginRight: 10}} />
+                <PENDING pointerEvents="none" style={{marginRight: 10}} />
               )}
               {statusType === 'completed' && (
-                <CHECK style={{marginRight: 10}} />
+                <CHECK pointerEvents="none" style={{marginRight: 10}} />
               )}
-              {statusType === 'dispute' && <ALERT style={{marginRight: 10}} />}
+              {statusType === 'dispute' && <ALERT pointerEvents="none" style={{marginRight: 10}} />}
 
               <Text
                 h4
@@ -127,7 +127,7 @@ const ReusableTab: React.FC<IReusableTabProps> = ({data, statusType}) => {
           </View>
           <View style={styles.column_2}>
             <View>
-              <CHAT_BUBBLE />
+              <CHAT_BUBBLE pointerEvents="none" />
               {!!s_count && (
                 <View style={styles.badge}>
                   <Text h6 bold color={'white'}>
@@ -136,12 +136,12 @@ const ReusableTab: React.FC<IReusableTabProps> = ({data, statusType}) => {
                 </View>
               )}
             </View>
-            <CHEVRON_RIGHT />
+            <CHEVRON_RIGHT pointerEvents="none" />
           </View>
         </Animated.View>
 
         <View style={styles.bottomContentContainer}>
-          <CALENDAR style={{marginRight: 10}} />
+          <CALENDAR pointerEvents="none" style={{marginRight: 10}} />
           <Text h5 color={v2Colors.green}>
             {_.toLower(BookingTypeDesc) === 'queue later'
               ? moment(BookingDate).format('LL')

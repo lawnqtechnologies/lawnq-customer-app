@@ -52,22 +52,37 @@ const MenuScreen: React.FC<IMenuScreenProps> = () => {
   /**
    * ? Redux States
    */
-  const {customerInfo} = useSelector((state: RootState) => state.user);
+  const customerInfo = useSelector(
+    (state: RootState) => state.user.customerInfo,
+  );
+  const fromAccountToPayment = useSelector(
+    (state: RootState) => state.menu.fromAccountToPayment,
+  );
+  const profilePictureLink = customerInfo?.ProfilePictureLink;
+  const displayName =
+    `${startCase(customerInfo?.Firstname || '')} ${startCase(
+      customerInfo?.Lastname || '',
+    )}`.trim() || 'Customer';
 
   /**
    * ? On Mount
    */
   useFocusEffect(
     useCallback(() => {
-      dispatch(onSetFromAccountToPayment(true));
-    }, []),
+      if (!fromAccountToPayment) {
+        dispatch(onSetFromAccountToPayment(true));
+      }
+    }, [dispatch, fromAccountToPayment]),
   );
 
   useEffect(() => {
-    if (customerInfo?.ProfilePictureLink?.length) {
-      setImageUri(customerInfo?.ProfilePictureLink);
+    if (profilePictureLink?.length) {
+      setImageUri(profilePictureLink);
+      return;
     }
-  }, []);
+
+    setImageUri(null);
+  }, [profilePictureLink]);
 
   /* -------------------------------------------------------------------------- */
   /*                               Render Methods                               */
@@ -82,7 +97,7 @@ const MenuScreen: React.FC<IMenuScreenProps> = () => {
             resizeMode={'contain'}
           />
         ) : (
-          <SampleProfile height={90} width={90} style={{marginRight: 10}} />
+          <SampleProfile pointerEvents="none" height={90} width={90} style={{marginRight: 10}} />
         )}
         <View style={{flex: 1}}>
           <View
@@ -94,9 +109,7 @@ const MenuScreen: React.FC<IMenuScreenProps> = () => {
               h3
               color={'white'}
               style={{fontFamily: fonts.lexend.extraBold, fontWeight: '600'}}>
-              {`${startCase(customerInfo.Firstname)} ${startCase(
-                customerInfo.Lastname,
-              )}`}
+              {displayName}
             </Text>
             <View style={{height: 30}} />
           </View>
@@ -115,7 +128,7 @@ const MenuScreen: React.FC<IMenuScreenProps> = () => {
             NavigationService.navigate(SCREENS.LANDING);
           }}
           style={styles.logoutContainer}>
-          <Logout />
+          <Logout pointerEvents="none" />
         </Pressable>
       </View>
     </View>
@@ -127,7 +140,7 @@ const MenuScreen: React.FC<IMenuScreenProps> = () => {
         <Pressable
           onPress={() => NavigationService.navigate(SCREENS.PAYMENT)}
           style={styles.squareContainer}>
-          <Wallet height={35} width={35} />
+          <Wallet pointerEvents="none" height={35} width={35} />
           <Text h4 color="black" style={{marginTop: 10}}>
             Wallet
           </Text>
@@ -136,7 +149,7 @@ const MenuScreen: React.FC<IMenuScreenProps> = () => {
         <Pressable
           onPress={() => NavigationService.navigate(SCREENS.SUPPORT)}
           style={styles.squareContainer}>
-          <LifeBuoy height={35} width={35} />
+          <LifeBuoy pointerEvents="none" height={35} width={35} />
           <Text h4 color="black" style={{marginTop: 10}}>
             Support
           </Text>
@@ -149,22 +162,22 @@ const MenuScreen: React.FC<IMenuScreenProps> = () => {
         </Text>
       </View>
 
-      {ListItem(<Info height={22} width={22} />, 'About Us', () =>
+      {ListItem(<Info pointerEvents="none" height={22} width={22} />, 'About Us', () =>
         NavigationService.navigate(SCREENS.ABOUT_US),
       )}
       {ListItem(
-        <Document height={22} width={22} />,
+        <Document pointerEvents="none" height={22} width={22} />,
         'Terms and Conditions',
         () => NavigationService.navigate(SCREENS.TNC, {fromProfile: true}),
       )}
-      {ListItem(<Document height={22} width={22} />, 'LawnQ Guide', () => {
+      {ListItem(<Document pointerEvents="none" height={22} width={22} />, 'LawnQ Guide', () => {
         NavigationService.push(SCREENS.HOME),
           AsyncStorage.setItem('Onboarding', 'null');
       })}
-      {ListItem(<Eye height={22} width={22} />, 'Privacy', () =>
+      {ListItem(<Eye pointerEvents="none" height={22} width={22} />, 'Privacy', () =>
         NavigationService.navigate(SCREENS.PRIVACY),
       )}
-      {ListItem(<HelpCircle height={22} width={22} />, 'FAQ', () =>
+      {ListItem(<HelpCircle pointerEvents="none" height={22} width={22} />, 'FAQ', () =>
         NavigationService.navigate(SCREENS.FAQ),
       )}
     </View>
@@ -177,7 +190,7 @@ const MenuScreen: React.FC<IMenuScreenProps> = () => {
         <View style={{width: 12}} />
         <Text h4>{text}</Text>
       </View>
-      <ChevronRight />
+      <ChevronRight pointerEvents="none" />
     </Pressable>
   );
 

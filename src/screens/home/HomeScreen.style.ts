@@ -143,7 +143,7 @@ export default (theme: ExtendedTheme) => {
       shadowOpacity: 0.25,
       shadowRadius: 3.84,
       elevation: 5,
-      zIndex: 0,
+      zIndex: 10,
     },
     dateActionsContainer: {
       width: '100%',
@@ -160,12 +160,12 @@ export default (theme: ExtendedTheme) => {
       shadowOpacity: 0.25,
       shadowRadius: 3.84,
       elevation: 5,
-      zIndex: 0,
+      zIndex: 10,
     },
     leftActionContainer: {
+      flex: 1,
       flexDirection: 'row',
       justifyContent: 'space-between',
-      width: '100%',
       height: 50,
       alignItems: 'center',
       paddingHorizontal: 15,
@@ -188,6 +188,7 @@ export default (theme: ExtendedTheme) => {
     grassClippingsContainer: {
       flexDirection: 'row',
       marginTop: 20,
+      alignItems: 'center',
     },
     grassClippingsSquare: {
       width: '46%',
@@ -196,9 +197,10 @@ export default (theme: ExtendedTheme) => {
       borderColor: v2Colors.border,
       borderRadius: 7,
       flexDirection: 'row',
-      justifyContent: 'space-around',
+      justifyContent: 'center',
       alignItems: 'center',
-      paddingHorizontal: 20,
+      paddingHorizontal: 14,
+      paddingVertical: 16,
     },
 
     mowHeightSelectionContainer: {

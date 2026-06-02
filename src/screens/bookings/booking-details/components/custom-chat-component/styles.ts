@@ -21,6 +21,7 @@ interface Styles {
   messageTimestampLeft: TextStyle;
   messageTimestampRight: TextStyle;
   inputContainer: ViewStyle;
+  androidKeyboardInputLift: ViewStyle;
   attachmentButton: ViewStyle;
   attachmentButtonDisabled: ViewStyle;
   textInput: TextStyle;
@@ -139,6 +140,9 @@ const styles = StyleSheet.create<Styles>({
     shadowOpacity: 0.15,
     shadowRadius: 3.84,
     elevation: 1,
+  },
+  androidKeyboardInputLift: {
+    marginBottom: 80,
   },
   attachmentButton: {
     width: 44,

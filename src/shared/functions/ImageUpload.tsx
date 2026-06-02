@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect} from 'react';
 import {
   launchImageLibrary,
   ImageLibraryOptions,
@@ -41,29 +41,21 @@ const ImageUploadFunction: React.FC<IImageUPloadFunctionProps> = ({
 }) => {
   const dispatch = useDispatch();
 
-  const {lawnURIList} = useSelector((state: RootState) => state.booking);
   /**
    * ? Redux States
    */
-  const {customerId} = useSelector((state: RootState) => state.user);
-  const {propertyLength} = useSelector((state: RootState) => state.property);
-
-  /**
-   * ? States
-   */
-  const [images, setImages] = useState<any>(null);
+  const {addPropURIList} = useSelector((state: RootState) => state.property);
 
   /**
    * ? Functions
    */
   const onSelectImagesFromGallery = () => {
-    let newArray: any = [],
-      source;
+    const isBookingUpload = processType === 'booking';
     const options: ImageLibraryOptions = {
       mediaType: 'photo',
       maxWidth: 2000,
       maxHeight: 2000,
-      selectionLimit: 5,
+      selectionLimit: isBookingUpload ? 1 : 5,
     };
 
     launchImageLibrary(options, (response: any) => {
@@ -77,15 +69,22 @@ const ImageUploadFunction: React.FC<IImageUPloadFunctionProps> = ({
         console.log('User tapped custom button: ', response.customButton);
         doneSelection();
       } else {
-        const responseArray = response.assets;
+        const responseArray = response.assets ?? [];
+        const selectedImages = responseArray.map((r: any) => ({
+          uri: r.uri,
+          type: r.type,
+          name: 'LAWNQ',
+        }));
+        if (!selectedImages.length) {
+          doneSelection();
+          return;
+        }
 
-        responseArray.map((r: any) => {
-          const {uri, type, name} = r;
-          source = {uri: uri, type: type, name: 'LAWNQ'};
-          newArray = [...lawnURIList, source];
-        });
+        const newArray = isBookingUpload
+          ? selectedImages.slice(0, 1)
+          : [...addPropURIList, ...selectedImages];
 
-        if (processType === 'booking') dispatch(onSetLawnURIList(newArray));
+        if (isBookingUpload) dispatch(onSetLawnURIList(newArray));
         else dispatch(onSetAddPropUriList(newArray));
         //setImages(source);
         doneSelection();

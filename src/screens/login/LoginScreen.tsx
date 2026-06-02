@@ -40,6 +40,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useAuth} from '@services/hooks/useAuth';
 import {onUserLogin} from '@services/states/user/user.slice';
 import {v2Colors} from '@theme/themes';
+import {useSafeBottomPadding} from 'shared/functions/useSafeBottomInset';
 
 /**
  * ? Icon Imports
@@ -55,6 +56,7 @@ const LoginScreen = () => {
 */
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const screenBottomPadding = useSafeBottomPadding(20);
   const {TOKEN, CUSTOMER_ID, MOBILE_NO} = AUTHENTICATION;
   const dispatch = useDispatch();
   const {login} = useAuth();
@@ -339,9 +341,11 @@ const LoginScreen = () => {
 
   return (
     <KeyboardHandler>
-      <ImageBackground style={styles.container} source={require(IMAGE_BG)}>
+      <ImageBackground
+        style={[styles.container, screenBottomPadding]}
+        source={require(IMAGE_BG)}>
         <View style={{flex: 1, alignSelf: 'center', alignItems: 'center'}}>
-          <LAWNQ />
+          <LAWNQ pointerEvents="none" />
           <Text color={v2Colors.green} style={{marginVertical: 10}}>
             New here? Tap ‘Sign Up’ below to create an account and get started!
           </Text>
@@ -354,7 +358,7 @@ const LoginScreen = () => {
               control={control}
               name="mobile"
               label="Enter Mobile Number"
-              rightIcon={<PHONE />}
+              rightIcon={<PHONE pointerEvents="none" />}
               prefix={'+61'}
               maxLength={10}
               keyboardType={'phone-pad'}

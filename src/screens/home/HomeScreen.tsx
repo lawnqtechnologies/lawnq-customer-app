@@ -2,6 +2,7 @@ import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   Alert,
   FlatList,
+  InteractionManager,
   Linking,
   Platform,
   RefreshControl,
@@ -10,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import {useFocusEffect, useTheme} from '@react-navigation/native';
+// @ts-ignore
 import VideoPlayer from 'react-native-video-controls';
 
 // local imports
@@ -77,6 +79,7 @@ import NotificationEnabler from 'shared/functions/NotificationEnabler';
 import CHEVRON_RIGHT from '@assets/v2/list/chevron-right.svg';
 
 const ITEM_WIDTH = 100;
+const HOME_FOCUS_REFRESH_COOLDOWN_MS = 20000;
 
 const HomeScreen = () => {
   /**
@@ -169,6 +172,10 @@ const HomeScreen = () => {
   const [didReceiveNotif, setDidReceiveNotif] = useState<boolean>(false);
 
   const videoRef = useRef(null);
+  const isHomeInitializingRef = useRef<boolean>(false);
+  const appVersionCheckedRef = useRef<boolean>(false);
+  const hasHomeLoadedRef = useRef<boolean>(false);
+  const lastHomeFocusLoadAtRef = useRef<number>(0);
   /**
   |--------------------------------------------------
   | Effects
@@ -176,19 +183,55 @@ const HomeScreen = () => {
   */
   useFocusEffect(
     useCallback(() => {
-      onLoadOfHome();
+      const task = InteractionManager.runAfterInteractions(() => {
+        if (isHomeInitializingRef.current) {
+          return;
+        }
+
+        const now = Date.now();
+        if (
+          hasHomeLoadedRef.current &&
+          now - lastHomeFocusLoadAtRef.current < HOME_FOCUS_REFRESH_COOLDOWN_MS
+        ) {
+          return;
+        }
+
+        lastHomeFocusLoadAtRef.current = now;
+
+        isHomeInitializingRef.current = true;
+        onLoadOfHome();
+
+        if (hasHomeLoadedRef.current) {
+          isHomeInitializingRef.current = false;
+        }
+      });
+
+      return () => {
+        task.cancel();
+      };
     }, []),
   );
 
   const onLoadOfHome = () => {
-    setIsLoading(true);
+    if (!hasHomeLoadedRef.current) {
+      setIsLoading(true);
+    }
     fetchCustomerInfo();
-    appversionCheck();
+    if (!appVersionCheckedRef.current) {
+      appVersionCheckedRef.current = true;
+      appversionCheck();
+    }
     setDidReceiveNotif(true);
     fetchGrassLengthList();
     setIsFetching(false);
     getDefaultCard();
   };
+
+  useEffect(() => {
+    if (!isLoading) {
+      isHomeInitializingRef.current = false;
+    }
+  }, [isLoading]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -412,10 +455,12 @@ const HomeScreen = () => {
           return item;
         });
         setMowHeightList(formatData);
+        hasHomeLoadedRef.current = true;
         setIsLoading(false);
       },
       (err: any) => {
         console.log('getMowLengthList err:', err);
+        hasHomeLoadedRef.current = true;
         setIsLoading(false);
       },
     );
@@ -605,9 +650,7 @@ const HomeScreen = () => {
 
     request.append('CustomerToken', token);
     request.append('CustomerId', customerId);
-    for (let i = 0; i < lawnURIList.length; i++) {
-      request.append('LawnImages', lawnURIList[i]);
-    }
+    if (lawnURIList[0]) request.append('LawnImages', lawnURIList[0]);
     request.append('AddressId', property.value);
     request.append('ServiceProviderId', 0);
     request.append('Cost', Number(_originalAmount) || 0);
@@ -708,7 +751,7 @@ const HomeScreen = () => {
   |--------------------------------------------------
   */
   const ServiceType = () => (
-    <View style={styles.serviceTypeContainer}>
+    <View pointerEvents="none" style={styles.serviceTypeContainer}>
       <View style={styles.serviceTypeTextContainer}>
         <FastImage
           style={styles.grassBGcontainer}
@@ -748,9 +791,9 @@ const HomeScreen = () => {
             </Text>
           </View>
 
-          <CHEVRON_RIGHT />
+          <CHEVRON_RIGHT pointerEvents="none" />
         </Pressable>
-        <View style={styles.verticalSeparator} />
+        <View pointerEvents="none" style={styles.verticalSeparator} />
       </View>
     </>
   );
@@ -774,8 +817,9 @@ const HomeScreen = () => {
                   dispatch(onSetBookingType(2));
                   setIsLoading(true);
                   setTimeout(() => {
-                    setShowCalendar(true);
                     setIsLoading(false);
+                    setShowCalendar(true);
+
                   }, 1000);
               setBookingDate('');
             }
@@ -788,14 +832,14 @@ const HomeScreen = () => {
               {bookingDate || 'Select Booking Schedule'}
             </Text>
           </View>
-          <CALENDAR />
+          <CALENDAR pointerEvents="none" />
         </Pressable>
       </View>
     </>
   );
 
   const GreenCircleCheck = () => (
-    <GREEN_CHECK_CIRCLE
+    <GREEN_CHECK_CIRCLE pointerEvents="none"
       height={35}
       width={35}
       style={styles.greenCheckCircle}
@@ -828,11 +872,11 @@ const HomeScreen = () => {
         </View>
 
         <View style={styles.grassLengthTopPart}>
-          {GrassLengthId === 1 && <ANKLE_HEIGHT />}
-          {GrassLengthId === 2 && <MID_CALF_HEIGHT />}
-          {GrassLengthId === 3 && <ABOVE_CALF_HEIGHT />}
-          {GrassLengthId === 4 && <CALF_HEIGHT />}
-          {GrassLengthId === 5 && <KNEE_HEIGHT />}
+          {GrassLengthId === 1 && <ANKLE_HEIGHT pointerEvents="none" />}
+          {GrassLengthId === 2 && <MID_CALF_HEIGHT pointerEvents="none" />}
+          {GrassLengthId === 3 && <ABOVE_CALF_HEIGHT pointerEvents="none" />}
+          {GrassLengthId === 4 && <CALF_HEIGHT pointerEvents="none" />}
+          {GrassLengthId === 5 && <KNEE_HEIGHT pointerEvents="none" />}
         </View>
 
         <View style={styles.grassLengthLowerPart}>
@@ -898,7 +942,7 @@ const HomeScreen = () => {
             selectedGrassClippings === 0 && styles.highlightedBorder,
           ]}>
           {selectedGrassClippings === 0 && <GreenCircleCheck />}
-          <BIN style={{marginRight: 10}} />
+          <BIN pointerEvents="none" style={{marginRight: 8}} />
           <Text color={v2Colors.green}>{`I have my\nown bin`}</Text>
         </Pressable>
         <View style={{width: '8%'}} />
@@ -913,7 +957,7 @@ const HomeScreen = () => {
             selectedGrassClippings === 1 && styles.highlightedBorder,
           ]}>
           {selectedGrassClippings === 1 && <GreenCircleCheck />}
-          <COLLECT style={{marginRight: 10}} />
+          <COLLECT pointerEvents="none" style={{marginRight: 8}} />
           <Text color={v2Colors.green}>{`Collect lawn\nclippings`}</Text>
         </Pressable>
       </View>
@@ -938,7 +982,7 @@ const HomeScreen = () => {
       {props.icon}
       <View style={{margin: 2, paddingRight: 10}}></View>
       <Text color={v2Colors.green} style={{fontSize: 12}}>
-        {'From Gallery'}
+        {lawnURIList.length ? 'Change Image' : 'From Gallery'}
       </Text>
     </Pressable>
   );
@@ -971,28 +1015,28 @@ const HomeScreen = () => {
         {!lawnURIList.length ? (
           <>
             <Text color={v2Colors.green} style={{fontSize: 21}}>
-              Upload lawn images
+              Upload lawn image
             </Text>
             <Text color={v2Colors.greenShade2} style={{marginTop: 5}}>
-              Uploaded images should reflect the current lawn height
+              Uploaded image should reflect the current lawn height
             </Text>
           </>
         ) : (
           <View style={{height: 100, width: '100%'}}>
             <FlatList
-              data={lawnURIList}
+              data={lawnURIList.slice(0, 1)}
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{
                 paddingHorizontal: 20,
               }}
               renderItem={renderImages}
-              keyExtractor={(item, index) => `${index}${item}`}
+              keyExtractor={(item, index) => item?.uri ?? `${index}`}
             />
           </View>
         )}
         <View style={styles.imageUploadSelectContainer}>
-          <ImageUploadAction icon={<GALLERY />} actionType="gallery" />
+          <ImageUploadAction icon={<GALLERY pointerEvents="none" />} actionType="gallery" />
         </View>
       </View>
     </>

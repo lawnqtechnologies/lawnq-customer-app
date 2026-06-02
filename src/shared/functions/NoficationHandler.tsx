@@ -1,16 +1,60 @@
 import {useEffect} from 'react';
-import { getMessaging } from '@react-native-firebase/messaging';
-import * as NavigationService from 'react-navigation-helpers';
+import {getMessaging} from '@react-native-firebase/messaging';
 import {useDispatch} from 'react-redux';
 import notifee from '@notifee/react-native';
 
 import {SCREENS} from '@shared-constants';
-import {isAndroid} from '@freakycoder/react-native-helpers';
 import {OnSetIsReloadScreen} from '@services/states/property/property.slice';
 import {systemActions} from '@services/states/system/system.slice';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Vibration } from 'react-native';
+import {Platform, Vibration} from 'react-native';
+import {
+  navigateAfterForeground,
+  pushAfterForeground,
+} from '../../utils/navigation';
 
+const DEFAULT_NOTIFICATION_CHANNEL_ID = 'default';
+const DEFAULT_NOTIFICATION_CHANNEL_NAME = 'Default Channel';
+const BOOKINGS_TAB_ROUTE_NAME = 'Bookings';
+
+const parseNotificationMessage = (message: any) => {
+  if (typeof message === 'string') {
+    try {
+      return JSON.parse(message);
+    } catch (error) {
+      console.warn('Failed to parse data.Message as JSON:', error);
+      return undefined;
+    }
+  }
+
+  return message;
+};
+
+const getPromoScreenName = (message: any) => {
+  const parsedMessage = parseNotificationMessage(message);
+  const screenName =
+    parsedMessage?.SreenName ?? parsedMessage?.ScreenName ?? SCREENS.HOME;
+
+  return screenName === 'Home' ? SCREENS.HOME : screenName;
+};
+
+const createDefaultNotificationChannel = async () => {
+  if (Platform.OS !== 'android') return DEFAULT_NOTIFICATION_CHANNEL_ID;
+
+  return notifee.createChannel({
+    id: DEFAULT_NOTIFICATION_CHANNEL_ID,
+    name: DEFAULT_NOTIFICATION_CHANNEL_NAME,
+    sound: 'default',
+  });
+};
+
+const setBookingAcceptedFlag = async () => {
+  try {
+    await AsyncStorage.setItem('bookingAccepted', 'true');
+  } catch (error) {
+    console.warn('Failed to save booking accepted flag:', error);
+  }
+};
 
 interface INotificationHandlerProps {
   setShowNotifModal: any;
@@ -40,7 +84,7 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
       const {data, notification} = remoteMessage;
 
       if (data?.ScreenName === 'property') {
-        triggerDefaultNotification();
+        void triggerDefaultNotification();
         dispatch(OnSetIsReloadScreen(true));
         setShowNotifModal(true);
         setNotifModal({
@@ -49,25 +93,16 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
           btnText: 'Confirm',
           onPress: () => {
             setShowNotifModal(false);
-            NavigationService.navigate(SCREENS.HOME);
+            navigateAfterForeground(SCREENS.HOME);
           },
         });
       }
 
-      let parsedMessage: any = undefined;
-      if (typeof data?.Message === 'string') {
-        try {
-          parsedMessage = JSON.parse(data.Message);
-        } catch (e) {
-          console.warn('Failed to parse data.Message as JSON:', e);
-        }
-      } else {
-        parsedMessage = data?.Message;
-      }
+      const parsedMessage: any = parseNotificationMessage(data?.Message);
 
       const action: string | undefined = parsedMessage?.action;
       if (action === 'ACCEPT') {
-        await AsyncStorage.setItem('bookingAccepted', 'true');
+        await setBookingAcceptedFlag();
       }
 
       if (data?.Remarks === 'BOOKING_COMPLETED') {
@@ -78,7 +113,7 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
           btnText: 'Confirm',
           onPress: () => {
             setShowNotifModal(false);
-            NavigationService.push(SCREENS.RATING_FEEDBACK, {
+            pushAfterForeground(SCREENS.RATING_FEEDBACK, {
               completeBookingData: parsedMessage,
             });
           },
@@ -93,7 +128,9 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
           btnText: 'Confirm',
           onPress: () => {
             setShowNotifModal(false);
-            NavigationService.push(SCREENS.BOOKING);
+            navigateAfterForeground(SCREENS.HOME, {
+              screen: BOOKINGS_TAB_ROUTE_NAME,
+            });
           },
         });
       }
@@ -106,7 +143,9 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
           btnText: 'Confirm',
           onPress: () => {
             setShowNotifModal(false);
-            NavigationService.push(SCREENS.BOOKING);
+            navigateAfterForeground(SCREENS.HOME, {
+              screen: BOOKINGS_TAB_ROUTE_NAME,
+            });
           },
         });
       }
@@ -123,30 +162,21 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
           btnText: 'Confirm',
           onPress: () => {
             setShowNotifModal(false);
-            const promoScreen =
-              (typeof data?.Message === 'string'
-                ? (() => {
-                    try {
-                      const parsed = JSON.parse(data.Message) as any;
-                      return parsed?.SreenName ?? parsed?.ScreenName;
-                    } catch {
-                      return undefined;
-                    }
-                  })()
-                : (data?.Message as any)?.SreenName ??
-                  (data?.Message as any)?.ScreenName) ?? 'Home';
-            NavigationService.push(promoScreen);
+            pushAfterForeground(getPromoScreenName(data?.Message));
           },
         });
       }
 
-      onDisplayNotification(notification?.title ?? '', notification?.body ?? '');
+      void onDisplayNotification(
+        notification?.title ?? '',
+        notification?.body ?? '',
+      );
     };
 
     getMessaging()
       .getInitialNotification()
       .then(handleNotificationOpen)
-      .catch(ex => console.log(ex));
+      .catch((ex) => console.log(ex));
 
     const unsubscribeNotificationOpen = getMessaging().onNotificationOpenedApp(
       handleNotificationOpen,
@@ -159,7 +189,7 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
 
           // // this is for property
           if (data?.ScreenName === 'property') {
-             triggerDefaultNotification();
+            void triggerDefaultNotification();
             dispatch(OnSetIsReloadScreen(true));
             setShowNotifModal(true);
             setNotifModal({
@@ -168,28 +198,17 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
               btnText: 'Confirm',
               onPress: () => {
                 setShowNotifModal(false);
-                NavigationService.navigate(SCREENS.HOME);
+                navigateAfterForeground(SCREENS.HOME);
               },
             });
           }
 
-          // Normalize into an object (if it's a string, parse it; if it's already an object, use it)
-          let parsedMessage: any = undefined;
-          if (typeof data?.Message === 'string') {
-            try {
-              parsedMessage = JSON.parse(data.Message);
-            } catch (e) {
-              console.warn('Failed to parse data.Message as JSON:', e);
-              parsedMessage = undefined;
-            }
-          } else {
-            parsedMessage = data?.Message;
-          }
+          const parsedMessage: any = parseNotificationMessage(data?.Message);
 
           const action: string | undefined = parsedMessage?.action;
 
           if (action === 'ACCEPT') {
-            await AsyncStorage.setItem('bookingAccepted', 'true');
+            await setBookingAcceptedFlag();
           }
 
           if (data?.Remarks === 'BOOKING_COMPLETED') {
@@ -200,7 +219,7 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
               btnText: 'Confirm',
               onPress: () => {
                 setShowNotifModal(false);
-                NavigationService.push(SCREENS.RATING_FEEDBACK, {
+                pushAfterForeground(SCREENS.RATING_FEEDBACK, {
                   completeBookingData: parsedMessage,
                 });
                 console.log('setNotifModal data:', data);
@@ -216,7 +235,9 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
               btnText: 'Confirm',
               onPress: () => {
                 setShowNotifModal(false);
-                NavigationService.push(SCREENS.BOOKING);
+                navigateAfterForeground(SCREENS.HOME, {
+                  screen: BOOKINGS_TAB_ROUTE_NAME,
+                });
               },
             });
           }
@@ -229,7 +250,9 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
               btnText: 'Confirm',
               onPress: () => {
                 setShowNotifModal(false);
-                NavigationService.push(SCREENS.BOOKING);
+                navigateAfterForeground(SCREENS.HOME, {
+                  screen: BOOKINGS_TAB_ROUTE_NAME,
+                });
               },
             });
           }
@@ -246,24 +269,15 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
               btnText: 'Confirm',
               onPress: () => {
                 setShowNotifModal(false);
-                const promoScreen =
-                  (typeof data?.Message === 'string'
-                    ? (() => {
-                        try {
-                          const parsed = JSON.parse(data.Message) as any;
-                          return parsed?.SreenName ?? parsed?.ScreenName;
-                        } catch {
-                          return undefined;
-                        }
-                      })()
-                    : (data?.Message as any)?.SreenName ??
-                      (data?.Message as any)?.ScreenName) ?? 'Home';
-                NavigationService.push(promoScreen);
+                pushAfterForeground(getPromoScreenName(data?.Message));
               },
             });
           }
 
-         onDisplayNotification(notification?.title ?? '', notification?.body ?? '');
+          void onDisplayNotification(
+            notification?.title ?? '',
+            notification?.body ?? '',
+          );
         }
       },
     );
@@ -282,7 +296,7 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
         messageObj = JSON.parse(data.Message);
       } catch {
         // fallback: treat raw string as text
-        messageObj = { text: data.Message };
+        messageObj = {text: data.Message};
       }
     } else if (data?.Message && typeof data.Message === 'object') {
       messageObj = data.Message;
@@ -290,7 +304,7 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
 
     console.log('message:', messageObj);
 
-    triggerDefaultNotification();
+    void triggerDefaultNotification();
     const {text, _id, bookingItem, imageName, imageType} = messageObj;
     const image = messageObj?.image || messageObj?.imageUrl || '';
     const notificationText = text || (image ? 'Sent an image' : '');
@@ -321,55 +335,63 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
 
     if (navigate) {
       // navigate logic...
-    } else if (isAndroid) {
-      onDisplayNotification('Chat', notificationText);
+    } else if (Platform.OS === 'android') {
+      void onDisplayNotification('Chat', notificationText);
     }
   };
 
   const onDisplayNotification = async (title: string, body: string) => {
-    // Request permissions (required for iOS)
-    await notifee.requestPermission();
+    if (!title && !body) return;
 
-    // Create a channel (required for Android)
-    const channelId = await notifee.createChannel({
-      id: 'sound',
-      name: 'Default Channel',
-      sound: 'default',
-    });
+    try {
+      // Request permissions (required for iOS)
+      await notifee.requestPermission();
 
-    // Display a notification
-    await notifee.displayNotification({
-      title,
-      body,
-      android: {
-        channelId,
-        // pressAction is needed if you want the notification to open the app when pressed
-        pressAction: {
-          id: 'default',
+      // Create a channel (required for Android)
+      const channelId = await createDefaultNotificationChannel();
+
+      // Display a notification
+      await notifee.displayNotification({
+        title: title || 'Notification',
+        body: body || '',
+        android: {
+          channelId,
+          // pressAction is needed if you want the notification to open the app when pressed
+          pressAction: {
+            id: 'default',
+          },
+          sound: 'default',
         },
-        sound: 'default',
-      },
-      ios: {
-        // iOS resource (.wav, aiff, .caf)
-        sound: 'default',
-      },
-    });
+        ios: {
+          // iOS resource (.wav, aiff, .caf)
+          sound: 'default',
+        },
+      });
+    } catch (error) {
+      console.warn('Failed to display local notification:', error);
+    }
   };
 
   return null;
 };
 
 const triggerDefaultNotification = async () => {
-  await notifee.displayNotification({
-    android: {
-      channelId: 'default',
-      sound: 'default', // This uses the system default sound
-    },
-    ios: {
-      sound: 'default', // iOS default sound
-    },
-  });
-  Vibration.vibrate();
+  try {
+    const channelId = await createDefaultNotificationChannel();
+
+    await notifee.displayNotification({
+      android: {
+        channelId,
+        sound: 'default', // This uses the system default sound
+      },
+      ios: {
+        sound: 'default', // iOS default sound
+      },
+    });
+    Vibration.vibrate();
+  } catch (error) {
+    console.warn('Failed to trigger default notification:', error);
+  }
 };
 
 export default NotificationHandler;

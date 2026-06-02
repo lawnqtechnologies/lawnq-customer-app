@@ -1,11 +1,11 @@
 import {ExtendedTheme} from '@react-navigation/native';
-import {ViewStyle, StyleSheet} from 'react-native';
+import {ViewStyle, StyleSheet, TextStyle} from 'react-native';
 
 interface Style {
   container: ViewStyle;
   animationContainer: ViewStyle;
-  text: ViewStyle;
-  textTimer: ViewStyle;
+  text: TextStyle;
+  textTimer: TextStyle;
   btnContainer: ViewStyle;
   btn: ViewStyle;
   icon: ViewStyle;

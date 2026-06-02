@@ -37,6 +37,7 @@ import {
   onUserLogin,
 } from '@services/states/user/user.slice';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {useSafeBottomPadding} from 'shared/functions/useSafeBottomInset';
 
 const IMAGE_BG = '../../../assets/v2/auth/images/image-bg.png';
 const INITIAL_OTP_TIMER = moment().set('minutes', 0).set('second', 30);
@@ -51,6 +52,7 @@ interface IOTPScreenProps {
 const OTPScreen: React.FC<IOTPScreenProps> = ({route}) => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const submitBottomPadding = useSafeBottomPadding(30);
 
   /** Redux state */
   const dispatch = useDispatch();
@@ -443,7 +445,7 @@ const OTPScreen: React.FC<IOTPScreenProps> = ({route}) => {
   const Header = (props: {pageTitle: string}) => (
     <View style={styles.headerContainer}>
       <Pressable onPress={() => NavigationService.goBack()}>
-        <ARROW_LEFT style={{marginTop: 4, marginRight: 10}} />
+        <ARROW_LEFT pointerEvents="none" style={{marginTop: 4, marginRight: 10}} />
       </Pressable>
       <Text h2 bold color={v2Colors.green}>
         {props.pageTitle}
@@ -505,7 +507,7 @@ const OTPScreen: React.FC<IOTPScreenProps> = ({route}) => {
   );
 
   const SubmitButton = () => (
-    <View style={styles.submit}>
+    <View style={[styles.submit, submitBottomPadding]}>
       <CommonButton
         text="Confirm"
         onPress={onSubmit}

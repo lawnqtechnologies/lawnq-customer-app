@@ -1,23 +1,17 @@
-import { ExtendedTheme } from "@react-navigation/native";
-import { ViewStyle, StyleSheet, Dimensions } from "react-native";
-
-const { height, width } = Dimensions.get("window");
+import { ViewStyle, StyleSheet } from "react-native";
 
 interface Style {
   container: ViewStyle;
 }
 
-export default (theme: ExtendedTheme) => {
-  const { colors } = theme;
-
+export default () => {
   return StyleSheet.create<Style>({
     container: {
+      ...StyleSheet.absoluteFillObject,
       position: "absolute",
       zIndex: 3,
-      height,
-      width,
-      backgroundColor: colors.darkGray,
-      opacity: 0.8,
+      elevation: 3,
+      backgroundColor: "rgba(96, 96, 96, 0.55)",
       alignItems: "center",
       justifyContent: "center",
       paddingBottom: "50%",

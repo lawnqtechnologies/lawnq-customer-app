@@ -1,17 +1,20 @@
-import React, {useCallback} from 'react';
+import React, {useCallback, useEffect, useRef} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 import * as NavigationService from 'react-navigation-helpers';
 
 /**
  * ? Local Imports
  */
-import {NOTIFICATION_SOUNDS, SCREENS} from '@shared-constants';
+import {SCREENS} from '@shared-constants';
 import {useBooking} from '@services/hooks/useBooking';
 import {useFocusEffect} from '@react-navigation/native';
 import {Alert} from 'react-native';
-import {useSystem} from '@services/hooks/useSystem';
 import {RootState} from 'store';
 import {onSetLawnURIList} from '@services/states/booking/booking.slice';
+import {
+  navigateAfterForeground,
+  resetAfterForeground,
+} from '../../../../utils/navigation';
 
 /**
  * ? Constants
@@ -41,6 +44,7 @@ const SearchScheduleSPFunction: React.FC<ISearchScheduleSPFunctionProps> = ({
   */
   const {customerId, token} = useSelector((state: RootState) => state.user);
   const {bookingRefNo} = useSelector((state: RootState) => state.booking);
+  const cancelSuccessNavigationRef = useRef<(() => void) | null>(null);
 
   /**
   |--------------------------------------------------
@@ -52,6 +56,12 @@ const SearchScheduleSPFunction: React.FC<ISearchScheduleSPFunctionProps> = ({
       findSPasScheduled();
     }, []),
   );
+
+  useEffect(() => {
+    return () => {
+      cancelSuccessNavigationRef.current?.();
+    };
+  }, []);
 
   /**
   |--------------------------------------------------
@@ -68,8 +78,6 @@ const SearchScheduleSPFunction: React.FC<ISearchScheduleSPFunctionProps> = ({
       BookingRefNo: bookingRefNo,
     };
 
-    console.log(payload);
-
     assignServiceProviderToBookLater(
       payload,
       (data: any) => {
@@ -78,7 +86,7 @@ const SearchScheduleSPFunction: React.FC<ISearchScheduleSPFunctionProps> = ({
           if (data.StatusCode === '00') return onQuerySuccess();
         }, 500);
       },
-      (err: any) => {
+      (_err: any) => {
         onFailedAPIcall();
       },
     );
@@ -86,7 +94,9 @@ const SearchScheduleSPFunction: React.FC<ISearchScheduleSPFunctionProps> = ({
 
   const onQuerySuccess = () => {
     dispatch(onSetLawnURIList([]));
-    NavigationService.navigate(SCREENS.SUCCESS_SCHEDULE);
+    cancelSuccessNavigationRef.current = navigateAfterForeground(
+      SCREENS.SUCCESS_SCHEDULE,
+    );
   };
 
   const onQueryFail = () => {
@@ -98,7 +108,10 @@ const SearchScheduleSPFunction: React.FC<ISearchScheduleSPFunctionProps> = ({
       {
         text: 'Confirm',
         onPress: () => {
-          NavigationService.push(SCREENS.HOME);
+          resetAfterForeground({
+            index: 0,
+            routes: [{name: SCREENS.HOME}],
+          });
           dispatch(onSetLawnURIList([]));
         },
       },

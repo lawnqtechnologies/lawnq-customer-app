@@ -27,7 +27,7 @@ interface ICenterModalV2 {
 const CenterModalV2: React.FC<ICenterModalV2> = ({
   isVisible,
   setIsVisible,
-  icon = <LikeGreenCircle height={75} width={75} />,
+  icon = <LikeGreenCircle pointerEvents="none" height={75} width={75} />,
   text = 'Photo(s) successfully uploaded',
   onPressButton,
   fontMessageSize

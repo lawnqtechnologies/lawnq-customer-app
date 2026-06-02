@@ -26,6 +26,7 @@
 		C3471D5D2C66697C0058638A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C3D3A26D2C441EDA002A7644 /* Images.xcassets */; };
 		C3D3A26C2C441EC2002A7644 /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = C3D3A26B2C441EC2002A7644 /* AppDelegate.mm */; };
 		C3EB0E792C45727900A00C90 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = C3EB0E782C45727900A00C90 /* GoogleService-Info.plist */; };
+		D5F4C51B2DE1000000000001 /* notification.wav in Resources */ = {isa = PBXBuildFile; fileRef = D5F4C51A2DE1000000000001 /* notification.wav */; };
 		EBE55961ECBAD8B11F9125E5 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 3BE1DAA0E86AF582C72D83A8 /* PrivacyInfo.xcprivacy */; };
 		F0C25661015612B3E8251C00 /* Pods_LawnQ.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BB9385613C5F206FC1768FE7 /* Pods_LawnQ.framework */; };
 /* End PBXBuildFile section */
@@ -73,6 +74,7 @@
 		C3D3A26D2C441EDA002A7644 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = LawnQ/Images.xcassets; sourceTree = "<group>"; };
 		C3EB0E782C45727900A00C90 /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		D30C420DAA3CE25CA508DBCE /* Pods-LawnQ.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LawnQ.release.xcconfig"; path = "Target Support Files/Pods-LawnQ/Pods-LawnQ.release.xcconfig"; sourceTree = "<group>"; };
+		D5F4C51A2DE1000000000001 /* notification.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; name = notification.wav; path = LawnQ/notification.wav; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
@@ -119,6 +121,7 @@
 				C31CDE912D1B041C00A9E409 /* LaunchScreen.storyboard */,
 				C3EB0E782C45727900A00C90 /* GoogleService-Info.plist */,
 				C3D3A26D2C441EDA002A7644 /* Images.xcassets */,
+				D5F4C51A2DE1000000000001 /* notification.wav */,
 				C3D3A26B2C441EC2002A7644 /* AppDelegate.mm */,
 				C380BF642C44073E005325A3 /* Info.plist */,
 				C32E59382C43E25F00566510 /* LawnQ.entitlements */,
@@ -236,6 +239,7 @@
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				0A78E6CF270C5BCE18053EF7 /* [CP] Embed Pods Frameworks */,
+				D5F4C51C2DE2000000000001 /* Copy Hermes dSYM */,
 				BDDAF7DBA6AC9480B6414130 /* [CP] Copy Pods Resources */,
 				428D17F644A682D0E6A422FB /* [CP-User] [RNFB] Core Configuration */,
 			);
@@ -303,6 +307,7 @@
 				C31855E32CA70BFE00A58E64 /* Helvetica-BoldOblique.ttf in Resources */,
 				C31855E12CA70BFE00A58E64 /* helvetica-light.ttf in Resources */,
 				C3471D5D2C66697C0058638A /* Images.xcassets in Resources */,
+				D5F4C51B2DE1000000000001 /* notification.wav in Resources */,
 				C31CDE922D1B041C00A9E409 /* LaunchScreen.storyboard in Resources */,
 				C31855E22CA70BFE00A58E64 /* helvetica-rounded-bold-5871d05ead8de.otf in Resources */,
 				C31855ED2CA70C2E00A58E64 /* Myriad-Pro-Regular.ttf in Resources */,
@@ -458,6 +463,24 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-LawnQ-LawnQTests/Pods-LawnQ-LawnQTests-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
+		D5F4C51C2DE2000000000001 /* Copy Hermes dSYM */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Copy Hermes dSYM";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/scripts/copy-hermes-dsym.sh\"\n";
+		};
 		F0688B1B12A21F07253EA412 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -573,7 +596,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = LawnQ/LawnQ.entitlements;
-				CURRENT_PROJECT_VERSION = 31;
+				CURRENT_PROJECT_VERSION = 35;
 				DEVELOPMENT_TEAM = 8R2T6KC5Z6;
 				ENABLE_BITCODE = NO;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -621,7 +644,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = LawnQ/LawnQ.entitlements;
-				CURRENT_PROJECT_VERSION = 31;
+				CURRENT_PROJECT_VERSION = 35;
 				DEVELOPMENT_TEAM = 8R2T6KC5Z6;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = LawnQ/Info.plist;

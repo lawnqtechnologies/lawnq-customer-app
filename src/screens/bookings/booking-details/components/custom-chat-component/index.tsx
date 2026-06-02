@@ -8,11 +8,13 @@ import {
   Alert,
   Image,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   Text,
   View,
 } from 'react-native';
+import {useKeyboard} from '@react-native-community/hooks';
 import {
   BottomSheetFlatList,
   BottomSheetTextInput,
@@ -63,6 +65,7 @@ const CustomChatComponent: React.FC<ICustomChatComponent> = ({
    * ? Hooks
    */
   const {sendNotification} = useBooking();
+  const {keyboardShown} = useKeyboard();
 
   /**
    * ? Redux States
@@ -584,7 +587,7 @@ const CustomChatComponent: React.FC<ICustomChatComponent> = ({
           setInitChat(false);
           setSnapPoint(-1);
         }}>
-        <X_RED />
+        <X_RED pointerEvents="none" />
       </Pressable>
 
       <BottomSheetFlatList
@@ -601,7 +604,12 @@ const CustomChatComponent: React.FC<ICustomChatComponent> = ({
         keyboardShouldPersistTaps="handled"
       />
 
-      <View style={styles.inputContainer}>
+      <View
+        style={[
+          styles.inputContainer,
+            Platform.OS === 'android' &&
+            styles.androidKeyboardInputLift,
+        ]}>
         <Pressable
           onPress={onSelectImage}
           disabled={isUploadingAttachment}
@@ -612,7 +620,7 @@ const CustomChatComponent: React.FC<ICustomChatComponent> = ({
           {isUploadingAttachment ? (
             <ActivityIndicator size="small" color={v2Colors.green} />
           ) : (
-            <GALLERY height={20} width={20} />
+            <GALLERY pointerEvents="none" height={20} width={20} />
           )}
         </Pressable>
 
@@ -634,7 +642,7 @@ const CustomChatComponent: React.FC<ICustomChatComponent> = ({
             (!draftMessage.trim() || isUploadingAttachment) &&
               styles.sendButtonDisabled,
           ]}>
-          <SEND />
+          <SEND pointerEvents="none" />
         </Pressable>
       </View>
 
@@ -647,7 +655,7 @@ const CustomChatComponent: React.FC<ICustomChatComponent> = ({
           <Pressable
             onPress={closeImagePreview}
             style={styles.imagePreviewCloseButton}>
-            <X_RED height={18} width={18} />
+            <X_RED pointerEvents="none" height={18} width={18} />
           </Pressable>
 
           <ScrollView

@@ -25,6 +25,7 @@ import {v2Colors} from '@theme/themes';
 import fonts from '@fonts';
 import InputText from '@shared-components/form/InputText/v2/input-text';
 import {usePayment} from '@services/hooks/usePayment';
+import {useSafeBottomPadding} from 'shared/functions/useSafeBottomInset';
 
 /**
  * ? SVGs
@@ -82,6 +83,7 @@ const AddCardScreen: React.FC<IAddCardScreen> = ({route}) => {
   const {confirmSetupIntent} = useStripe();
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const buttonBottomPadding = useSafeBottomPadding(20);
   const screen = route.params?.screen;
 
   const {
@@ -272,7 +274,7 @@ const AddCardScreen: React.FC<IAddCardScreen> = ({route}) => {
         keyboardShouldPersistTaps={'never'}
         showsVerticalScrollIndicator={false}>
         <View style={{minHeight: height * 0.67}}>
-          {/* <CARDS_ILLUSTRATION
+          {/* <CARDS_ILLUSTRATION pointerEvents="none"
             height={height * 0.32}
             style={{alignSelf: 'center'}}
           /> */}
@@ -318,7 +320,7 @@ const AddCardScreen: React.FC<IAddCardScreen> = ({route}) => {
           {keyboardShown && <View style={{height: keyboardHeight}} />}
         </View>
 
-        <View style={styles.buttonContainer}>
+        <View style={[styles.buttonContainer, buttonBottomPadding]}>
           <CommonButton
             text={'Save'}
             isFetching={loading}

@@ -16,6 +16,7 @@ import Text from '@shared-components/text-wrapper/TextWrapper';
 import ModalArrow from '@assets/v2/homescreen/icons/modal-arrow.svg';
 import CalendarGreen from '@assets/v2/homescreen/icons/calendar-green.svg';
 import {onSetBookingType} from '@services/states/booking/booking.slice';
+import {useSafeBottomPadding} from 'shared/functions/useSafeBottomInset';
 
 type CustomStyleProp = StyleProp<ViewStyle> | Array<StyleProp<ViewStyle>>;
 
@@ -37,6 +38,7 @@ const BookingModal: React.FC<ICenterModalScreenProps> = ({
 }) => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const buttonBottomPadding = useSafeBottomPadding(20);
   const dispatch = useDispatch();
 
   /**
@@ -46,7 +48,7 @@ const BookingModal: React.FC<ICenterModalScreenProps> = ({
   */
   const Content = () => (
     <View style={styles.content}>
-      <ModalArrow style={styles.modalArrow} height={75} width={75} />
+      <ModalArrow pointerEvents="none" style={styles.modalArrow} height={75} width={75} />
       <Icon
         name="close"
         style={styles.closeButton}
@@ -86,10 +88,10 @@ const BookingModal: React.FC<ICenterModalScreenProps> = ({
   };
 
   const Buttons = () => (
-    <View style={styles.buttonContainer}>
+    <View style={[styles.buttonContainer, buttonBottomPadding]}>
       <View style={{marginTop: 20}} />
       <Pressable onPress={handleBookSchedule} style={styles.button2}>
-        <CalendarGreen style={{marginRight: 10}} />
+        <CalendarGreen pointerEvents="none" style={{marginRight: 10}} />
         <Text h4 center color={v2Colors.green}>
           Schedule Booking
         </Text>

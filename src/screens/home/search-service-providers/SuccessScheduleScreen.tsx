@@ -1,7 +1,6 @@
 import React, {useCallback, useEffect, useMemo} from 'react';
 import {View, StyleProp, ViewStyle, Pressable} from 'react-native';
 import {useFocusEffect, useTheme} from '@react-navigation/native';
-import * as NavigationService from 'react-navigation-helpers';
 import LottieView from 'lottie-react-native';
 import Icon, {IconType} from 'react-native-dynamic-vector-icons';
 
@@ -17,6 +16,8 @@ import AndroidBackButtonHandler from 'shared/functions/AndroidBackButtonHandler'
 import {onSetFromAccountToPayment} from '@services/states/menu/menu.slice';
 import {v2Colors} from '@theme/themes';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {useSafeBottomMargin} from 'shared/functions/useSafeBottomInset';
+import {resetAfterForeground} from '../../../utils/navigation';
 
 /**
  * ? Constants
@@ -35,6 +36,7 @@ interface ISuccessScreenProps {
 const SuccessScheduleScreen: React.FC<ISuccessScreenProps> = () => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const confirmButtonBottomMargin = useSafeBottomMargin(40);
   const dispatch = useDispatch();
 
   /**
@@ -45,7 +47,10 @@ const SuccessScheduleScreen: React.FC<ISuccessScreenProps> = () => {
    * ? Functions
    */
   const onPressContinue = () => {
-    NavigationService.push(SCREENS.HOME);
+    resetAfterForeground({
+      index: 0,
+      routes: [{name: SCREENS.HOME}],
+    });
   };
 
   /**
@@ -67,7 +72,7 @@ const SuccessScheduleScreen: React.FC<ISuccessScreenProps> = () => {
 
   const Animation = () => (
     <LottieView
-      style={{flex: 1}}
+      style={styles.animation}
       source={require(SUCCESS_ANIMATION)}
       autoPlay
       loop
@@ -75,7 +80,7 @@ const SuccessScheduleScreen: React.FC<ISuccessScreenProps> = () => {
   );
 
   const ConfirmBtn = () => (
-    <View style={styles.confirmBtnContainer}>
+    <View style={[styles.confirmBtnContainer, confirmButtonBottomMargin]}>
       <Pressable onPress={onPressContinue} style={styles.confirmBtn}>
         <Icon
           name="check"
@@ -97,34 +102,25 @@ const SuccessScheduleScreen: React.FC<ISuccessScreenProps> = () => {
       <View style={styles.animationContainer}>
         <Animation />
       </View>
-      <Text h4 bold color={v2Colors.green} style={styles.text}>
-        Thank you for booking with LawnQ!
-      </Text>
-      <Text h4 color={v2Colors.green} style={styles.text}>
-        Your service provider has been assigned, and your booking is now in
-        their queue for the selected date.
-      </Text>
-      <Text
-        h4
-        bold
-        color={v2Colors.green}
-        style={{marginTop: 20, textAlign: 'justify'}}>
-        Next Step:
-      </Text>
-      <Text h4 color={v2Colors.green} style={{textAlign: 'justify'}}>
-        To confirm the exact time, please message your provider under: Booking →
-        Pending Booking → Message Provider
-      </Text>
-      <Text
-        h4
-        color={v2Colors.green}
-        style={{
-          textAlign: 'center',
-          marginTop: 20,
-          fontWeight: 'medium',
-        }}>
-        They’ll coordinate with you directly. Your lawn is in good hands!
-      </Text>
+      <View style={styles.contentContainer}>
+        <Text h4 bold color={v2Colors.green} style={styles.titleText}>
+          Thank you for booking with LawnQ!
+        </Text>
+        <Text h4 color={v2Colors.green} style={styles.bodyText}>
+          Your service provider has been assigned, and your booking is now in
+          their queue for the selected date.
+        </Text>
+        <Text h4 bold color={v2Colors.green} style={styles.nextStepText}>
+          Next Step:
+        </Text>
+        <Text h4 color={v2Colors.green} style={styles.bodyText}>
+          To confirm the exact time, please message your provider under:{' '}
+          {'Booking -> Pending Booking -> Message Provider'}
+        </Text>
+        <Text h4 color={v2Colors.green} style={styles.nextStepText}>
+          They will coordinate with you directly. Your lawn is in good hands!
+        </Text>
+      </View>
       <ConfirmBtn />
     </View>
   );

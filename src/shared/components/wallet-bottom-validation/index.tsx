@@ -5,6 +5,7 @@ import {useTheme} from '@react-navigation/native';
 import styles from './styles';
 import Text from '@shared-components/text-wrapper/TextWrapper';
 import CommonButton from '@shared-components/buttons/CommonButton';
+import {useSafeBottomMargin} from 'shared/functions/useSafeBottomInset';
 
 interface IWalletBottomValidationProps {
   title?: string;
@@ -26,6 +27,7 @@ const WalletBottomValidation: React.FC<IWalletBottomValidationProps> = ({
 */
   const theme = useTheme();
   const {colors} = theme;
+  const confirmBottomMargin = useSafeBottomMargin(50);
 
   const Header = () => (
     <View style={styles.header}>
@@ -36,7 +38,7 @@ const WalletBottomValidation: React.FC<IWalletBottomValidationProps> = ({
   );
 
   const Confirm = () => (
-    <View style={{marginBottom: 50}}>
+    <View style={confirmBottomMargin}>
       <CommonButton
         text={'Set Up Wallet'}
         onPress={() => {

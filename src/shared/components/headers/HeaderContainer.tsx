@@ -1,22 +1,22 @@
-import React, { useMemo, useState } from "react";
-import { View, Pressable, StatusBar } from "react-native";
-import { useTheme } from "@react-navigation/native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import * as NavigationService from "react-navigation-helpers";
+import React, {useMemo, useState} from 'react';
+import {View, Pressable, StatusBar} from 'react-native';
+import {useNavigation, useTheme} from '@react-navigation/native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import * as NavigationService from 'react-navigation-helpers';
 
 /**
  * ? Local imports
  */
-import createStyles from "./HeaderContainer.style";
-import Text from "@shared-components/text-wrapper/TextWrapper";
-import { v2Colors } from "@theme/themes";
-import fonts from "@fonts";
+import createStyles from './HeaderContainer.style';
+import Text from '@shared-components/text-wrapper/TextWrapper';
+import {v2Colors} from '@theme/themes';
+import fonts from '@fonts';
 
 /**
  * ? SVGs
  */
-import ARROW_LEFT from "@assets/v2/headers/arrow-left.svg";
-import TRASH from "@assets/v2/properties/icons/trash.svg";
+import ARROW_LEFT from '@assets/v2/headers/arrow-left.svg';
+import TRASH from '@assets/v2/properties/icons/trash.svg';
 
 interface IHeaderContainerProps {
   pageTitle?: string;
@@ -30,17 +30,18 @@ interface IHeaderContainerProps {
 }
 
 const HeaderContainer: React.FC<IHeaderContainerProps> = ({
-  pageTitle = "",
-  navigateTo = "",
+  pageTitle = '',
+  navigateTo = '',
   backDisabled = false,
   hasCancel = false,
   onCancel,
   hasDelete = false,
-  backValue=false,
+  backValue = false,
   onDelete,
 }) => {
   const theme = useTheme();
-  const { top } = useSafeAreaInsets();
+  const navigation = useNavigation<any>();
+  const {top} = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(theme, top), [theme, top]);
   const [isPressed, setIsPressed] = useState(false);
 
@@ -48,10 +49,12 @@ const HeaderContainer: React.FC<IHeaderContainerProps> = ({
     if (isPressed) return;
     setIsPressed(true);
 
-    if (backValue || !navigateTo) {
-      NavigationService.goBack();
+    if (backValue || navigation.canGoBack()) {
+      navigation.goBack();
+    } else if (navigateTo) {
+      navigation.navigate(navigateTo);
     } else {
-      NavigationService.navigate(navigateTo);
+      NavigationService.goBack();
     }
 
     setTimeout(() => setIsPressed(false), 500); // re-enable after delay
@@ -59,15 +62,20 @@ const HeaderContainer: React.FC<IHeaderContainerProps> = ({
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle={"dark-content"} />
+      <StatusBar barStyle={'dark-content'} />
       <View style={styles.leftContainer}>
         {!backDisabled && (
           <Pressable
             onPress={handleBack}
             disabled={isPressed}
-           style={{ paddingTop: 2, marginRight: 15, opacity: isPressed ? 0.6 : 1 }}
-          >
-            <ARROW_LEFT width={24} height={24} />
+            hitSlop={12}
+            accessibilityRole="button"
+            style={{
+              paddingTop: 2,
+              marginRight: 15,
+              opacity: isPressed ? 0.6 : 1,
+            }}>
+            <ARROW_LEFT width={24} height={24} pointerEvents="none" />
           </Pressable>
         )}
         <Text h2 color={v2Colors.green} fontFamily={fonts.lexend.extraBold}>
@@ -81,8 +89,7 @@ const HeaderContainer: React.FC<IHeaderContainerProps> = ({
             onCancel();
           }}
           style={styles.cancelContainer}
-          disabled={isPressed}
-        >
+          disabled={isPressed}>
           <Text right h3 color={v2Colors.highlight}>
             Cancel
           </Text>
@@ -95,9 +102,8 @@ const HeaderContainer: React.FC<IHeaderContainerProps> = ({
             onDelete();
           }}
           style={styles.deleteContainer}
-          disabled={isPressed}
-        >
-          <TRASH />
+          disabled={isPressed}>
+          <TRASH pointerEvents="none" />
         </Pressable>
       )}
     </View>

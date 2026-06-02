@@ -57,34 +57,35 @@ import {
 import fonts from '@fonts';
 import KeyboardHandler from '@shared-components/containers/KeyboardHandler';
 import { InferType } from 'yup';
+import {useSafeBottomPadding} from 'shared/functions/useSafeBottomInset';
 
 // ? Constants
 const MOW_TYPE_SELECTION = [
   {
     id: 1,
-    icon: <PUSH_MOWER />,
+    icon: <PUSH_MOWER pointerEvents="none" />,
     text: 'Push Mower',
   },
   {
     id: 2,
-    icon: <RIDE_ON_MOWER />,
+    icon: <RIDE_ON_MOWER pointerEvents="none" />,
     text: 'Ride-on\nMower',
   },
 ];
 const TERRAIN_TYPE_SELECTION = [
   {
     id: 1,
-    icon: <FLAT_TERRAIN />,
+    icon: <FLAT_TERRAIN pointerEvents="none" />,
     text: 'Flat',
   },
   {
     id: 2,
-    icon: <STEEP_TERRAIN />,
+    icon: <STEEP_TERRAIN pointerEvents="none" />,
     text: 'Steep',
   },
   {
     id: 3,
-    icon: <MIXED_TERRAIN />,
+    icon: <MIXED_TERRAIN pointerEvents="none" />,
     text: 'Mixed',
   },
 ];
@@ -104,6 +105,7 @@ type SignupAddressFormData = PropertyFormData & {
 const SingupAddressScreen: React.FC<IAddPropertyScreenProps> = () => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const buttonBottomPadding = useSafeBottomPadding(30);
   const dispatch = useDispatch();
 
   /**
@@ -418,7 +420,7 @@ const SingupAddressScreen: React.FC<IAddPropertyScreenProps> = () => {
         selectedTerrainType,
       ) && (
         <View style={styles.greenCheck}>
-          <GREEN_CHECK_CIRCLE />
+          <GREEN_CHECK_CIRCLE pointerEvents="none" />
         </View>
       )}
     </Pressable>
@@ -477,7 +479,7 @@ const SingupAddressScreen: React.FC<IAddPropertyScreenProps> = () => {
                       name="address"
                       label="Address"
                       onFocus={locateProperty}
-                      rightIcon={<PIN height={20} width={20} />}
+                      rightIcon={<PIN pointerEvents="none" height={20} width={20} />}
                       style={{
                         flex: 1,
                         height: 80,
@@ -511,7 +513,7 @@ const SingupAddressScreen: React.FC<IAddPropertyScreenProps> = () => {
                       name="confirmedAddress"
                       label="Address"
                       onChangeText={onChangeConfirmedAddress}
-                      rightIcon={<PIN height={20} width={20} />}
+                      rightIcon={<PIN pointerEvents="none" height={20} width={20} />}
                       style={{
                         flex: 1,
                         height: 80,
@@ -593,10 +595,7 @@ const SingupAddressScreen: React.FC<IAddPropertyScreenProps> = () => {
                 {/* <SetAsDefault /> */}
 
                 <View
-                  style={{
-                    paddingTop: 10,
-                    paddingBottom: 30,
-                  }}>
+                  style={[{paddingTop: 10}, buttonBottomPadding]}>
                   <CommonButton
                     text={'Next'}
                     onPress={onSubmit}
