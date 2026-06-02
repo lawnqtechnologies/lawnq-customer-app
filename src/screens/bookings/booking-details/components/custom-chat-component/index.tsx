@@ -65,7 +65,7 @@ const CustomChatComponent: React.FC<ICustomChatComponent> = ({
    * ? Hooks
    */
   const {sendNotification} = useBooking();
-  const {keyboardHeight, keyboardShown} = useKeyboard();
+  const {keyboardShown} = useKeyboard();
 
   /**
    * ? Redux States
@@ -607,10 +607,8 @@ const CustomChatComponent: React.FC<ICustomChatComponent> = ({
       <View
         style={[
           styles.inputContainer,
-          keyboardShown &&
-            Platform.OS === 'android' && {
-              marginBottom: keyboardHeight + 12,
-            },
+            Platform.OS === 'android' &&
+            styles.androidKeyboardInputLift,
         ]}>
         <Pressable
           onPress={onSelectImage}

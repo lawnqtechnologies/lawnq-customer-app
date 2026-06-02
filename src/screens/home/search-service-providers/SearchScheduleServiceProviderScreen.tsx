@@ -2,7 +2,6 @@ import React, {useMemo} from 'react';
 import {View, StyleProp, ViewStyle, Pressable} from 'react-native';
 import {useTheme} from '@react-navigation/native';
 import LottieView from 'lottie-react-native';
-import * as NavigationService from 'react-navigation-helpers';
 import Icon, {IconType} from 'react-native-dynamic-vector-icons';
 
 /**
@@ -15,6 +14,7 @@ import AndroidBackButtonHandler from 'shared/functions/AndroidBackButtonHandler'
 import {v2Colors} from '@theme/themes';
 import SearchScheduleSPFunction from './functions/SearchScheduleSP';
 import {useSafeBottomPadding} from 'shared/functions/useSafeBottomInset';
+import {resetAfterForeground} from '../../../utils/navigation';
 
 /**
  * ? Constants
@@ -40,7 +40,10 @@ const SearchScheduleServiceProviderScreen: React.FC<
    * ? Functions
    */
   const onPressHome = () => {
-    NavigationService.navigate(SCREENS.HOME);
+    resetAfterForeground({
+      index: 0,
+      routes: [{name: SCREENS.HOME}],
+    });
   };
   /* -------------------------------------------------------------------------- */
   /*                               Render Methods                               */

@@ -1,6 +1,5 @@
 import {useEffect} from 'react';
 import {getMessaging} from '@react-native-firebase/messaging';
-import * as NavigationService from 'react-navigation-helpers';
 import {useDispatch} from 'react-redux';
 import notifee from '@notifee/react-native';
 
@@ -9,9 +8,14 @@ import {OnSetIsReloadScreen} from '@services/states/property/property.slice';
 import {systemActions} from '@services/states/system/system.slice';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Platform, Vibration} from 'react-native';
+import {
+  navigateAfterForeground,
+  pushAfterForeground,
+} from '../../utils/navigation';
 
 const DEFAULT_NOTIFICATION_CHANNEL_ID = 'default';
 const DEFAULT_NOTIFICATION_CHANNEL_NAME = 'Default Channel';
+const BOOKINGS_TAB_ROUTE_NAME = 'Bookings';
 
 const parseNotificationMessage = (message: any) => {
   if (typeof message === 'string') {
@@ -28,7 +32,10 @@ const parseNotificationMessage = (message: any) => {
 
 const getPromoScreenName = (message: any) => {
   const parsedMessage = parseNotificationMessage(message);
-  return parsedMessage?.SreenName ?? parsedMessage?.ScreenName ?? 'Home';
+  const screenName =
+    parsedMessage?.SreenName ?? parsedMessage?.ScreenName ?? SCREENS.HOME;
+
+  return screenName === 'Home' ? SCREENS.HOME : screenName;
 };
 
 const createDefaultNotificationChannel = async () => {
@@ -86,7 +93,7 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
           btnText: 'Confirm',
           onPress: () => {
             setShowNotifModal(false);
-            NavigationService.navigate(SCREENS.HOME);
+            navigateAfterForeground(SCREENS.HOME);
           },
         });
       }
@@ -106,7 +113,7 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
           btnText: 'Confirm',
           onPress: () => {
             setShowNotifModal(false);
-            NavigationService.push(SCREENS.RATING_FEEDBACK, {
+            pushAfterForeground(SCREENS.RATING_FEEDBACK, {
               completeBookingData: parsedMessage,
             });
           },
@@ -121,7 +128,9 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
           btnText: 'Confirm',
           onPress: () => {
             setShowNotifModal(false);
-            NavigationService.push(SCREENS.BOOKING);
+            navigateAfterForeground(SCREENS.HOME, {
+              screen: BOOKINGS_TAB_ROUTE_NAME,
+            });
           },
         });
       }
@@ -134,7 +143,9 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
           btnText: 'Confirm',
           onPress: () => {
             setShowNotifModal(false);
-            NavigationService.push(SCREENS.BOOKING);
+            navigateAfterForeground(SCREENS.HOME, {
+              screen: BOOKINGS_TAB_ROUTE_NAME,
+            });
           },
         });
       }
@@ -151,7 +162,7 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
           btnText: 'Confirm',
           onPress: () => {
             setShowNotifModal(false);
-            NavigationService.push(getPromoScreenName(data?.Message));
+            pushAfterForeground(getPromoScreenName(data?.Message));
           },
         });
       }
@@ -187,7 +198,7 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
               btnText: 'Confirm',
               onPress: () => {
                 setShowNotifModal(false);
-                NavigationService.navigate(SCREENS.HOME);
+                navigateAfterForeground(SCREENS.HOME);
               },
             });
           }
@@ -208,7 +219,7 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
               btnText: 'Confirm',
               onPress: () => {
                 setShowNotifModal(false);
-                NavigationService.push(SCREENS.RATING_FEEDBACK, {
+                pushAfterForeground(SCREENS.RATING_FEEDBACK, {
                   completeBookingData: parsedMessage,
                 });
                 console.log('setNotifModal data:', data);
@@ -224,7 +235,9 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
               btnText: 'Confirm',
               onPress: () => {
                 setShowNotifModal(false);
-                NavigationService.push(SCREENS.BOOKING);
+                navigateAfterForeground(SCREENS.HOME, {
+                  screen: BOOKINGS_TAB_ROUTE_NAME,
+                });
               },
             });
           }
@@ -237,7 +250,9 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
               btnText: 'Confirm',
               onPress: () => {
                 setShowNotifModal(false);
-                NavigationService.push(SCREENS.BOOKING);
+                navigateAfterForeground(SCREENS.HOME, {
+                  screen: BOOKINGS_TAB_ROUTE_NAME,
+                });
               },
             });
           }
@@ -254,7 +269,7 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
               btnText: 'Confirm',
               onPress: () => {
                 setShowNotifModal(false);
-                NavigationService.push(getPromoScreenName(data?.Message));
+                pushAfterForeground(getPromoScreenName(data?.Message));
               },
             });
           }

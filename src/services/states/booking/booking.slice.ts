@@ -127,7 +127,9 @@ export const bookingSlice = createSlice({
       state.lawnImages = action.payload;
     },
     onSetLawnURIList(state, action: PayloadAction<any>) {
-      state.lawnURIList = action.payload;
+      state.lawnURIList = Array.isArray(action.payload)
+        ? action.payload.slice(0, 1)
+        : [];
     },
     onSetBookingIntervalServiceTime(state, action: PayloadAction<any>) {
       state.bookingIntervalServiceTime = action.payload;

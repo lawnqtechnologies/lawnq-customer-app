@@ -242,13 +242,9 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
 
   const onSaveScheduledBooking = async () => {
     const lawnImageRequest = async () => {
-      if (lawnURIList.length > 0) {
-        for (let i = 0; i < lawnURIList.length; i++) {
-          return request.append('LawnImages', lawnURIList[i]);
-        }
-      } else {
-        return request.append('LawnImages', []);
-      }
+      if (lawnURIList[0]) return request.append('LawnImages', lawnURIList[0]);
+
+      return request.append('LawnImages', []);
     };
 
     const payloadObject = Object.fromEntries(payload?._parts || []);
@@ -347,9 +343,7 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
     let request = new FormData();
     request.append('CustomerToken', token);
     request.append('CustomerId', customerId);
-    for (let i = 0; i < lawnURIList.length; i++) {
-      request.append('LawnImages', lawnURIList[i]);
-    }
+    if (lawnURIList[0]) request.append('LawnImages', lawnURIList[0]);
     request.append('AddressId', property.value);
     request.append('ServiceProviderId', 0);
 

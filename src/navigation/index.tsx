@@ -276,6 +276,7 @@ const HomeTabs: React.FC = React.memo(() => {
 const Navigation = () => {
   const scheme = useColorScheme();
   const isDarkMode = scheme === 'dark';
+  const navigationTheme = isDarkMode ? DarkTheme : LightTheme;
   const detachInactiveScreens = Platform.OS !== 'ios';
 
   /**
@@ -306,7 +307,25 @@ const Navigation = () => {
     [],
   );
 
-  const stackScreenOptions = useMemo(() => ({headerShown: false}), []);
+  const stackScreenOptions = useMemo(
+    () => ({
+      headerShown: false,
+      animationEnabled: Platform.OS !== 'ios',
+      cardStyle: {
+        backgroundColor: navigationTheme.colors.background,
+      },
+    }),
+    [navigationTheme.colors.background],
+  );
+  const successScreenOptions = useMemo(
+    () => ({
+      gestureEnabled: false,
+      cardStyle: {
+        backgroundColor: navigationTheme.colors.lightGray,
+      },
+    }),
+    [navigationTheme.colors.lightGray],
+  );
 
   return (
     <NavigationContainer
@@ -315,7 +334,7 @@ const Navigation = () => {
       onReady={() => {
         isReadyRef.current = true;
       }}
-      theme={isDarkMode ? DarkTheme : LightTheme}>
+      theme={navigationTheme}>
       <Stack.Navigator
         detachInactiveScreens={detachInactiveScreens}
         initialRouteName={SCREENS.WELCOME}
@@ -344,7 +363,7 @@ const Navigation = () => {
         <Stack.Screen
           name={SCREENS.SUCCESS}
           component={SuccessScreen}
-          options={{gestureEnabled: false}}
+          options={successScreenOptions}
         />
 
         <Stack.Screen
@@ -363,7 +382,7 @@ const Navigation = () => {
         <Stack.Screen
           name={SCREENS.SUCCESS_SCHEDULE}
           component={SuccessScheduleScreen}
-          options={{gestureEnabled: false}}
+          options={successScreenOptions}
         />
 
         <Stack.Screen name={SCREENS.ACCOUNT} component={AccountScreen} />

@@ -2,7 +2,6 @@ import React, {useEffect, useMemo} from 'react';
 import {View, StyleProp, ViewStyle, Pressable} from 'react-native';
 import {useTheme} from '@react-navigation/native';
 import {useDispatch} from 'react-redux';
-import * as NavigationService from 'react-navigation-helpers';
 import LottieView from 'lottie-react-native';
 import Icon, {IconType} from 'react-native-dynamic-vector-icons';
 import {v2Colors} from '@theme/themes';
@@ -16,6 +15,7 @@ import Text from '@shared-components/text-wrapper/TextWrapper';
 import AndroidBackButtonHandler from 'shared/functions/AndroidBackButtonHandler';
 import {onSetLawnURIList} from '@services/states/booking/booking.slice';
 import {useSafeBottomMargin} from 'shared/functions/useSafeBottomInset';
+import {resetAfterForeground} from '../../../utils/navigation';
 
 /**
  * ? Constants
@@ -49,7 +49,10 @@ const FailScreen: React.FC<IFailScreenProps> = ({navigation}) => {
    * ? Functions
    */
   const onPressHome = () => {
-    NavigationService.push(SCREENS.HOME);
+    resetAfterForeground({
+      index: 0,
+      routes: [{name: SCREENS.HOME}],
+    });
     dispatch(onSetLawnURIList([]));
   };
 

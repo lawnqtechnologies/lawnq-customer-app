@@ -650,9 +650,7 @@ const HomeScreen = () => {
 
     request.append('CustomerToken', token);
     request.append('CustomerId', customerId);
-    for (let i = 0; i < lawnURIList.length; i++) {
-      request.append('LawnImages', lawnURIList[i]);
-    }
+    if (lawnURIList[0]) request.append('LawnImages', lawnURIList[0]);
     request.append('AddressId', property.value);
     request.append('ServiceProviderId', 0);
     request.append('Cost', Number(_originalAmount) || 0);
@@ -984,7 +982,7 @@ const HomeScreen = () => {
       {props.icon}
       <View style={{margin: 2, paddingRight: 10}}></View>
       <Text color={v2Colors.green} style={{fontSize: 12}}>
-        {'From Gallery'}
+        {lawnURIList.length ? 'Change Image' : 'From Gallery'}
       </Text>
     </Pressable>
   );
@@ -1017,23 +1015,23 @@ const HomeScreen = () => {
         {!lawnURIList.length ? (
           <>
             <Text color={v2Colors.green} style={{fontSize: 21}}>
-              Upload lawn images
+              Upload lawn image
             </Text>
             <Text color={v2Colors.greenShade2} style={{marginTop: 5}}>
-              Uploaded images should reflect the current lawn height
+              Uploaded image should reflect the current lawn height
             </Text>
           </>
         ) : (
           <View style={{height: 100, width: '100%'}}>
             <FlatList
-              data={lawnURIList}
+              data={lawnURIList.slice(0, 1)}
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{
                 paddingHorizontal: 20,
               }}
               renderItem={renderImages}
-              keyExtractor={(item, index) => `${index}${item}`}
+              keyExtractor={(item, index) => item?.uri ?? `${index}`}
             />
           </View>
         )}

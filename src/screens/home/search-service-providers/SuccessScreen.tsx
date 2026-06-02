@@ -1,7 +1,6 @@
 import React, {useCallback, useEffect, useMemo} from 'react';
 import {View, StyleProp, ViewStyle, Pressable} from 'react-native';
 import {useFocusEffect, useTheme} from '@react-navigation/native';
-import * as NavigationService from 'react-navigation-helpers';
 import LottieView from 'lottie-react-native';
 import Icon, {IconType} from 'react-native-dynamic-vector-icons';
 
@@ -18,6 +17,7 @@ import {onSetFromAccountToPayment} from '@services/states/menu/menu.slice';
 import {v2Colors} from '@theme/themes';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useSafeBottomMargin} from 'shared/functions/useSafeBottomInset';
+import {resetAfterForeground} from '../../../utils/navigation';
 
 /**
  * ? Constants
@@ -47,7 +47,10 @@ const SucessScreen: React.FC<ISuccessScreenProps> = () => {
    * ? Functions
    */
   const onPressContinue = () => {
-    NavigationService.push(SCREENS.HOME);
+    resetAfterForeground({
+      index: 0,
+      routes: [{name: SCREENS.HOME}],
+    });
   };
 
   /**
@@ -69,7 +72,7 @@ const SucessScreen: React.FC<ISuccessScreenProps> = () => {
 
   const Animation = () => (
     <LottieView
-      style={{flex: 1}}
+      style={styles.animation}
       source={require(SUCCESS_ANIMATION)}
       autoPlay
       loop
@@ -99,13 +102,15 @@ const SucessScreen: React.FC<ISuccessScreenProps> = () => {
       <View style={styles.animationContainer}>
         <Animation />
       </View>
-      <Text h4 bold color={v2Colors.green} style={styles.text}>
-        Fantastic!
-      </Text>
-      <Text h4 color={v2Colors.green} style={styles.text}>
-        Your booking is confirmed. You are now in the Queue to have your lawn
-        mowed.
-      </Text>
+      <View style={styles.contentContainer}>
+        <Text h4 bold color={v2Colors.green} style={styles.titleText}>
+          Fantastic!
+        </Text>
+        <Text h4 color={v2Colors.green} style={styles.bodyText}>
+          Your booking is confirmed. You are now in the Queue to have your lawn
+          mowed.
+        </Text>
+      </View>
       <ConfirmBtn />
     </View>
   );

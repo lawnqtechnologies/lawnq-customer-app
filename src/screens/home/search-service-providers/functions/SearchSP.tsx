@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 import * as NavigationService from 'react-navigation-helpers';
 
@@ -13,6 +13,10 @@ import {RootState} from 'store';
 import {onSetLawnURIList} from '@services/states/booking/booking.slice';
 import {getMessaging} from '@react-native-firebase/messaging';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  navigateAfterForeground,
+  resetAfterForeground,
+} from '../../../../utils/navigation';
 
 /**
  * ? Constants
@@ -63,6 +67,25 @@ const SearchSPFunction: React.FC<ISearchSPFunctionProps> = ({params}) => {
   */
   const [timeLeft, setTimeLeft] = useState<number>(40); // 40-second timer
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const hasNavigatedToSuccessRef = useRef(false);
+  const cancelSuccessNavigationRef = useRef<(() => void) | null>(null);
+
+  const navigateToSuccess = useCallback(async () => {
+    if (hasNavigatedToSuccessRef.current) return;
+
+    hasNavigatedToSuccessRef.current = true;
+    await AsyncStorage.removeItem('bookingAccepted');
+    cancelSuccessNavigationRef.current = navigateAfterForeground(
+      SCREENS.SUCCESS,
+    );
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      cancelSuccessNavigationRef.current?.();
+    };
+  }, []);
+
   /**
    * ? On Mount
    */
@@ -86,8 +109,7 @@ const SearchSPFunction: React.FC<ISearchSPFunctionProps> = ({params}) => {
         if (bookingAccepted === 'true') {
           clearInterval(interval); // Stop the interval
           console.log('Successfully processed on waiting screen');
-          await AsyncStorage.removeItem('bookingAccepted');
-          NavigationService.navigate(SCREENS.SUCCESS); // Example navigation to success
+          await navigateToSuccess();
         }
       } catch (error) {
         console.warn('Failed to check booking accepted flag:', error);
@@ -115,9 +137,7 @@ const SearchSPFunction: React.FC<ISearchSPFunctionProps> = ({params}) => {
 
         if (action === 'ACCEPT') {
           clearInterval(interval);
-          // Navigate to booking success screen
-          await AsyncStorage.removeItem('bookingAccepted');
-          NavigationService.navigate(SCREENS.SUCCESS);
+          await navigateToSuccess();
         }
       } catch (error) {
         console.warn('Failed to handle booking notification:', error);
@@ -128,7 +148,7 @@ const SearchSPFunction: React.FC<ISearchSPFunctionProps> = ({params}) => {
       clearInterval(interval);
       unsubscribe();
     };
-  }, [timeLeft]);
+  }, [navigateToSuccess, timeLeft]);
 
   /**
   |--------------------------------------------------
@@ -247,7 +267,10 @@ const SearchSPFunction: React.FC<ISearchSPFunctionProps> = ({params}) => {
       {
         text: 'Confirm',
         onPress: () => {
-          NavigationService.push(SCREENS.HOME);
+          resetAfterForeground({
+            index: 0,
+            routes: [{name: SCREENS.HOME}],
+          });
           dispatch(onSetLawnURIList([]));
         },
       },
