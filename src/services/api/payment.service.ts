@@ -33,6 +33,14 @@ export const onCompleteCustomerSetupIntent = async (payload: any) => {
   return response.data;
 };
 
+export const onCompleteCustomerSetupIntentV2 = async (payload: any) => {
+  const response = await nonAuthorizedRequest<AuthenticationObject>().post(
+    `CustomerWallet/CompleteCustomerSetupIntentV2`,
+    payload,
+  );
+  return response.data;
+};
+
 export const onCustomerPaymentMethodList = async (payload: any) => {
   const response = await nonAuthorizedRequest<AuthenticationObject>().post(
     `CustomerWallet/CustomerPaymentMethodList`,

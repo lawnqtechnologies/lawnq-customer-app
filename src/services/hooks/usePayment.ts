@@ -1,10 +1,9 @@
-import {CreatePaymentIntentRequest} from '@services/models/payment';
 import {AxiosError} from 'axios';
-import {useRef} from 'react';
 import {Alert} from 'react-native';
 import {useMutation} from 'react-query';
 import {
   onCompleteCustomerSetupIntent,
+  onCompleteCustomerSetupIntentV2,
   onCreateCustomerWallet,
   onCreatePaymentIntent,
   onCustomerPaymentMethodList,
@@ -15,214 +14,140 @@ import {
   onCustomerPaymentKey,
 } from '../api/payment.service';
 
+const asAxios = (e: unknown) => e as AxiosError;
+
 export const usePayment = () => {
-  //---------------------------------------------//
-  // CONSTANTS
-  //--------------------------------------------//
-  const successCallbackRef = useRef<(a: object) => void>();
-  const errorCallbackRef = useRef<(a: any) => void>();
-
-  //---------------------------------------------//
-  // MUTATIONS
-  //--------------------------------------------//
-
-  const PaymentIntentMutation = useMutation(onCreatePaymentIntent, {
-    onSuccess: (data: any) => {
-      return successCallbackRef.current?.(data);
-    },
-    onError: (err: AxiosError) => {
-      errorCallbackRef.current?.(err);
-      Alert.alert('Sign In Error', err.response?.data.Message);
-    },
-  });
-
-  const CreateCustomerWalletMutation = useMutation(onCreateCustomerWallet, {
-    onSuccess: (data: any) => {
-      return successCallbackRef.current?.(data);
-    },
-    onError: (err: AxiosError) => {
-      errorCallbackRef.current?.(err);
-      Alert.alert(
-        'error during creating of wallet',
-        err.response?.data.Message,
-      );
-    },
-  });
-
-  const GetCustomerWalletListMutation = useMutation(onGetCustomerWalletList, {
-    onSuccess: (data: any) => {
-      return successCallbackRef.current?.(data);
-    },
-    onError: (err: AxiosError) => {
-      errorCallbackRef.current?.(err);
-    },
-  });
-
-  const CustomerSetupIntentMutation = useMutation(onCustomerSetupIntent, {
-    onSuccess: (data: any) => {
-      return successCallbackRef.current?.(data);
-    },
-    onError: (err: AxiosError) => {
-      errorCallbackRef.current?.(err);
-      Alert.alert(
-        'error during creating of wallet',
-        err.response?.data.Message,
-      );
-    },
-  });
-  const CompleteCustomerSetupIntentMutation = useMutation(
-    onCompleteCustomerSetupIntent,
-    {
-      onSuccess: (data: any) => {
-        return successCallbackRef.current?.(data);
-      },
-      onError: (err: AxiosError) => {
-        errorCallbackRef.current?.(err);
-        Alert.alert(
-          'error during creating of wallet',
-          err.response?.data.Message,
-        );
-      },
-    },
-  );
-
-  const _2successCallbackRef = useRef<(a: object) => void>();
-  const _2errorCallbackRef = useRef<(a: any) => void>();
-
-  const CustomerPaymentMethodListMutation = useMutation(
-    onCustomerPaymentMethodList,
-    {
-      onSuccess: (data: any) => {
-        return _2successCallbackRef.current?.(data);
-      },
-      onError: (err: AxiosError) => {
-        _2errorCallbackRef.current?.(err);
-        // Alert.alert("error rendering list of wallet", err.response?.data.Message);
-      },
-    },
-  );
-
-  const setIsDefaultCustomerCardMutation = useMutation(
-    onSetIsDefaultCustomerCard,
-    {
-      onSuccess: (data: any) => {
-        return _3successCallbackRef.current?.(data);
-      },
-      onError: (err: AxiosError) => {
-        _3errorCallbackRef.current?.(err);
-      },
-    },
-  );
-
-  const removeCustomerCardMutation = useMutation(onRemoveCustomerCard, {
-    onSuccess: (data: any) => {
-      return successCallbackRef.current?.(data);
-    },
-    onError: (err: AxiosError) => {
-      errorCallbackRef.current?.(err);
-    },
-  });
-
-  const customerPaymentKeyMutation = useMutation(onCustomerPaymentKey, {
-    onSuccess: (data: any) => {
-      return successCallbackRef.current?.(data);
-    },
-    onError: (err: AxiosError) => {
-      errorCallbackRef.current?.(err);
-    },
-  });
-
-  //---------------------------------------------//
-  // METHOD TO BE GET ON SCREENS
-  //--------------------------------------------//
+  const PaymentIntentMutation = useMutation(onCreatePaymentIntent);
+  const CreateCustomerWalletMutation = useMutation(onCreateCustomerWallet);
+  const GetCustomerWalletListMutation = useMutation(onGetCustomerWalletList);
+  const CustomerSetupIntentMutation = useMutation(onCustomerSetupIntent);
+  const CompleteCustomerSetupIntentMutation = useMutation(onCompleteCustomerSetupIntent);
+  const CompleteCustomerSetupIntentV2Mutation = useMutation(onCompleteCustomerSetupIntentV2);
+  const CustomerPaymentMethodListMutation = useMutation(onCustomerPaymentMethodList);
+  const SetIsDefaultCustomerCardMutation = useMutation(onSetIsDefaultCustomerCard);
+  const RemoveCustomerCardMutation = useMutation(onRemoveCustomerCard);
+  const CustomerPaymentKeyMutation = useMutation(onCustomerPaymentKey);
 
   const createPaymentIntent = (
     payload: any,
-    succesCallback?: (p: object) => void,
+    successCallback?: (p: object) => void,
     errorCallback?: (a: any) => void,
   ) => {
-    successCallbackRef.current = succesCallback;
-    errorCallbackRef.current = errorCallback;
-    PaymentIntentMutation.mutate(payload);
+    PaymentIntentMutation.mutate(payload, {
+      onSuccess: data => successCallback?.(data),
+      onError: e => errorCallback?.(asAxios(e)),
+    });
   };
 
   const createCustomerWallet = (
     payload: any,
-    succesCallback?: (p: object) => void,
+    successCallback?: (p: object) => void,
     errorCallback?: (a: any) => void,
   ) => {
-    successCallbackRef.current = succesCallback;
-    errorCallbackRef.current = errorCallback;
-    CreateCustomerWalletMutation.mutate(payload);
+    CreateCustomerWalletMutation.mutate(payload, {
+      onSuccess: data => successCallback?.(data),
+      onError: e => errorCallback?.(asAxios(e)),
+    });
   };
 
   const getCustomerWalletList = (
     payload: any,
-    succesCallback?: (p: object) => void,
+    successCallback?: (p: object) => void,
     errorCallback?: (a: any) => void,
   ) => {
-    successCallbackRef.current = succesCallback;
-    errorCallbackRef.current = errorCallback;
-    GetCustomerWalletListMutation.mutate(payload);
+    GetCustomerWalletListMutation.mutate(payload, {
+      onSuccess: data => successCallback?.(data),
+      onError: e => errorCallback?.(asAxios(e)),
+    });
   };
 
   const customerSetupIntent = (
     payload: any,
-    succesCallback?: (p: object) => void,
+    successCallback?: (p: object) => void,
     errorCallback?: (a: any) => void,
   ) => {
-    successCallbackRef.current = succesCallback;
-    errorCallbackRef.current = errorCallback;
-    CustomerSetupIntentMutation.mutate(payload);
-  };
-  const completeCustomerSetupIntent = (
-    payload: any,
-    succesCallback?: (p: object) => void,
-    errorCallback?: (a: any) => void,
-  ) => {
-    successCallbackRef.current = succesCallback;
-    errorCallbackRef.current = errorCallback;
-    CompleteCustomerSetupIntentMutation.mutate(payload);
-  };
-  const customerPaymentMethodList = (
-    payload: any,
-    succesCallback?: (p: object) => void,
-    errorCallback?: (a: any) => void,
-  ) => {
-    _2successCallbackRef.current = succesCallback;
-    _2errorCallbackRef.current = errorCallback;
-    CustomerPaymentMethodListMutation.mutate(payload);
+    CustomerSetupIntentMutation.mutate(payload, {
+      onSuccess: data => successCallback?.(data),
+      onError: e => {
+        const err = asAxios(e);
+        errorCallback?.(err);
+        Alert.alert('Error creating setup intent', (err.response?.data as any)?.Message);
+      },
+    });
   };
 
-  const _3successCallbackRef = useRef<(a: object) => void>();
-  const _3errorCallbackRef = useRef<(a: any) => void>();
+  const completeCustomerSetupIntent = (
+    payload: any,
+    successCallback?: (p: object) => void,
+    errorCallback?: (a: any) => void,
+  ) => {
+    CompleteCustomerSetupIntentMutation.mutate(payload, {
+      onSuccess: data => successCallback?.(data),
+      onError: e => {
+        const err = asAxios(e);
+        errorCallback?.(err);
+        Alert.alert('Error completing setup intent', (err.response?.data as any)?.Message);
+      },
+    });
+  };
+
+  const completeCustomerSetupIntentV2 = (
+    payload: any,
+    successCallback?: (p: object) => void,
+    errorCallback?: (a: any) => void,
+  ) => {
+    CompleteCustomerSetupIntentV2Mutation.mutate(payload, {
+      onSuccess: data => successCallback?.(data),
+      onError: e => {
+        const err = asAxios(e);
+        errorCallback?.(err);
+        Alert.alert('Error saving card', (err.response?.data as any)?.Message);
+      },
+    });
+  };
+
+  const customerPaymentMethodList = (
+    payload: any,
+    successCallback?: (p: object) => void,
+    errorCallback?: (a: any) => void,
+  ) => {
+    CustomerPaymentMethodListMutation.mutate(payload, {
+      onSuccess: data => successCallback?.(data),
+      onError: e => errorCallback?.(asAxios(e)),
+    });
+  };
+
   const setIsDefaultCustomerCard = (
     payload: any,
-    succesCallback?: (p: object) => void,
+    successCallback?: (p: object) => void,
     errorCallback?: (a: any) => void,
   ) => {
-    _3successCallbackRef.current = succesCallback;
-    _3errorCallbackRef.current = errorCallback;
-    setIsDefaultCustomerCardMutation.mutate(payload);
+    SetIsDefaultCustomerCardMutation.mutate(payload, {
+      onSuccess: data => successCallback?.(data),
+      onError: e => errorCallback?.(asAxios(e)),
+    });
   };
+
   const removeCustomerCard = (
     payload: any,
-    succesCallback?: (p: object) => void,
+    successCallback?: (p: object) => void,
     errorCallback?: (a: any) => void,
   ) => {
-    successCallbackRef.current = succesCallback;
-    errorCallbackRef.current = errorCallback;
-    removeCustomerCardMutation.mutate(payload);
+    RemoveCustomerCardMutation.mutate(payload, {
+      onSuccess: data => successCallback?.(data),
+      onError: e => errorCallback?.(asAxios(e)),
+    });
   };
 
   const customerPaymentKey = (
     payload: any,
-    succesCallback?: (p: object) => void,
+    successCallback?: (p: object) => void,
     errorCallback?: (a: any) => void,
   ) => {
-    successCallbackRef.current = succesCallback;
-    errorCallbackRef.current = errorCallback;
-    customerPaymentKeyMutation.mutate(payload);
+    CustomerPaymentKeyMutation.mutate(payload, {
+      onSuccess: data => successCallback?.(data),
+      onError: e => errorCallback?.(asAxios(e)),
+    });
   };
 
   return {
@@ -231,6 +156,7 @@ export const usePayment = () => {
     getCustomerWalletList,
     customerSetupIntent,
     completeCustomerSetupIntent,
+    completeCustomerSetupIntentV2,
     customerPaymentMethodList,
     setIsDefaultCustomerCard,
     removeCustomerCard,
