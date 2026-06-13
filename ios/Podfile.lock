@@ -3414,6 +3414,8 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
+  - RNInAppBrowser (3.7.1):
+    - React-Core
   - RNNotifee (7.9.0):
     - React-Core
     - RNNotifee/NotifeeCore (= 7.9.0)
@@ -3858,6 +3860,7 @@ DEPENDENCIES:
   - "RNFBStorage (from `../node_modules/@react-native-firebase/storage`)"
   - "RNFlashList (from `../node_modules/@shopify/flash-list`)"
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
+  - RNInAppBrowser (from `../node_modules/react-native-inappbrowser-reborn`)
   - "RNNotifee (from `../node_modules/@notifee/react-native`)"
   - RNPermissions (from `../node_modules/react-native-permissions`)
   - RNReanimated (from `../node_modules/react-native-reanimated`)
@@ -4099,6 +4102,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@shopify/flash-list"
   RNGestureHandler:
     :path: "../node_modules/react-native-gesture-handler"
+  RNInAppBrowser:
+    :path: "../node_modules/react-native-inappbrowser-reborn"
   RNNotifee:
     :path: "../node_modules/@notifee/react-native"
   RNPermissions:
@@ -4241,6 +4246,7 @@ SPEC CHECKSUMS:
   RNFBStorage: f1869dc67955c3cfe17ed7d18e075e9783346c2b
   RNFlashList: b31c96e892debd3a53303ab3b6cb0b62891f3f4c
   RNGestureHandler: f7b3a72c099e1e29b5b81688678bc9108d44057c
+  RNInAppBrowser: 904d24dc75e8e6c6c98a3160329192608946f9df
   RNNotifee: 271cfeb505183d2cd1b858c14c3968b6ca30a642
   RNPermissions: e4ff00d5e1fa790c0311517cc2ee5e58981a25cf
   RNReanimated: ecb64f10162e38fd77ff37d7388741e13b7f2eaa

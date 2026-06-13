@@ -9,7 +9,7 @@ import {
   Alert,
   Linking,
 } from 'react-native';
-import {initPaymentSheet, initStripe,presentPaymentSheet} from '@stripe/stripe-react-native';
+import {initPaymentSheet, initStripe, presentPaymentSheet, useStripe} from '@stripe/stripe-react-native';
 import {usePayment} from '@services/hooks/usePayment';
 import * as NavigationService from 'react-navigation-helpers';
 import _ from 'lodash';
@@ -39,7 +39,6 @@ import VISA from '@assets/v2/payment/images/visa.svg';
 import AMEX from '@assets/v2/payment/images/amex.svg';
 import GREEN_CHECK_CIRCLE from '@assets/v2/common/icons/green-check-circle.svg';
 import {RootState} from 'store';
-import { close } from 'fs';
 
 type CustomStyleProp = StyleProp<ViewStyle> | Array<StyleProp<ViewStyle>>;
 
@@ -69,6 +68,7 @@ const PaymentScreen: React.FC<IPaymentScreenProps> = () => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const buttonBottomPadding = useSafeBottomPadding(30);
+  const {handleURLCallback} = useStripe();
 
   /**
    * ? Hooks
@@ -80,6 +80,22 @@ const PaymentScreen: React.FC<IPaymentScreenProps> = () => {
     customerPaymentKey,
     customerSetupIntent
   } = usePayment();
+
+  useEffect(() => {
+    const handleDeepLink = async ({url}: {url: string}) => {
+      if (url) {
+        await handleURLCallback(url);
+      }
+    };
+
+    const subscription = Linking.addEventListener('url', handleDeepLink);
+
+    Linking.getInitialURL().then(url => {
+      if (url) handleURLCallback(url);
+    });
+
+    return () => subscription.remove();
+  }, [handleURLCallback]);
 
   /**
    * ? Redux States
@@ -174,20 +190,15 @@ const openPaymentSheet = async () => {
 
       }
     } else {
-      // Delay Alert to avoid re-present flicker (see #③)
       setTimeout(() => {
         Alert.alert('Success', 'Your card has been saved!');
-         NavigationService.replace(SCREENS.PAYMENT);
+        NavigationService.replace(SCREENS.PAYMENT);
       }, 250);
-      // To force remount screen 
-      NavigationService.replace(SCREENS.PAYMENT);
-
     }
   } finally {
     presentingRef.current = false;
     setReady(true);
     setLoading(false);
-    presentingRef.current = false;
     _getWalletInformations();
   }
 };
