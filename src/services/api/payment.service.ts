@@ -1,10 +1,9 @@
 import {AuthenticationObject} from '@services/models/authentication';
-import {CreatePaymentIntentRequest} from '@services/models/payment';
 import {nonAuthorizedRequest} from './client';
 
 export const onCreatePaymentIntent = async (payload: any) => {
   const response = await nonAuthorizedRequest<AuthenticationObject>().post(
-    `CustomerTransaction/CreatePaymentIntent`,
+    `CustomerTransaction/CreatePaymentIntentV2`,
     payload,
   );
   return response.data;

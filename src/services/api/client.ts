@@ -55,9 +55,12 @@ const getAxiosMultiPartClient = async <T>(
     },
     error => {
       console.log('axios error:', error);
-      console.log('axios error:', error.response?.data?.errors);
+      console.log(
+        'axios error response:',
+        JSON.stringify(error.response?.data || {}, null, 2),
+      );
       // Do centralize error handling here
-      // throw error;
+      throw error;
     },
   );
 
