@@ -51,7 +51,6 @@ import {
   getStripeErrorMessage,
   isPaymentIntentConfirmed,
   isStripeUserCancellation,
-  logStripeDebugResponse,
   STRIPE_CURRENCY_CODE,
   STRIPE_MERCHANT_COUNTRY_CODE,
   STRIPE_MERCHANT_NAME,
@@ -64,6 +63,11 @@ import { useStripeInitialization } from "@services/stripe/useStripeInitializatio
 
 type CustomStyleProp = StyleProp<ViewStyle> | Array<StyleProp<ViewStyle>>;
 type BookingPaymentMethod = "card" | "platformPay";
+const PAYMENT_ERROR_TITLE = "Payment Issue";
+const PAYMENT_ERROR_MESSAGE =
+  "We couldn't complete your payment. Please try again or use another payment method.";
+const PAYMENT_START_ERROR_MESSAGE =
+  "We couldn't start your payment securely. Please try again.";
 
 interface IBottomModalScreenProps {
   style?: CustomStyleProp;
@@ -232,7 +236,7 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
 
     if (result.error) {
       if (!isStripeUserCancellation(result.error.code)) {
-        Alert.alert("Payment Error", getStripeErrorMessage(result.error));
+        Alert.alert(PAYMENT_ERROR_TITLE, getStripeErrorMessage(result.error));
       }
       return false;
     }
@@ -242,8 +246,8 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
     }
 
     Alert.alert(
-      "Payment Error",
-      "Payment was not confirmed by Stripe. Please try again.",
+      PAYMENT_ERROR_TITLE,
+      "Payment was not completed. Please try again.",
     );
     return false;
   };
@@ -259,7 +263,7 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
 
     if (result.error) {
       if (!isStripeUserCancellation(result.error.code)) {
-        Alert.alert("Payment Error", getStripeErrorMessage(result.error));
+        Alert.alert(PAYMENT_ERROR_TITLE, getStripeErrorMessage(result.error));
       }
       return false;
     }
@@ -269,7 +273,7 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
     }
 
     Alert.alert(
-      "Payment Error",
+      PAYMENT_ERROR_TITLE,
       "Payment authentication was not completed. Please try again.",
     );
     return false;
@@ -323,18 +327,14 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
       return false;
     }
 
-    const platformPayParams = getPlatformPayConfirmParams();
-    logStripeDebugResponse("PlatformPay confirm params", platformPayParams);
-
     const result = await confirmPlatformPayPayment(
       clientSecret,
-      platformPayParams,
+      getPlatformPayConfirmParams(),
     );
 
     if (result.error) {
-      logStripeDebugResponse("PlatformPay confirm error", result.error);
       if (!isStripeUserCancellation(result.error.code)) {
-        Alert.alert("Payment Error", getStripeErrorMessage(result.error));
+        Alert.alert(PAYMENT_ERROR_TITLE, getStripeErrorMessage(result.error));
       }
       return false;
     }
@@ -344,8 +344,8 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
     }
 
     Alert.alert(
-      "Payment Error",
-      "Wallet payment was not confirmed by Stripe. Please try again.",
+      PAYMENT_ERROR_TITLE,
+      "Wallet payment was not completed. Please try again.",
     );
     return false;
   };
@@ -356,34 +356,51 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
   |--------------------------------------------------
   */
   const onRescheduleBooking = async (paymentMethod: BookingPaymentMethod) => {
+    let scheduledDate = scheduleDate;
+
+    try {
+      scheduledDate = JSON.parse(scheduleDate);
+    } catch {
+      if (!scheduleDate) {
+        Alert.alert("Reschedule Issue", "Please choose a date and try again.");
+        resetPaymentState();
+        return;
+      }
+    }
+
     const payload = {
       CustomerToken: token,
       CustomerId: customerId,
       BookingRefNo: oldBookingRefNo,
-      Scheduledate: JSON.parse(scheduleDate),
+      Scheduledate: scheduledDate,
       DeviceDetails: deviceDetails,
     };
 
-    console.log("onRescheduleBooking payload:", payload);
     setIsFetching(true);
     rescheduleBooking(
       payload,
       (data: any) => {
-        console.log("response from reschdule");
-        console.log(data);
         if (data?.StatusCode === "00") {
           const { BookingRefNo } = data;
           _createPaymentIntent(BookingRefNo, paymentMethod);
           // setIsFetching(false);
         } else {
-          Alert.alert(data?.StatusMessage);
+          Alert.alert(
+            "Reschedule Issue",
+            data?.StatusMessage ||
+              "Unable to reschedule booking. Please try again.",
+          );
           setIsPaymentProcessing(false);
           setIsFetching(false);
         }
       },
-      (err: any) => {
+      () => {
         setIsFetching(false);
-        console.log("err:", err);
+        setIsPaymentProcessing(false);
+        Alert.alert(
+          "Reschedule Issue",
+          "Unable to reschedule booking. Please try again.",
+        );
       },
     );
   };
@@ -418,17 +435,9 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
 
         if (isPaymentAuthorized || requiresStripeAction) {
           const clientSecret = getStripeClientSecret(paymentIntentResponse);
-          logStripeDebugResponse(
-            "CreatePaymentIntentV2 response",
-            paymentIntentResponse,
-            clientSecret,
-          );
 
           if (!clientSecret) {
-            Alert.alert(
-              "Stripe Error",
-              "PaymentIntent client secret was not returned.",
-            );
+            Alert.alert(PAYMENT_ERROR_TITLE, PAYMENT_START_ERROR_MESSAGE);
             resetPaymentState();
             return;
           }
@@ -452,23 +461,16 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
           }
         }
         if (paymentIntentResponse?.StatusCode === "01") {
-          Alert.alert(paymentIntentResponse?.StatusMessage);
+          Alert.alert(PAYMENT_ERROR_TITLE, PAYMENT_ERROR_MESSAGE);
           resetPaymentState();
         }
         if (!["00", "01", "02"].includes(paymentIntentResponse?.StatusCode)) {
-          Alert.alert(
-            "Payment Error",
-            paymentIntentResponse?.StatusMessage ||
-              "Unexpected payment status.",
-          );
+          Alert.alert(PAYMENT_ERROR_TITLE, PAYMENT_ERROR_MESSAGE);
           resetPaymentState();
         }
       },
-      (error: any) => {
-        Alert.alert(
-          "Payment Error",
-          error?.message || "Unable to start payment.",
-        );
+      () => {
+        Alert.alert(PAYMENT_ERROR_TITLE, PAYMENT_START_ERROR_MESSAGE);
         resetPaymentState();
       },
     );
@@ -499,15 +501,17 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
           onRescheduleBooking(paymentMethod);
         } else {
           setIsFetching(false);
-          Alert.alert(
-            "Something went wrong on cancelling existing booking Please try again",
-          );
+          Alert.alert("Unable to update your booking. Please try again.");
           setIsVisible(false);
         }
       },
-      (err: any) => {
-        console.log("err:", err);
+      () => {
         setIsFetching(false);
+        setIsPaymentProcessing(false);
+        Alert.alert(
+          "Booking Issue",
+          "Unable to update your booking. Please try again.",
+        );
       },
     );
   };

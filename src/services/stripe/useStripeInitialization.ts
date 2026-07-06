@@ -1,20 +1,24 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
-import {Alert} from 'react-native';
-import {initStripe} from '@stripe/stripe-react-native';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Alert } from "react-native";
+import { initStripe } from "@stripe/stripe-react-native";
 
-import {usePayment} from '@services/hooks/usePayment';
+import { usePayment } from "@services/hooks/usePayment";
 import {
-  assertStripePublishableKeySafeForCurrentBuild,
+  getSafeStripePublishableKeyForCurrentBuild,
   getStripePublishableKey,
   STRIPE_MERCHANT_IDENTIFIER,
   STRIPE_URL_SCHEME,
-} from './stripe.helpers';
+} from "./stripe.helpers";
+
+const PAYMENT_SETUP_ERROR_TITLE = "Payment setup issue";
+const PAYMENT_SETUP_ERROR_MESSAGE =
+  "We couldn't prepare your payment right now. Please try again.";
 
 export const useStripeInitialization = (
   token?: string,
   customerId?: string | number,
 ) => {
-  const {customerPaymentKey} = usePayment();
+  const { customerPaymentKey } = usePayment();
   const customerPaymentKeyRef = useRef(customerPaymentKey);
   const initPromiseRef = useRef<Promise<boolean> | null>(null);
   const [isStripeReady, setIsStripeReady] = useState(false);
@@ -36,7 +40,7 @@ export const useStripeInitialization = (
 
       if (!token || !customerId) {
         if (showAlert) {
-          Alert.alert('Stripe configuration error', 'Customer details are missing.');
+          Alert.alert(PAYMENT_SETUP_ERROR_TITLE, PAYMENT_SETUP_ERROR_MESSAGE);
         }
         return Promise.resolve(false);
       }
@@ -45,7 +49,7 @@ export const useStripeInitialization = (
         return initPromiseRef.current;
       }
 
-      initPromiseRef.current = new Promise(resolve => {
+      initPromiseRef.current = new Promise((resolve) => {
         const finish = (isReady: boolean) => {
           setIsStripeReady(isReady);
           initPromiseRef.current = null;
@@ -59,13 +63,31 @@ export const useStripeInitialization = (
           },
           async (data: any) => {
             try {
-              if (data?.StatusCode !== '00') {
-                throw new Error(data?.StatusMessage || 'Stripe key was not returned.');
+              if (data?.StatusCode !== "00") {
+                if (showAlert) {
+                  Alert.alert(
+                    PAYMENT_SETUP_ERROR_TITLE,
+                    PAYMENT_SETUP_ERROR_MESSAGE,
+                  );
+                }
+                finish(false);
+                return;
               }
 
-              const publishableKey = assertStripePublishableKeySafeForCurrentBuild(
+              const publishableKey = getSafeStripePublishableKeyForCurrentBuild(
                 getStripePublishableKey(data),
               );
+
+              if (!publishableKey) {
+                if (showAlert) {
+                  Alert.alert(
+                    PAYMENT_SETUP_ERROR_TITLE,
+                    PAYMENT_SETUP_ERROR_MESSAGE,
+                  );
+                }
+                finish(false);
+                return;
+              }
 
               await initStripe({
                 publishableKey,
@@ -74,18 +96,21 @@ export const useStripeInitialization = (
               });
 
               finish(true);
-            } catch (error: any) {
+            } catch {
               if (showAlert) {
-                Alert.alert('Stripe configuration error', error.message);
+                Alert.alert(
+                  PAYMENT_SETUP_ERROR_TITLE,
+                  PAYMENT_SETUP_ERROR_MESSAGE,
+                );
               }
               finish(false);
             }
           },
-          (error: any) => {
+          () => {
             if (showAlert) {
               Alert.alert(
-                'Stripe configuration error',
-                error?.message || 'Unable to load Stripe configuration.',
+                PAYMENT_SETUP_ERROR_TITLE,
+                PAYMENT_SETUP_ERROR_MESSAGE,
               );
             }
             finish(false);
@@ -98,5 +123,5 @@ export const useStripeInitialization = (
     [customerId, isStripeReady, token],
   );
 
-  return {ensureStripeInitialized, isStripeReady};
+  return { ensureStripeInitialized, isStripeReady };
 };

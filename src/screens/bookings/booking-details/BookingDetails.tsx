@@ -1,4 +1,4 @@
-import React, {useMemo, useState, useEffect, useCallback} from 'react';
+import React, {useMemo, useState, useEffect, useCallback, useRef} from 'react';
 import {
   View,
   StyleProp,
@@ -49,7 +49,7 @@ import SP from '@assets/v2/bookings/icons/booking-type.svg';
 
 import DISPUTE from '@assets/v2/bookings/icons/dispute.svg';
 import RECEIPT from '@assets/v2/bookings/icons/receipt.svg';
-import CommonAPIalerts from '@shared-components/common-api-alerts/CommonAPIalerts';
+import Loader from '@shared-components/loaders/loader';
 import CenterModalW2Buttons from '@shared-components/modals/center-modal/with-2-buttons';
 import DisputeBottomModal from './components/dispute-bottom-modal/DisputeBottomModal';
 import {RootState} from 'store';
@@ -68,6 +68,9 @@ import {
  */
 
 type CustomStyleProp = StyleProp<ViewStyle> | Array<StyleProp<ViewStyle>>;
+
+const CANCEL_BOOKING_TIMEOUT_MS = 17000;
+const CANCEL_MODAL_CLOSE_DELAY_MS = 650;
 
 interface IBookingDetailScreenProps {
   style?: CustomStyleProp;
@@ -126,12 +129,14 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
   const [snapPoint, setSnapPoint] = useState<number>(0);
   const [showCalendar, setShowCalendar] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
-  const [showCommonError, setShowCommonError] = useState<boolean>(false);
 
   // for cancel booking
   const [showCancelModal, setShowCancelModal] = useState<boolean>(false);
-  const [showCancelSuccess, setShowCancelSuccess] = useState<boolean>(false);
-  const [showCancelFail, setShowCancelFail] = useState<boolean>(false);
+  const cancelRequestIdRef = useRef(0);
+  const cancelTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelStartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   // for dispute booking
   const [showDisputeModal, setShowDisputeModal] = useState<boolean>(false);
@@ -151,10 +156,15 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
 
     try {
       return JSON.parse(message);
-    } catch (error) {
-      console.log('BookingDetails message parse error:', error);
+    } catch {
       return null;
     }
+  };
+
+  const clearCancelTimeout = () => {
+    if (!cancelTimeoutRef.current) return;
+    clearTimeout(cancelTimeoutRef.current);
+    cancelTimeoutRef.current = null;
   };
 
   /**
@@ -180,6 +190,16 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
     getChatCount();
   }, [initChat, bookingData]);
 
+  useEffect(() => {
+    return () => {
+      if (cancelStartTimeoutRef.current) {
+        clearTimeout(cancelStartTimeoutRef.current);
+        cancelStartTimeoutRef.current = null;
+      }
+      clearCancelTimeout();
+    };
+  }, []);
+
   /**
   |--------------------------------------------------
   | API
@@ -191,20 +211,16 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
       ServiceProviderId,
       DeviceDetails: deviceDetails,
     };
-    console.log('booking details getSPDeviceInfo payload:', payload);
     getSPDeviceInfo(
       payload,
       (data: any) => {
-        console.log('getSPDeviceInfo data:', data);
         const {DeviceId, PlatformOs} = data[0];
         setSPinfo({
           DeviceId,
           PlatformOs,
         });
       },
-      (err: any) => {
-        console.log('err:', err);
-      },
+      () => {},
     );
   };
 
@@ -243,15 +259,37 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
           }
         });
       },
-      (error: any) => {
-        console.log('customerPaymentMethodList error:', error);
+      () => {
         return;
       },
     );
   };
 
+  const showCancelFailure = (message = 'Cancel Failed, please try again.') => {
+    Alert.alert('Cancel Failed', message);
+  };
+
+  const showCancelSuccessAlert = () => {
+    Alert.alert('Booking Cancelled', 'Successfully Cancelled your booking.', [
+      {text: 'OK', onPress: () => delayedHide(true)},
+    ]);
+  };
+
+  const finishCancelRequest = (requestId: number, onFinish: () => void) => {
+    if (cancelRequestIdRef.current !== requestId) return;
+    cancelRequestIdRef.current = requestId + 1;
+    clearCancelTimeout();
+    setLoading(false);
+    onFinish();
+  };
+
   const cancelBooking = () => {
     let BookingRefNo = bookingData?.BookingRefNo;
+    if (!BookingRefNo) {
+      showCancelFailure('Booking details are still loading. Please try again.');
+      return;
+    }
+
     const payload = {
       CustomerToken: token,
       CustomerId: customerId,
@@ -259,19 +297,36 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
       DeviceDetails: deviceDetails,
     };
 
-    // setLoading(true);
+    const requestId = cancelRequestIdRef.current + 1;
+    cancelRequestIdRef.current = requestId;
+    clearCancelTimeout();
+    setLoading(true);
+    cancelTimeoutRef.current = setTimeout(() => {
+      finishCancelRequest(requestId, () => {
+        showCancelFailure();
+      });
+    }, CANCEL_BOOKING_TIMEOUT_MS);
+
     customerCancelBooking(
       payload,
       (data: any) => {
-        setLoading(false);
-        const {StatusCode} = data;
-        if (StatusCode === '00') return setShowCancelSuccess(true);
-        return setShowCancelFail(true);
+        finishCancelRequest(requestId, () => {
+          const {StatusCode, StatusMessage} = data;
+          if (StatusCode === '00') return showCancelSuccessAlert();
+          return showCancelFailure(
+            StatusMessage || 'Cancel Failed, please try again.',
+          );
+        });
       },
       (err: any) => {
-        console.log('err:', err);
-        setLoading(false);
-        setShowCommonError(true);
+        finishCancelRequest(requestId, () => {
+          showCancelFailure(
+            err?.response?.data?.StatusMessage ||
+              err?.response?.data?.message ||
+              err?.response?.data?.Message ||
+              'Cancel Failed, please try again.',
+          );
+        });
       },
     );
   };
@@ -302,14 +357,10 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
     getBookingHistory(
       payload,
       (data: any) => {
-        console.log('---onFetchBookingHistory---');
-        console.log('onFetchBookingHistory data:', data?.[0]);
-        console.log('----------------------------');
         setBookingData(data?.[0] ?? bookingItem);
         setLoading(false);
       },
-      error => {
-        console.log('error:', error);
+      () => {
         setLoading(false);
       },
     );
@@ -323,25 +374,20 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
     getReceipt(
       payload,
       (data: any) => {
-        console.log('onFetchBookingReceipt data:', data);
         if (data) {
           if (data?.CustomerReceiptLink)
             Linking.openURL(data.CustomerReceiptLink);
           else Alert.alert('no Receipts found');
         }
       },
-      error => {
-        console.log('error:', error);
-      },
+      () => {},
     );
   };
   const handleGetItem = () => {
     if (!!bookingItem) setBookingData(bookingItem);
-    console.log('bookingItem:', bookingItem);
   };
 
   const getChatCount = async () => {
-    console.log('customerId:', customerId);
     database()
       .ref(`/chat_count/customer/${customerId}/${bookingData?.BookingRefNo}`)
       .once('value')
@@ -382,14 +428,14 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
   };
 
   const onCancel = () => {
-    cancelBooking();
-  };
-
-  const onCancelSuccess = () => {
-    delayedHide(true);
-  };
-  const onCancelFail = () => {
-    delayedHide();
+    setShowCancelModal(false);
+    if (cancelStartTimeoutRef.current) {
+      clearTimeout(cancelStartTimeoutRef.current);
+    }
+    cancelStartTimeoutRef.current = setTimeout(() => {
+      cancelStartTimeoutRef.current = null;
+      cancelBooking();
+    }, CANCEL_MODAL_CLOSE_DELAY_MS);
   };
 
   const onShowDisputeModal = () => {
@@ -421,14 +467,10 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
         Sound: NOTIFICATION_SOUNDS.NOTIFICATION_DEFAULT,
       },
     };
-    console.log('onSendNotification payload:', notifPayload);
     sendNotification(
       notifPayload,
-      data => {
-        console.log('onSendNotification data:', data);
-      },
-      err => {
-        console.log('onSendNotification err:', err);
+      () => {},
+      () => {
         Alert.alert('Chat', 'Something went wrong, please try again.');
       },
     );
@@ -607,7 +649,7 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
           <Text
             color={v2Colors.blackOpacity6}
             style={{
-              fontWeight: 'thin',
+              fontWeight: '300',
               fontSize: 11,
               alignSelf: 'center',
               marginBottom: 10,
@@ -662,7 +704,7 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
       <View style={{alignContent: 'center', justifyContent: 'center'}}>
         <Text
           style={{
-            fontWeight: 'thin',
+            fontWeight: '300',
             fontSize: 12,
             marginTop: 10,
             marginHorizontal:10,
@@ -800,26 +842,7 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
           setShowCancelModal(false);
         }}
       />
-      {/* success, fail, common error for cancel API call */}
-      <CommonAPIalerts
-        loading={loading}
-        // success
-        successText={'Successfully Cancelled your booking.'}
-        successVisible={showCancelSuccess}
-        setSuccessVisible={setShowCancelSuccess}
-        onPressSucess={onCancelSuccess}
-        // fail
-        failedText={'Cancel Failed, please try again.'}
-        failedVisible={showCancelFail}
-        setFailedVisible={onCancelFail}
-        onPressFailed={onCancelFail}
-        // common error
-        commonErrorVisible={showCommonError}
-        setCommonErrorVisible={setShowCommonError}
-        onPressCommonError={() => {
-          delayedHide();
-        }}
-      />
+      {loading && <Loader />}
       <RescheduleModal
         title={'Reschedule Summary'}
         isVisible={isReschduleSummaryShow}

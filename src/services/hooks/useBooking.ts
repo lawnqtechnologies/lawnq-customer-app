@@ -375,23 +375,21 @@ export const useBooking = () => {
     getMowLengthListMutation.mutate(payload);
   };
 
-  const customerCancelBookingMutation = useMutation(onCustomerCancelBooking, {
-    onSuccess: (data: any) => {
-      return successCallbackRef.current?.(data);
-    },
-    onError: (err: AxiosError) => {
-      errorCallbackRef.current?.(err);
-    },
-  });
+  const customerCancelBookingMutation = useMutation(onCustomerCancelBooking);
 
   const customerCancelBooking = (
     payload: any,
     succesCallback?: (p: object) => void,
     errorCallback?: (p: any) => void,
   ) => {
-    successCallbackRef.current = succesCallback;
-    errorCallbackRef.current = errorCallback;
-    customerCancelBookingMutation.mutate(payload);
+    customerCancelBookingMutation.mutate(payload, {
+      onSuccess: (data: any) => {
+        return succesCallback?.(data);
+      },
+      onError: (err: AxiosError) => {
+        errorCallback?.(err);
+      },
+    });
   };
 
   // ? Reschedule booking

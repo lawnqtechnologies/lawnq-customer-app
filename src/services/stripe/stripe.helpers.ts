@@ -9,6 +9,7 @@ export const STRIPE_CURRENCY_CODE = "AUD";
 export const STRIPE_PAYMENT_TYPE_CARD = "card";
 export const STRIPE_PAYMENT_TYPE_NATIVE_PAY = "native_pay";
 
+// Keeps wallet-pay test mode and live-key blocking aligned with non-production API builds.
 const isTestApiBaseUrl = (apiBaseUrl?: string | null) => {
   const normalizedBaseUrl = apiBaseUrl?.toLowerCase() || "";
 
@@ -30,18 +31,18 @@ export const isStripeTestPublishableKey = (publishableKey?: string | null) =>
 export const isStripeLivePublishableKey = (publishableKey?: string | null) =>
   Boolean(publishableKey?.startsWith("pk_live_"));
 
-export const assertStripePublishableKeySafeForCurrentBuild = (
+export const getSafeStripePublishableKeyForCurrentBuild = (
   publishableKey?: string | null,
-): string => {
+): string | undefined => {
   if (!publishableKey) {
-    throw new Error("Stripe publishable key was not returned.");
+    return undefined;
   }
 
   if (
     STRIPE_PLATFORM_PAY_TEST_ENV &&
     isStripeLivePublishableKey(publishableKey)
   ) {
-    throw new Error("Live Stripe publishable key blocked in test environment.");
+    return undefined;
   }
 
   return publishableKey;
@@ -151,15 +152,17 @@ const findPublishableKey = (
     return undefined;
   }
 
-  const currentValue = value as Record<string, unknown>;
-  const keyName = currentValue.StripeKeyName || currentValue.stripeKeyName;
-  const stripeKey = currentValue.StripeKey || currentValue.stripeKey;
+  const paymentKeyResponse = value as Record<string, unknown>;
+  const keyName =
+    paymentKeyResponse.StripeKeyName || paymentKeyResponse.stripeKeyName;
+  const stripeKey =
+    paymentKeyResponse.StripeKey || paymentKeyResponse.stripeKey;
 
   if (keyName === "PublishableKey" && typeof stripeKey === "string") {
     return stripeKey;
   }
 
-  for (const [key, nestedValue] of Object.entries(currentValue)) {
+  for (const [key, nestedValue] of Object.entries(paymentKeyResponse)) {
     if (
       normalizeKey(key) === "publishablekey" &&
       typeof nestedValue === "string" &&
@@ -169,7 +172,7 @@ const findPublishableKey = (
     }
   }
 
-  for (const nestedValue of Object.values(currentValue)) {
+  for (const nestedValue of Object.values(paymentKeyResponse)) {
     const publishableKey = findPublishableKey(nestedValue, visited);
     if (publishableKey) {
       return publishableKey;
@@ -202,8 +205,8 @@ export const isPaymentIntentConfirmed = (status?: string | null): boolean => {
 export const isStripeUserCancellation = (code?: string | null): boolean =>
   Boolean(code?.toLowerCase().includes("cancel"));
 
-export const getStripeErrorMessage = (error: any): string =>
-  error?.message || "Stripe authentication failed. Please try again.";
+export const getStripeErrorMessage = (_error?: any): string =>
+  "We couldn't complete your payment. Please try again or use another payment method.";
 
 export const formatStripePlatformPayAmount = (
   amount: string | number,
@@ -213,73 +216,4 @@ export const formatStripePlatformPayAmount = (
   );
 
   return Number.isFinite(numericAmount) ? numericAmount.toFixed(2) : "0.00";
-};
-
-const redactStripeDebugValue = (
-  value: unknown,
-  visited = new Set<object>(),
-): unknown => {
-  if (typeof value === "string") {
-    const parsedValue = parseJsonString(value);
-
-    if (parsedValue) {
-      return redactStripeDebugValue(parsedValue, visited);
-    }
-
-    return value.replace(
-      STRIPE_CLIENT_SECRET_PATTERN,
-      "[stripe_client_secret_redacted]",
-    );
-  }
-
-  if (!value || typeof value !== "object") {
-    return value;
-  }
-
-  if (visited.has(value)) {
-    return "[Circular]";
-  }
-
-  visited.add(value);
-
-  if (Array.isArray(value)) {
-    return value.map((item) => redactStripeDebugValue(item, visited));
-  }
-
-  return Object.entries(value).reduce<Record<string, unknown>>(
-    (debugValue, [key, nestedValue]) => {
-      const normalizedKey = normalizeKey(key);
-
-      debugValue[key] =
-        normalizedKey.includes("clientsecret") &&
-        typeof nestedValue === "string"
-          ? "[stripe_client_secret_redacted]"
-          : redactStripeDebugValue(nestedValue, visited);
-
-      return debugValue;
-    },
-    {},
-  );
-};
-
-export const logStripeDebugResponse = (
-  label: string,
-  response: unknown,
-  clientSecret?: string,
-) => {
-  if (!__DEV__) {
-    return;
-  }
-
-  console.log(
-    `[StripeDebug] ${label}`,
-    JSON.stringify(
-      {
-        extractedClientSecret: Boolean(clientSecret),
-        response: redactStripeDebugValue(response),
-      },
-      null,
-      2,
-    ),
-  );
 };

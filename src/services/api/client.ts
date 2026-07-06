@@ -1,45 +1,33 @@
-import {Alert} from 'react-native';
-import axios, {AxiosRequestConfig, Method} from 'axios';
-import {isEmpty} from 'lodash';
-import base64 from 'react-native-base64';
-import {LQ_API, LQ_PASSWORD, LQ_USERNAME} from '@env';
-
-/**
- * ? Local Imports
- */
-import {AUTHENTICATION} from '@shared-constants';
+import axios, { AxiosRequestConfig, Method } from "axios";
+import { isEmpty } from "lodash";
+import base64 from "react-native-base64";
+import { LQ_API, LQ_PASSWORD, LQ_USERNAME } from "@env";
 
 const baseURL = LQ_API;
-
-const {TOKEN} = AUTHENTICATION;
 
 const getUrl = (url: string) => {
   return `${baseURL}${url}`;
 };
 
-
 const getAxiosMultiPartClient = async <T>(
   method: Method,
   url: string,
-  options: object | null,
+  _options: object | null,
   data: object | null,
   params: any = null,
 ) => {
-  const authHeader = 'Basic ' + base64.encode(`${LQ_USERNAME}:${LQ_PASSWORD}`);
+  const authHeader = "Basic " + base64.encode(`${LQ_USERNAME}:${LQ_PASSWORD}`);
 
   const axiosSetup: AxiosRequestConfig = {
     withCredentials: true,
     headers: {
       Authorization: authHeader,
-      'Content-Type': 'multipart/form-data',
-      'Access-Control-Allow-Origin': '*',
+      "Content-Type": "multipart/form-data",
+      "Access-Control-Allow-Origin": "*",
     },
     timeout: 15000,
   };
-
-  console.log(baseURL)
-
-  if (!data && method !== 'get') {
+  if (!data && method !== "get") {
     // throw "empty data";
   }
 
@@ -50,17 +38,11 @@ const getAxiosMultiPartClient = async <T>(
   const axiosInstance = axios.create(axiosSetup);
 
   axiosInstance.interceptors.response.use(
-    response => {
+    (response) => {
       return response;
     },
-    error => {
-      console.log('axios error:', error);
-      console.log(
-        'axios error response:',
-        JSON.stringify(error.response?.data || {}, null, 2),
-      );
-      // Do centralize error handling here
-      throw error;
+    (error) => {
+      return Promise.reject(error);
     },
   );
 
@@ -78,19 +60,19 @@ const getAxiosMultiPartClient = async <T>(
 const getAxiosClient = async <T>(
   method: Method,
   url: string,
-  options: object | null,
+  _options: object | null,
   data: object | null,
   params: any = null,
 ) => {
   // const token = await AsyncStorage.getItem(TOKEN);
 
-  const authHeader = 'Basic ' + base64.encode(`${LQ_USERNAME}:${LQ_PASSWORD}`);
+  const authHeader = "Basic " + base64.encode(`${LQ_USERNAME}:${LQ_PASSWORD}`);
 
   const axiosSetup: AxiosRequestConfig = {
     withCredentials: true,
     headers: {
       Authorization: authHeader,
-      'Accept-Language': 'en',
+      "Accept-Language": "en",
     },
     timeout: 15000,
   };
@@ -102,14 +84,11 @@ const getAxiosClient = async <T>(
   const axiosInstance = axios.create(axiosSetup);
 
   axiosInstance.interceptors.response.use(
-    response => {
+    (response) => {
       return response;
     },
-    error => {
-      console.log('axios error:', error);
-      Alert.alert('Axios error', error);
-      // Do centralize error handling here
-      throw error;
+    (error) => {
+      return Promise.reject(error);
     },
   );
 
@@ -131,13 +110,13 @@ export const authorizedRequest = <T>() => {
       url: string,
       options: object | null = {},
       params: object | null = {},
-    ) => getAxiosClient<T>('get', url, options, null, params),
+    ) => getAxiosClient<T>("get", url, options, null, params),
     post: (url: string, data: object | null, options: object | null = {}) =>
-      getAxiosClient<T>('post', url, options, data),
+      getAxiosClient<T>("post", url, options, data),
     put: (url: string, data: object | null, options: object | null = {}) =>
-      getAxiosClient<T>('put', url, options, data),
+      getAxiosClient<T>("put", url, options, data),
     delete: (url: string, data: object | null, options: object | null = {}) =>
-      getAxiosClient<T>('delete', url, options, data),
+      getAxiosClient<T>("delete", url, options, data),
   };
 };
 
@@ -147,22 +126,22 @@ export const nonAuthorizedRequest = <T>() => {
       url: string,
       options: object | null = {},
       params: object | null = {},
-    ) => getAxiosClient<T>('get', url, options, null, params),
+    ) => getAxiosClient<T>("get", url, options, null, params),
     post: (url: string, data: object | null, options = {}) =>
-      getAxiosClient<T>('post', url, options, data),
+      getAxiosClient<T>("post", url, options, data),
     put: (url: string, data: object | null, options: object | null = {}) =>
-      getAxiosClient<T>('put', url, options, data),
+      getAxiosClient<T>("put", url, options, data),
     delete: (url: string, data: object | null, options: object | null = {}) =>
-      getAxiosClient<T>('delete', url, options, data),
+      getAxiosClient<T>("delete", url, options, data),
   };
 };
 export const nonAuthorizedMultiPartRequest = <T>() => {
   return {
     post: (url: string, data: object | null, options = {}) =>
-      getAxiosMultiPartClient<T>('post', url, options, data),
+      getAxiosMultiPartClient<T>("post", url, options, data),
 
     put: (url: string, data: object | null, options = {}) =>
-      getAxiosMultiPartClient<T>('put', url, options, data),
+      getAxiosMultiPartClient<T>("put", url, options, data),
   };
 };
 
