@@ -32,6 +32,7 @@ import CenterModalW2Buttons from '@shared-components/modals/center-modal/with-2-
 import {useSafeBottomPadding} from 'shared/functions/useSafeBottomInset';
 import {
   assertStripePublishableKeySafeForCurrentBuild,
+  getStripeCardSetupErrorMessage,
   STRIPE_MERCHANT_IDENTIFIER,
   STRIPE_URL_SCHEME,
 } from '@services/stripe/stripe.helpers';
@@ -46,6 +47,11 @@ import GREEN_CHECK_CIRCLE from '@assets/v2/common/icons/green-check-circle.svg';
 import {RootState} from 'store';
 
 type CustomStyleProp = StyleProp<ViewStyle> | Array<StyleProp<ViewStyle>>;
+const CARD_SETUP_ERROR_TITLE = 'Card Setup Issue';
+const CARD_SETUP_ERROR_MESSAGE =
+  "We couldn't save this card. Please try again or use another card.";
+const CARD_SETUP_PREPARE_ERROR_MESSAGE =
+  "We couldn't prepare card setup right now. Please try again.";
 
 interface IPaymentScreenProps {
   style?: CustomStyleProp;
@@ -157,7 +163,10 @@ const initializePaymentSheet = async () => {
     if (error) {
       setReady(false);
       initializedRef.current = false;
-      Alert.alert(`Init error: ${error.code}`, error.message);
+      Alert.alert(
+        CARD_SETUP_ERROR_TITLE,
+        getStripeCardSetupErrorMessage(error, CARD_SETUP_PREPARE_ERROR_MESSAGE),
+      );
     } else {
       setReady(true);
       initializedRef.current = true;
@@ -165,7 +174,10 @@ const initializePaymentSheet = async () => {
   } catch (e: any) {
     setReady(false);
     initializedRef.current = false;
-    Alert.alert('Initialize error', e?.message ?? 'Unknown error');
+    Alert.alert(
+      CARD_SETUP_ERROR_TITLE,
+      getStripeCardSetupErrorMessage(e, CARD_SETUP_PREPARE_ERROR_MESSAGE),
+    );
   } finally {
     setLoading(false);
   }
@@ -187,7 +199,10 @@ const openPaymentSheet = async () => {
       if (error.code !== 'Canceled') {
         // Delay showing an Alert a bit (see #③ below)
         setTimeout(() => {
-          Alert.alert(`Error code: ${error.code}`, error.message);
+          Alert.alert(
+            CARD_SETUP_ERROR_TITLE,
+            getStripeCardSetupErrorMessage(error, CARD_SETUP_ERROR_MESSAGE),
+          );
         }, 250);
 
         NavigationService.replace(SCREENS.PAYMENT);
@@ -235,14 +250,32 @@ const getStripeKey = () => {
           });
           await initializePaymentSheet(); // make sure we await this
         } catch (error: any) {
-          Alert.alert('Stripe configuration error', error.message);
+          Alert.alert(
+            CARD_SETUP_ERROR_TITLE,
+            getStripeCardSetupErrorMessage(
+              error,
+              CARD_SETUP_PREPARE_ERROR_MESSAGE,
+            ),
+          );
         }
       } else {
-        Alert.alert(data.StatusMessage);
+        Alert.alert(
+          CARD_SETUP_ERROR_TITLE,
+          getStripeCardSetupErrorMessage(
+            data,
+            CARD_SETUP_PREPARE_ERROR_MESSAGE,
+          ),
+        );
       }
     },
     (error: any) => {
-      Alert.alert(`Error Code: ${error.code}`, error.message);
+      Alert.alert(
+        CARD_SETUP_ERROR_TITLE,
+        getStripeCardSetupErrorMessage(
+          error,
+          CARD_SETUP_PREPARE_ERROR_MESSAGE,
+        ),
+      );
     },
   );
 };
@@ -266,12 +299,19 @@ const _customerSetupIntent = async (): Promise<ICustomerSetupIntentResponse> => 
         if (data.StatusCode === '00') {
           resolve(data as ICustomerSetupIntentResponse);
         } else {
-          Alert.alert(data.StatusMessage);
-          reject(new Error(data.StatusMessage));
+          Alert.alert(
+            CARD_SETUP_ERROR_TITLE,
+            getStripeCardSetupErrorMessage(data, CARD_SETUP_ERROR_MESSAGE),
+          );
+          reject(new Error(CARD_SETUP_ERROR_MESSAGE));
           setLoading(false)
         }
       },
       (error: any) => {
+        Alert.alert(
+          CARD_SETUP_ERROR_TITLE,
+          getStripeCardSetupErrorMessage(error, CARD_SETUP_ERROR_MESSAGE),
+        );
         reject(error);
         setLoading(false)
       },

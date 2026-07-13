@@ -230,26 +230,33 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
       return false;
     }
 
-    const result = await confirmPayment(clientSecret, {
-      paymentMethodType: "Card",
-    });
+    try {
+      const result = await confirmPayment(clientSecret, {
+        paymentMethodType: "Card",
+      });
 
-    if (result.error) {
-      if (!isStripeUserCancellation(result.error.code)) {
-        Alert.alert(PAYMENT_ERROR_TITLE, getStripeErrorMessage(result.error));
+      if (result.error) {
+        if (!isStripeUserCancellation(result.error.code)) {
+          Alert.alert(PAYMENT_ERROR_TITLE, getStripeErrorMessage(result.error));
+        }
+        return false;
+      }
+
+      if (isPaymentIntentConfirmed(result.paymentIntent?.status)) {
+        return true;
+      }
+
+      Alert.alert(
+        PAYMENT_ERROR_TITLE,
+        "Payment was not completed. Please try again.",
+      );
+      return false;
+    } catch (error: any) {
+      if (!isStripeUserCancellation(error?.code || error?.message)) {
+        Alert.alert(PAYMENT_ERROR_TITLE, getStripeErrorMessage(error));
       }
       return false;
     }
-
-    if (isPaymentIntentConfirmed(result.paymentIntent?.status)) {
-      return true;
-    }
-
-    Alert.alert(
-      PAYMENT_ERROR_TITLE,
-      "Payment was not completed. Please try again.",
-    );
-    return false;
   };
 
   const handleStripePaymentNextAction = async (clientSecret: string) => {
@@ -259,24 +266,31 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
       return false;
     }
 
-    const result = await handleNextAction(clientSecret, STRIPE_RETURN_URL);
+    try {
+      const result = await handleNextAction(clientSecret, STRIPE_RETURN_URL);
 
-    if (result.error) {
-      if (!isStripeUserCancellation(result.error.code)) {
-        Alert.alert(PAYMENT_ERROR_TITLE, getStripeErrorMessage(result.error));
+      if (result.error) {
+        if (!isStripeUserCancellation(result.error.code)) {
+          Alert.alert(PAYMENT_ERROR_TITLE, getStripeErrorMessage(result.error));
+        }
+        return false;
+      }
+
+      if (isPaymentIntentConfirmed(result.paymentIntent?.status)) {
+        return true;
+      }
+
+      Alert.alert(
+        PAYMENT_ERROR_TITLE,
+        "Payment authentication was not completed. Please try again.",
+      );
+      return false;
+    } catch (error: any) {
+      if (!isStripeUserCancellation(error?.code || error?.message)) {
+        Alert.alert(PAYMENT_ERROR_TITLE, getStripeErrorMessage(error));
       }
       return false;
     }
-
-    if (isPaymentIntentConfirmed(result.paymentIntent?.status)) {
-      return true;
-    }
-
-    Alert.alert(
-      PAYMENT_ERROR_TITLE,
-      "Payment authentication was not completed. Please try again.",
-    );
-    return false;
   };
 
   const getPlatformPayConfirmParams = (): PlatformPay.ConfirmParams => {
@@ -327,27 +341,34 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
       return false;
     }
 
-    const result = await confirmPlatformPayPayment(
-      clientSecret,
-      getPlatformPayConfirmParams(),
-    );
+    try {
+      const result = await confirmPlatformPayPayment(
+        clientSecret,
+        getPlatformPayConfirmParams(),
+      );
 
-    if (result.error) {
-      if (!isStripeUserCancellation(result.error.code)) {
-        Alert.alert(PAYMENT_ERROR_TITLE, getStripeErrorMessage(result.error));
+      if (result.error) {
+        if (!isStripeUserCancellation(result.error.code)) {
+          Alert.alert(PAYMENT_ERROR_TITLE, getStripeErrorMessage(result.error));
+        }
+        return false;
+      }
+
+      if (isPaymentIntentConfirmed(result.paymentIntent?.status)) {
+        return true;
+      }
+
+      Alert.alert(
+        PAYMENT_ERROR_TITLE,
+        "Wallet payment was not completed. Please try again.",
+      );
+      return false;
+    } catch (error: any) {
+      if (!isStripeUserCancellation(error?.code || error?.message)) {
+        Alert.alert(PAYMENT_ERROR_TITLE, getStripeErrorMessage(error));
       }
       return false;
     }
-
-    if (isPaymentIntentConfirmed(result.paymentIntent?.status)) {
-      return true;
-    }
-
-    Alert.alert(
-      PAYMENT_ERROR_TITLE,
-      "Wallet payment was not completed. Please try again.",
-    );
-    return false;
   };
 
   /**
@@ -461,16 +482,25 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
           }
         }
         if (paymentIntentResponse?.StatusCode === "01") {
-          Alert.alert(PAYMENT_ERROR_TITLE, PAYMENT_ERROR_MESSAGE);
+          Alert.alert(
+            PAYMENT_ERROR_TITLE,
+            getStripeErrorMessage(paymentIntentResponse, PAYMENT_ERROR_MESSAGE),
+          );
           resetPaymentState();
         }
         if (!["00", "01", "02"].includes(paymentIntentResponse?.StatusCode)) {
-          Alert.alert(PAYMENT_ERROR_TITLE, PAYMENT_ERROR_MESSAGE);
+          Alert.alert(
+            PAYMENT_ERROR_TITLE,
+            getStripeErrorMessage(paymentIntentResponse, PAYMENT_ERROR_MESSAGE),
+          );
           resetPaymentState();
         }
       },
-      () => {
-        Alert.alert(PAYMENT_ERROR_TITLE, PAYMENT_START_ERROR_MESSAGE);
+      (error: any) => {
+        Alert.alert(
+          PAYMENT_ERROR_TITLE,
+          getStripeErrorMessage(error, PAYMENT_START_ERROR_MESSAGE),
+        );
         resetPaymentState();
       },
     );
