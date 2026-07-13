@@ -5,7 +5,6 @@ import { SCREENS } from "@shared-constants";
 import {
   CardField,
   ConfirmSetupIntentResult,
-  initStripe,
   useStripe,
 } from "@stripe/stripe-react-native";
 import { useSelector } from "react-redux";
@@ -27,16 +26,18 @@ import InAppBrowser from "react-native-inappbrowser-reborn";
 
 import { RootState } from "store";
 import {
-  assertStripePublishableKeySafeForCurrentBuild,
-  getStripeErrorMessage,
+  getStripeClientSecret,
+  getStripeCardSetupErrorMessage,
   isSetupIntentSucceeded,
   isStripeUserCancellation,
-  STRIPE_MERCHANT_IDENTIFIER,
   STRIPE_RETURN_URL,
-  STRIPE_URL_SCHEME,
 } from "@services/stripe/stripe.helpers";
+import { useStripeInitialization } from "@services/stripe/useStripeInitialization";
 
 const { height } = Dimensions.get("window");
+const CARD_SETUP_ERROR_TITLE = "Card Setup Issue";
+const CARD_SETUP_ERROR_MESSAGE =
+  "We couldn't save this card. Please try again or use another card.";
 
 interface IAddCardScreen {
   route?: any;
@@ -71,9 +72,12 @@ const AddCardScreen: React.FC<IAddCardScreen> = ({ route }) => {
   const {
     customerSetupIntent,
     completeCustomerSetupIntentV2,
-    customerPaymentKey,
   } = usePayment();
   const { confirmSetupIntent } = useStripe();
+  const { ensureStripeInitialized, isStripeReady } = useStripeInitialization(
+    token,
+    customerId,
+  );
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const buttonBottomPadding = useSafeBottomPadding(20);
@@ -93,8 +97,8 @@ const AddCardScreen: React.FC<IAddCardScreen> = ({ route }) => {
   });
 
   useEffect(() => {
-    getStripeKey();
-  }, []);
+    ensureStripeInitialized(false);
+  }, [ensureStripeInitialized]);
 
   const _validateCardDetails = async () => {
     if (!cardInfo?.complete) {
@@ -116,42 +120,17 @@ const AddCardScreen: React.FC<IAddCardScreen> = ({ route }) => {
     return true;
   };
 
-  const getStripeKey = async () => {
-    const payload = {
-      CustomerToken: token,
-      CustomerId: customerId,
-    };
-
-    customerPaymentKey(
-      payload,
-      (data: any) => {
-        if (data.StatusCode === "00") {
-          try {
-            const stripeKey = assertStripePublishableKeySafeForCurrentBuild(
-              data.Data.find((x: any) => x.StripeKeyName === "PublishableKey")
-                ?.StripeKey,
-            );
-            initStripe({
-              publishableKey: stripeKey,
-              merchantIdentifier: STRIPE_MERCHANT_IDENTIFIER,
-              urlScheme: STRIPE_URL_SCHEME,
-            });
-          } catch (error: any) {
-            Alert.alert("Stripe configuration error", error.message);
-          }
-        } else {
-          Alert.alert(data.StatusMessage);
-        }
-      },
-      (error: any) => {
-        Alert.alert(`Error Code: ${error.code}`, error.message);
-      },
-    );
-  };
-
   // Step 1: Create SetupIntent on backend
   const _customerSetupIntent = async () => {
     setLoading(true);
+
+    const stripeReady = await ensureStripeInitialized();
+
+    if (!stripeReady) {
+      setLoading(false);
+      return;
+    }
+
     const isValid = await _validateCardDetails();
 
     if (!isValid) {
@@ -172,15 +151,32 @@ const AddCardScreen: React.FC<IAddCardScreen> = ({ route }) => {
       payload,
       (data: any) => {
         if (data.StatusCode === "00") {
-          _confirmStripeIntent(data.ClientSecret);
+          const clientSecret = getStripeClientSecret(data);
+
+          if (!clientSecret) {
+            setLoading(false);
+            Alert.alert(
+              CARD_SETUP_ERROR_TITLE,
+              "We couldn't start card verification. Please try again.",
+            );
+            return;
+          }
+
+          _confirmStripeIntent(clientSecret);
         } else {
           setLoading(false);
-          Alert.alert(data.StatusMessage);
+          Alert.alert(
+            CARD_SETUP_ERROR_TITLE,
+            getStripeCardSetupErrorMessage(data, CARD_SETUP_ERROR_MESSAGE),
+          );
         }
       },
       (error: any) => {
         setLoading(false);
-        Alert.alert(`Error Code: ${error.code}`, error.message);
+        Alert.alert(
+          CARD_SETUP_ERROR_TITLE,
+          getStripeCardSetupErrorMessage(error, CARD_SETUP_ERROR_MESSAGE),
+        );
       },
     );
   };
@@ -193,20 +189,31 @@ const AddCardScreen: React.FC<IAddCardScreen> = ({ route }) => {
       paymentMethodData: {
         billingDetails: { name: values.fullName },
       },
-    }).then((res: ConfirmSetupIntentResult) => {
-      if (res.error) {
-        if (!isStripeUserCancellation(res.error.code)) {
-          Alert.alert("Payment Error", getStripeErrorMessage(res.error));
+    })
+      .then((res: ConfirmSetupIntentResult) => {
+        if (res.error) {
+          if (!isStripeUserCancellation(res.error.code)) {
+            Alert.alert(
+              CARD_SETUP_ERROR_TITLE,
+              getStripeCardSetupErrorMessage(res.error),
+            );
+          }
+          setLoading(false);
+        } else if (isSetupIntentSucceeded(res.setupIntent?.status)) {
+          const setupIntentId = res.setupIntent.id;
+          const paymentMethodId = res.setupIntent.paymentMethod?.id ?? null;
+          _completeCustomerSetupIntent(paymentMethodId, setupIntentId);
+        } else {
+          setLoading(false);
         }
+      })
+      .catch((error: any) => {
         setLoading(false);
-      } else if (isSetupIntentSucceeded(res.setupIntent?.status)) {
-        const setupIntentId = res.setupIntent.id;
-        const paymentMethodId = res.setupIntent.paymentMethod?.id ?? null;
-        _completeCustomerSetupIntent(paymentMethodId, setupIntentId);
-      } else {
-        setLoading(false);
-      }
-    });
+        Alert.alert(
+          CARD_SETUP_ERROR_TITLE,
+          getStripeCardSetupErrorMessage(error, CARD_SETUP_ERROR_MESSAGE),
+        );
+      });
   };
 
   // Step 3: Complete SetupIntent on backend — backend verifies 3DS status
@@ -264,12 +271,21 @@ const AddCardScreen: React.FC<IAddCardScreen> = ({ route }) => {
                           },
                         ]);
                       } else {
-                        Alert.alert(d.StatusMessage);
+                        Alert.alert(
+                          CARD_SETUP_ERROR_TITLE,
+                          getStripeCardSetupErrorMessage(
+                            d,
+                            CARD_SETUP_ERROR_MESSAGE,
+                          ),
+                        );
                       }
                     },
                     (err: any) => {
                       setLoading(false);
-                      Alert.alert(`Error Code: ${err.code}`, err.message);
+                      Alert.alert(
+                        CARD_SETUP_ERROR_TITLE,
+                        getStripeCardSetupErrorMessage(err, CARD_SETUP_ERROR_MESSAGE),
+                      );
                     },
                   );
                 } else {
@@ -292,12 +308,18 @@ const AddCardScreen: React.FC<IAddCardScreen> = ({ route }) => {
               );
             });
         } else {
-          Alert.alert(data.StatusMessage);
+          Alert.alert(
+            CARD_SETUP_ERROR_TITLE,
+            getStripeCardSetupErrorMessage(data, CARD_SETUP_ERROR_MESSAGE),
+          );
         }
       },
       (error: any) => {
         setLoading(false);
-        Alert.alert(`Error Code: ${error.code}`, error.message);
+        Alert.alert(
+          CARD_SETUP_ERROR_TITLE,
+          getStripeCardSetupErrorMessage(error, CARD_SETUP_ERROR_MESSAGE),
+        );
       },
     );
   };
@@ -355,9 +377,10 @@ const AddCardScreen: React.FC<IAddCardScreen> = ({ route }) => {
 
         <View style={[styles.buttonContainer, buttonBottomPadding]}>
           <CommonButton
-            text={"Save"}
+            text={isStripeReady ? "Save" : "Loading..."}
             isFetching={loading}
             onPress={handleSubmit(_customerSetupIntent)}
+            disabled={!isStripeReady || loading}
             style={{ borderRadius: 5 }}
           />
         </View>

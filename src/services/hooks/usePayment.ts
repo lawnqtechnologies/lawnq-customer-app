@@ -13,6 +13,7 @@ import {
   onGetCustomerWalletList,
   onCustomerPaymentKey,
 } from '../api/payment.service';
+import {getStripeCardSetupErrorMessage} from '@services/stripe/stripe.helpers';
 
 const asAxios = (e: unknown) => e as AxiosError;
 
@@ -70,8 +71,14 @@ export const usePayment = () => {
       onSuccess: data => successCallback?.(data),
       onError: e => {
         const err = asAxios(e);
-        errorCallback?.(err);
-        Alert.alert('Error creating setup intent', (err.response?.data as any)?.Message);
+        if (errorCallback) {
+          errorCallback(err);
+          return;
+        }
+        Alert.alert(
+          'Card Setup Issue',
+          getStripeCardSetupErrorMessage(err, "We couldn't save this card. Please try again."),
+        );
       },
     });
   };
@@ -85,8 +92,14 @@ export const usePayment = () => {
       onSuccess: data => successCallback?.(data),
       onError: e => {
         const err = asAxios(e);
-        errorCallback?.(err);
-        Alert.alert('Error completing setup intent', (err.response?.data as any)?.Message);
+        if (errorCallback) {
+          errorCallback(err);
+          return;
+        }
+        Alert.alert(
+          'Card Setup Issue',
+          getStripeCardSetupErrorMessage(err, "We couldn't save this card. Please try again."),
+        );
       },
     });
   };
@@ -100,8 +113,14 @@ export const usePayment = () => {
       onSuccess: data => successCallback?.(data),
       onError: e => {
         const err = asAxios(e);
-        errorCallback?.(err);
-        Alert.alert('Error saving card', (err.response?.data as any)?.Message);
+        if (errorCallback) {
+          errorCallback(err);
+          return;
+        }
+        Alert.alert(
+          'Card Setup Issue',
+          getStripeCardSetupErrorMessage(err, "We couldn't save this card. Please try again."),
+        );
       },
     });
   };
