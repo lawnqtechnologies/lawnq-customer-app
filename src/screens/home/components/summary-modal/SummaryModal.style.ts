@@ -16,13 +16,12 @@ interface Style {
   cardLeftContent: ViewStyle;
   cardMiddleContent: ViewStyle;
   buttonContainer: ViewStyle;
+  platformPayButton: ViewStyle;
   discountTitle: ViewStyle;
   discountDetail: ViewStyle;
 }
 
-export default (theme: ExtendedTheme) => {
-  const {colors} = theme;
-
+export default (_theme: ExtendedTheme) => {
   return StyleSheet.create<Style>({
     container: {
       flex: 1,
@@ -108,6 +107,12 @@ export default (theme: ExtendedTheme) => {
     buttonContainer: {
       flexGrow: 1,
       justifyContent: 'flex-end',
+    },
+    platformPayButton: {
+      width: '100%',
+      height: 52,
+      marginTop: 12,
+      marginBottom: 8,
     },
   });
 };

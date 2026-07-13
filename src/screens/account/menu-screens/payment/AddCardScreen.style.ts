@@ -8,9 +8,7 @@ interface Style {
   buttonContainer: ViewStyle;
 }
 
-export default (theme: ExtendedTheme) => {
-  const { colors } = theme;
-
+export default (_theme: ExtendedTheme) => {
   return StyleSheet.create<Style>({
     container: {
       height,

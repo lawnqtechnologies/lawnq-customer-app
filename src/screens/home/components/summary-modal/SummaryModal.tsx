@@ -1,4 +1,4 @@
-import React, {useMemo, useState} from 'react';
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   StyleProp,
@@ -6,47 +6,69 @@ import {
   Pressable,
   Alert,
   Vibration,
-} from 'react-native';
-import {useTheme} from '@react-navigation/native';
-import Modal from 'react-native-modal';
-import GestureRecognizer from 'react-native-swipe-gestures';
-import * as NavigationService from 'react-navigation-helpers';
-import {useDispatch, useSelector} from 'react-redux';
-import Icon, {IconType} from 'react-native-dynamic-vector-icons';
-import * as Progress from 'react-native-progress';
+  Platform,
+} from "react-native";
+import { useTheme } from "@react-navigation/native";
+import Modal from "react-native-modal";
+import GestureRecognizer from "react-native-swipe-gestures";
+import * as NavigationService from "react-navigation-helpers";
+import { useDispatch, useSelector } from "react-redux";
+import Icon, { IconType } from "react-native-dynamic-vector-icons";
+import * as Progress from "react-native-progress";
 
 /**
  * ? Local imports
  */
-import createStyles from './SummaryModal.style';
-import Text from '@shared-components/text-wrapper/TextWrapper';
-import CommonButton from '@shared-components/buttons/CommonButton';
-import {SCREENS} from '@shared-constants';
-import {v2Colors} from '@theme/themes';
+import createStyles from "./SummaryModal.style";
+import Text from "@shared-components/text-wrapper/TextWrapper";
+import CommonButton from "@shared-components/buttons/CommonButton";
+import { SCREENS } from "@shared-constants";
+import { v2Colors } from "@theme/themes";
 
-import {useBooking} from '@services/hooks/useBooking';
+import { useBooking } from "@services/hooks/useBooking";
 
 /**
  * ? SVGs
  */
-import LikeGreenCircle from '@assets/v2/homescreen/icons/like-green-circle.svg';
-import Calendar from '@assets/v2/homescreen/icons/calendar.svg';
-import HouseProperty from '@assets/v2/homescreen/icons/house-property.svg';
-import MowerGreen from '@assets/v2/homescreen/icons/mower-green.svg';
+import LikeGreenCircle from "@assets/v2/homescreen/icons/like-green-circle.svg";
+import Calendar from "@assets/v2/homescreen/icons/calendar.svg";
+import HouseProperty from "@assets/v2/homescreen/icons/house-property.svg";
+import MowerGreen from "@assets/v2/homescreen/icons/mower-green.svg";
 
-import VISA from '@assets/v2/payment/images/cards-illustration.svg';
-import CHEVRON_RIGHT from '@assets/v2/list/chevron-right.svg';
-import {RootState} from 'store';
+import VISA from "@assets/v2/payment/images/cards-illustration.svg";
+import CHEVRON_RIGHT from "@assets/v2/list/chevron-right.svg";
+import { RootState } from "store";
+import { onSetBookingRefNo } from "@services/states/booking/booking.slice";
+import { usePayment } from "@services/hooks/usePayment";
+import { useSafeBottomPadding } from "shared/functions/useSafeBottomInset";
 import {
-  onSetBookingItem,
-  onSetBookingPayment,
-  onSetBookingRefNo,
-  onSetFee,
-} from '@services/states/booking/booking.slice';
-import {usePayment} from '@services/hooks/usePayment';
-import {useSafeBottomPadding} from 'shared/functions/useSafeBottomInset';
+  PlatformPay,
+  PlatformPayButton,
+  useStripe,
+} from "@stripe/stripe-react-native";
+import {
+  formatStripePlatformPayAmount,
+  getStripeClientSecret,
+  getStripeErrorMessage,
+  isPaymentIntentConfirmed,
+  isStripeUserCancellation,
+  STRIPE_CURRENCY_CODE,
+  STRIPE_MERCHANT_COUNTRY_CODE,
+  STRIPE_MERCHANT_NAME,
+  STRIPE_PAYMENT_TYPE_CARD,
+  STRIPE_PAYMENT_TYPE_NATIVE_PAY,
+  STRIPE_PLATFORM_PAY_TEST_ENV,
+  STRIPE_RETURN_URL,
+} from "@services/stripe/stripe.helpers";
+import { useStripeInitialization } from "@services/stripe/useStripeInitialization";
 
 type CustomStyleProp = StyleProp<ViewStyle> | Array<StyleProp<ViewStyle>>;
+type BookingPaymentMethod = "card" | "platformPay";
+const PAYMENT_ERROR_TITLE = "Payment Issue";
+const PAYMENT_ERROR_MESSAGE =
+  "We couldn't complete your payment. Please try again or use another payment method.";
+const PAYMENT_START_ERROR_MESSAGE =
+  "We couldn't start your payment securely. Please try again.";
 
 interface IBottomModalScreenProps {
   style?: CustomStyleProp;
@@ -93,35 +115,37 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
   const buttonBottomPadding = useSafeBottomPadding(20);
   const dispatch = useDispatch();
 
-  const ONE_SECOND_IN_MS = 1000;
-
-  const PATTERN = [
-    1 * ONE_SECOND_IN_MS,
-    2 * ONE_SECOND_IN_MS,
-    3 * ONE_SECOND_IN_MS,
-  ];
-
   /**
 |--------------------------------------------------
 | Hooks
 |--------------------------------------------------
 */
-  const {saveBooking, saveScheduledBooking} = useBooking();
+  const { saveScheduledBooking } = useBooking();
 
   /**
 |--------------------------------------------------
 | Redux
 |--------------------------------------------------
 */
-  const {token, customerId, deviceDetails} = useSelector(
+  const { token, customerId, deviceDetails } = useSelector(
     (state: RootState) => state.user,
   );
 
-  const {lawnURIList, property, rawDate, selectedServiceTypeId} = useSelector(
+  const { lawnURIList, property, rawDate, selectedServiceTypeId } = useSelector(
     (state: RootState) => state.booking,
   );
+  const { ensureStripeInitialized, isStripeReady } = useStripeInitialization(
+    token,
+    customerId,
+  );
 
-  const {createPaymentIntent} = usePayment();
+  const { createPaymentIntent } = usePayment();
+  const {
+    confirmPayment,
+    confirmPlatformPayPayment,
+    handleNextAction,
+    isPlatformPaySupported,
+  } = useStripe();
   /**
 |--------------------------------------------------
 | Effects
@@ -131,16 +155,222 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
   const [isFetching, setIsFetching] = useState<boolean>(false);
   const [isPaymentProcessing, setIsPaymentProcessing] =
     useState<boolean>(false);
+  const [isPlatformPayAvailable, setIsPlatformPayAvailable] =
+    useState<boolean>(false);
 
-  const handleSubmit = () => {
+  useEffect(() => {
+    let isMounted = true;
+
+    const checkPlatformPaySupport = async () => {
+      if (!isVisible) {
+        setIsPlatformPayAvailable(false);
+        return;
+      }
+
+      try {
+        const stripeReady = await ensureStripeInitialized(false);
+
+        if (!stripeReady) {
+          if (isMounted) {
+            setIsPlatformPayAvailable(false);
+          }
+          return;
+        }
+
+        const supported = await isPlatformPaySupported(
+          Platform.OS === "android"
+            ? { googlePay: { testEnv: STRIPE_PLATFORM_PAY_TEST_ENV } }
+            : undefined,
+        );
+
+        if (isMounted) {
+          setIsPlatformPayAvailable(supported);
+        }
+      } catch {
+        if (isMounted) {
+          setIsPlatformPayAvailable(false);
+        }
+      }
+    };
+
+    checkPlatformPaySupport();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [ensureStripeInitialized, isPlatformPaySupported, isVisible]);
+
+  const handleSubmit = (paymentMethod: BookingPaymentMethod) => {
+    if (paymentMethod === "card" && !defaultCard?.CustomerStripePaymentId) {
+      addWalletAndRedirect();
+      return;
+    }
+
     Vibration.vibrate();
     // _validatePayment();
     setIsFetching(true);
-    if (queue === 'later') {
-      onSaveScheduledBooking();
+    if (queue === "later") {
+      onSaveScheduledBooking(paymentMethod);
     } else {
-      onSaveBookingToday();
+      onSaveBookingToday(paymentMethod);
     }
+  };
+
+  const getPlatformPayPaymentMethodType = () =>
+    Platform.OS === "ios" ? "ApplePay" : "GooglePay";
+
+  const getBackendPaymentMethodType = (paymentMethod: BookingPaymentMethod) =>
+    paymentMethod === "card" ? "Card" : getPlatformPayPaymentMethodType();
+
+  const getPaymentIntentPaymentType = (paymentMethod: BookingPaymentMethod) =>
+    paymentMethod === "card"
+      ? STRIPE_PAYMENT_TYPE_CARD
+      : STRIPE_PAYMENT_TYPE_NATIVE_PAY;
+
+  const resetPaymentState = () => {
+    setIsFetching(false);
+    setIsPaymentProcessing(false);
+  };
+
+  const completeConfirmedPaymentFlow = (Action: string) => {
+    setIsFetching(false);
+    setIsVisible(false);
+    setIsPaymentProcessing(false);
+
+    if (Action === "BookingToday") {
+      NavigationService.push(SCREENS.SEARCH_SERVICE_PROVIDERS);
+    }
+
+    if (Action === "BookLater") {
+      NavigationService.push(SCREENS.SEARCH_SCHEDULE_SERVICE_PROVIDERS);
+    }
+  };
+
+  const confirmStripeCardPaymentIntent = async (clientSecret: string) => {
+    const stripeReady = await ensureStripeInitialized();
+
+    if (!stripeReady) {
+      return false;
+    }
+
+    const result = await confirmPayment(clientSecret, {
+      paymentMethodType: "Card",
+    });
+
+    if (result.error) {
+      if (!isStripeUserCancellation(result.error.code)) {
+        Alert.alert(PAYMENT_ERROR_TITLE, getStripeErrorMessage(result.error));
+      }
+      return false;
+    }
+
+    if (isPaymentIntentConfirmed(result.paymentIntent?.status)) {
+      return true;
+    }
+
+    Alert.alert(
+      PAYMENT_ERROR_TITLE,
+      "Payment was not completed. Please try again.",
+    );
+    return false;
+  };
+
+  const handleStripePaymentNextAction = async (clientSecret: string) => {
+    const stripeReady = await ensureStripeInitialized();
+
+    if (!stripeReady) {
+      return false;
+    }
+
+    const result = await handleNextAction(clientSecret, STRIPE_RETURN_URL);
+
+    if (result.error) {
+      if (!isStripeUserCancellation(result.error.code)) {
+        Alert.alert(PAYMENT_ERROR_TITLE, getStripeErrorMessage(result.error));
+      }
+      return false;
+    }
+
+    if (isPaymentIntentConfirmed(result.paymentIntent?.status)) {
+      return true;
+    }
+
+    Alert.alert(
+      PAYMENT_ERROR_TITLE,
+      "Payment authentication was not completed. Please try again.",
+    );
+    return false;
+  };
+
+  const getPlatformPayConfirmParams = (): PlatformPay.ConfirmParams => {
+    const platformPayAmount = formatStripePlatformPayAmount(data.fee);
+
+    if (Platform.OS === "ios") {
+      const cartItems: PlatformPay.CartSummaryItem[] = [
+        {
+          label: STRIPE_MERCHANT_NAME,
+          amount: platformPayAmount,
+          paymentType: PlatformPay.PaymentType.Immediate,
+        },
+      ];
+
+      return {
+        applePay: {
+          merchantCountryCode: STRIPE_MERCHANT_COUNTRY_CODE,
+          currencyCode: STRIPE_CURRENCY_CODE,
+          merchantCapabilities: [
+            PlatformPay.ApplePayMerchantCapability.Supports3DS,
+          ],
+          cartItems,
+        },
+      };
+    }
+
+    return {
+      googlePay: {
+        testEnv: STRIPE_PLATFORM_PAY_TEST_ENV,
+        merchantName: STRIPE_MERCHANT_NAME,
+        merchantCountryCode: STRIPE_MERCHANT_COUNTRY_CODE,
+        currencyCode: STRIPE_CURRENCY_CODE,
+        billingAddressConfig: {
+          isRequired: true,
+          isPhoneNumberRequired: true,
+          format: PlatformPay.BillingAddressFormat.Full,
+        },
+      },
+    };
+  };
+
+  const confirmStripePlatformPayPaymentIntent = async (
+    clientSecret: string,
+  ) => {
+    const stripeReady = await ensureStripeInitialized();
+
+    if (!stripeReady) {
+      return false;
+    }
+
+    const result = await confirmPlatformPayPayment(
+      clientSecret,
+      getPlatformPayConfirmParams(),
+    );
+
+    if (result.error) {
+      if (!isStripeUserCancellation(result.error.code)) {
+        Alert.alert(PAYMENT_ERROR_TITLE, getStripeErrorMessage(result.error));
+      }
+      return false;
+    }
+
+    if (isPaymentIntentConfirmed(result.paymentIntent?.status)) {
+      return true;
+    }
+
+    Alert.alert(
+      PAYMENT_ERROR_TITLE,
+      "Wallet payment was not completed. Please try again.",
+    );
+    return false;
   };
 
   /**
@@ -149,41 +379,73 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
   |--------------------------------------------------
   */
 
-  const _createPaymentIntent = (BookingRefNo: string, Action: string) => {
+  const _createPaymentIntent = (
+    BookingRefNo: string,
+    Action: string,
+    paymentMethod: BookingPaymentMethod,
+  ) => {
     setIsPaymentProcessing(true);
     const request = {
       CustomerToken: token,
       CustomerId: parseInt(customerId),
       Amount: data.fee,
-      PaymentCustomerId: defaultCard?.CustomerStripeId || '',
-      PaymentCustomerMethodId: defaultCard?.CustomerStripePaymentId || '',
       BookingRefNo,
+      ServiceProviderId: 0,
       DeviceDetails: deviceDetails,
+      PaymentType: getPaymentIntentPaymentType(paymentMethod),
+      ...(paymentMethod === "card"
+        ? {
+            PaymentCustomerId: defaultCard?.CustomerStripeId || "",
+            PaymentCustomerMethodId: defaultCard?.CustomerStripePaymentId || "",
+          }
+        : {}),
     };
 
     createPaymentIntent(
       request,
-      (data: any) => {
-        if (data?.StatusCode === '00') {
-          setIsFetching(false);
-          setIsVisible(false);
-          setIsPaymentProcessing(false);
-          // if (Action === 'BookingToday') {
-          //   NavigationService.push(SCREENS.SEARCH_SERVICE_PROVIDERS);
-          // }
+      async (paymentIntentResponse: any) => {
+        const isPaymentAuthorized = paymentIntentResponse?.StatusCode === "00";
+        const requiresStripeAction = paymentIntentResponse?.StatusCode === "02";
 
-          if (Action === 'BookLater') {
-            NavigationService.push(SCREENS.SEARCH_SCHEDULE_SERVICE_PROVIDERS);
+        if (isPaymentAuthorized || requiresStripeAction) {
+          const clientSecret = getStripeClientSecret(paymentIntentResponse);
+
+          if (!clientSecret) {
+            Alert.alert(PAYMENT_ERROR_TITLE, PAYMENT_START_ERROR_MESSAGE);
+            resetPaymentState();
+            return;
+          }
+
+          if (isPaymentAuthorized && paymentMethod === "card") {
+            completeConfirmedPaymentFlow(Action);
+            return;
+          }
+
+          const isPaymentConfirmed =
+            paymentMethod === "platformPay"
+              ? await confirmStripePlatformPayPaymentIntent(clientSecret)
+              : requiresStripeAction
+                ? await handleStripePaymentNextAction(clientSecret)
+                : await confirmStripeCardPaymentIntent(clientSecret);
+
+          if (isPaymentConfirmed) {
+            completeConfirmedPaymentFlow(Action);
+          } else {
+            resetPaymentState();
           }
         }
-        if (data?.StatusCode === '01') {
-          Alert.alert(data?.StatusMessage);
-          setIsPaymentProcessing(false);
+        if (paymentIntentResponse?.StatusCode === "01") {
+          Alert.alert(PAYMENT_ERROR_TITLE, PAYMENT_ERROR_MESSAGE);
+          resetPaymentState();
+        }
+        if (!["00", "01", "02"].includes(paymentIntentResponse?.StatusCode)) {
+          Alert.alert(PAYMENT_ERROR_TITLE, PAYMENT_ERROR_MESSAGE);
+          resetPaymentState();
         }
       },
       () => {
-        console.log('_createPaymentIntent error false');
-        setIsPaymentProcessing(false);
+        Alert.alert(PAYMENT_ERROR_TITLE, PAYMENT_START_ERROR_MESSAGE);
+        resetPaymentState();
       },
     );
   };
@@ -194,57 +456,13 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
   |--------------------------------------------------
   */
 
-  const onSaveOnDemandBooking = async () => {
-    let payloadNew = payload;
-    payloadNew.append(
-      'CustomerStripePaymentId',
-      defaultCard?.CustomerStripePaymentId,
-    );
-    payloadNew.append('CustomerDiscountId', data.customerDiscountId ?? 0);
-    console.log('onSaveOnDemandBooking payload:', JSON.stringify(payload));
-
-    saveBooking(
-      payloadNew,
-      async (saveBookingData: any) => {
-        if (saveBookingData[0].StatusCode === '01') {
-          if (saveBookingData[0]?.StatusMessage?.length) {
-            Alert.alert(saveBookingData[0]?.StatusMessage);
-          }
-          setIsFetching(false);
-          return;
-        }
-        const item = saveBookingData[0].Data[0];
-        const {BookingRefNo} = item;
-        dispatch(onSetBookingRefNo(BookingRefNo));
-
-        dispatch(onSetFee(data.fee));
-        dispatch(onSetBookingItem(item));
-
-        // - dispatch payment details before navigate to search provider screen
-        const request = {
-          customerId: parseInt(customerId),
-          amount: parseFloat(data.fee),
-          paymentCustomerId: defaultCard?.CustomerStripeId,
-          paymentCustomerMehodId: defaultCard?.CustomerStripePaymentId,
-          bookingRefNo: BookingRefNo,
-        };
-
-        onSetBookingPayment(request);
-        setIsPaymentProcessing(true);
-        _createPaymentIntent(BookingRefNo, 'BookingToday');
-      },
-      error => {
-        console.log('onSaveOnDemandBooking error:', error);
-        setIsFetching(false);
-      },
-    );
-  };
-
-  const onSaveScheduledBooking = async () => {
+  const onSaveScheduledBooking = async (
+    paymentMethod: BookingPaymentMethod,
+  ) => {
     const lawnImageRequest = async () => {
-      if (lawnURIList[0]) return request.append('LawnImages', lawnURIList[0]);
+      if (lawnURIList[0]) return request.append("LawnImages", lawnURIList[0]);
 
-      return request.append('LawnImages', []);
+      return request.append("LawnImages", []);
     };
 
     const payloadObject = Object.fromEntries(payload?._parts || []);
@@ -258,78 +476,73 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
     } = payloadObject;
 
     let request = new FormData();
-    request.append('CustomerToken', token);
-    request.append('CustomerId', customerId);
+    request.append("CustomerToken", token);
+    request.append("CustomerId", customerId);
     await lawnImageRequest();
-    request.append('AddressId', property.value);
-    request.append('ServiceProviderId', 0);
+    request.append("AddressId", property.value);
+    request.append("ServiceProviderId", 0);
 
-    request.append('Cost', Cost);
-    request.append('TotalCost', TotalCost);
-    request.append('GSTFee', GSTFee);
-    request.append('StripeCommissionFee', StripeCommissionFee);
+    request.append("Cost", Cost);
+    request.append("TotalCost", TotalCost);
+    request.append("GSTFee", GSTFee);
+    request.append("StripeCommissionFee", StripeCommissionFee);
 
-    request.append('BookingServiceStepId', selectedServiceTypeId);
-    request.append('BookingTypeId', 2);
-    request.append('Remarks', 'Empty');
-    request.append('GrassLengthId', GrassLengthId || '1');
-    request.append('MowLengthId', MowLengthId);
-    request.append('BookingServiceTypeId', selectedServiceTypeId || 0);
+    request.append("BookingServiceStepId", selectedServiceTypeId);
+    request.append("BookingTypeId", 2);
+    request.append("Remarks", "Empty");
+    request.append("GrassLengthId", GrassLengthId || "1");
+    request.append("MowLengthId", MowLengthId);
+    request.append("BookingServiceTypeId", selectedServiceTypeId || 0);
     request.append(
-      'CustomerStripePaymentId',
-      defaultCard?.CustomerStripePaymentId || '',
+      "CustomerStripePaymentId",
+      defaultCard?.CustomerStripePaymentId || "",
     );
-    request.append('CustomerDiscountId', data.customerDiscountId ?? 0);
-    request.append('CollectClippings',data.collectClippings ?? 0)
-    request.append('PropertyAddId', property.value);
-    request.append('Scheduledate', JSON.parse(rawDate));
-    request.append('DeviceDetails.AppVersion', deviceDetails.AppVersion);
-    request.append('DeviceDetails.DeviceModel', deviceDetails.DeviceModel);
-    request.append('DeviceDetails.DeviceVersion', deviceDetails.DeviceVersion);
-    request.append('DeviceDetails.IpAddress', deviceDetails.IpAddress);
-    request.append('DeviceDetails.MacAddress', deviceDetails.MacAddress);
-    request.append('DeviceDetails.Platform', deviceDetails.Platform);
-    request.append('DeviceDetails.PlatformOs', deviceDetails.PlatformOs);
+    request.append(
+      "PaymentMethodType",
+      getBackendPaymentMethodType(paymentMethod),
+    );
+    if (paymentMethod === "platformPay") {
+      request.append("WalletType", getPlatformPayPaymentMethodType());
+    }
+    request.append("CustomerDiscountId", data.customerDiscountId ?? 0);
+    request.append("CollectClippings", data.collectClippings ?? 0);
+    request.append("PropertyAddId", property.value);
+    request.append("Scheduledate", JSON.parse(rawDate));
+    request.append("DeviceDetails.AppVersion", deviceDetails.AppVersion);
+    request.append("DeviceDetails.DeviceModel", deviceDetails.DeviceModel);
+    request.append("DeviceDetails.DeviceVersion", deviceDetails.DeviceVersion);
+    request.append("DeviceDetails.IpAddress", deviceDetails.IpAddress);
+    request.append("DeviceDetails.MacAddress", deviceDetails.MacAddress);
+    request.append("DeviceDetails.Platform", deviceDetails.Platform);
+    request.append("DeviceDetails.PlatformOs", deviceDetails.PlatformOs);
 
     saveScheduledBooking(
       request,
       (data: any) => {
-        if (data.StatusCode === '01') {
+        if (data.StatusCode === "01") {
           Alert.alert(data.StatusMessage);
           return;
         }
-        if (data.StatusCode === '00') {
+        if (data.StatusCode === "00") {
           dispatch(onSetBookingRefNo(data.BookingRefNo));
-          _createPaymentIntent(data.BookingRefNo, 'BookLater');
+          _createPaymentIntent(data.BookingRefNo, "BookLater", paymentMethod);
         }
       },
       (err: any) => {
-        console.log('error');
-        console.log(err);
+        Alert.alert(
+          "Booking Error",
+          err?.response?.data?.StatusMessage ||
+            err?.response?.data?.message ||
+            err?.response?.data?.Message ||
+            err?.message ||
+            "Unable to save booking.",
+        );
+        resetPaymentState();
       },
     );
   };
 
-  const getCurrentDateTime = () => {
-    const now = new Date();
-
-    // Pad with leading zeros
-    const padWithZero = (num: number) => num.toString().padStart(2, '0');
-
-    // Get individual parts
-    const year = now.getFullYear();
-    const month = padWithZero(now.getMonth() + 1); // Months are zero-based
-    const day = padWithZero(now.getDate());
-    const hours = padWithZero(now.getHours());
-    const minutes = padWithZero(now.getMinutes());
-    const seconds = padWithZero(now.getSeconds());
-    const milliseconds = now.getMilliseconds().toString().padStart(3, '0'); // Ensure 3 digits for milliseconds
-
-    // Construct the formatted date-time string
-    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}`;
-  };
-
-  const onSaveBookingToday = () => {
+  const onSaveBookingToday = (paymentMethod: BookingPaymentMethod) => {
     const payloadObject = Object.fromEntries(payload?._parts || []);
     const {
       Cost,
@@ -341,56 +554,72 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
     } = payloadObject;
 
     let request = new FormData();
-    request.append('CustomerToken', token);
-    request.append('CustomerId', customerId);
-    if (lawnURIList[0]) request.append('LawnImages', lawnURIList[0]);
-    request.append('AddressId', property.value);
-    request.append('ServiceProviderId', 0);
+    request.append("CustomerToken", token);
+    request.append("CustomerId", customerId);
+    if (lawnURIList[0]) request.append("LawnImages", lawnURIList[0]);
+    request.append("AddressId", property.value);
+    request.append("ServiceProviderId", 0);
 
-    request.append('Cost', Cost);
-    request.append('TotalCost', TotalCost);
-    request.append('GSTFee', GSTFee);
-    request.append('StripeCommissionFee', StripeCommissionFee);
+    request.append("Cost", Cost);
+    request.append("TotalCost", TotalCost);
+    request.append("GSTFee", GSTFee);
+    request.append("StripeCommissionFee", StripeCommissionFee);
 
-    request.append('BookingServiceStepId', selectedServiceTypeId);
-    request.append('BookingTypeId', 1);
-    request.append('Remarks', 'Empty');
-    request.append('GrassLengthId', GrassLengthId || '1');
-    request.append('MowLengthId', MowLengthId);
-    request.append('BookingServiceTypeId', selectedServiceTypeId || 0);
+    request.append("BookingServiceStepId", selectedServiceTypeId);
+    request.append("BookingTypeId", 1);
+    request.append("Remarks", "Empty");
+    request.append("GrassLengthId", GrassLengthId || "1");
+    request.append("MowLengthId", MowLengthId);
+    request.append("BookingServiceTypeId", selectedServiceTypeId || 0);
     request.append(
-      'CustomerStripePaymentId',
-      defaultCard?.CustomerStripePaymentId || '',
+      "CustomerStripePaymentId",
+      defaultCard?.CustomerStripePaymentId || "",
     );
-    request.append('CustomerDiscountId', data.customerDiscountId ?? 0);
-    request.append('CollectClippings', data.collectClippings ?? 0);
-    request.append('PropertyAddId', property.value);
-    request.append('Scheduledate', new Date().toISOString());
-    request.append('DeviceDetails.AppVersion', deviceDetails.AppVersion);
-    request.append('DeviceDetails.DeviceModel', deviceDetails.DeviceModel);
-    request.append('DeviceDetails.DeviceVersion', deviceDetails.DeviceVersion);
-    request.append('DeviceDetails.IpAddress', deviceDetails.IpAddress);
-    request.append('DeviceDetails.MacAddress', deviceDetails.MacAddress);
-    request.append('DeviceDetails.Platform', deviceDetails.Platform);
-    request.append('DeviceDetails.PlatformOs', deviceDetails.PlatformOs);
+    request.append(
+      "PaymentMethodType",
+      getBackendPaymentMethodType(paymentMethod),
+    );
+    if (paymentMethod === "platformPay") {
+      request.append("WalletType", getPlatformPayPaymentMethodType());
+    }
+    request.append("CustomerDiscountId", data.customerDiscountId ?? 0);
+    request.append("CollectClippings", data.collectClippings ?? 0);
+    request.append("PropertyAddId", property.value);
+    request.append("Scheduledate", new Date().toISOString());
+    request.append("DeviceDetails.AppVersion", deviceDetails.AppVersion);
+    request.append("DeviceDetails.DeviceModel", deviceDetails.DeviceModel);
+    request.append("DeviceDetails.DeviceVersion", deviceDetails.DeviceVersion);
+    request.append("DeviceDetails.IpAddress", deviceDetails.IpAddress);
+    request.append("DeviceDetails.MacAddress", deviceDetails.MacAddress);
+    request.append("DeviceDetails.Platform", deviceDetails.Platform);
+    request.append("DeviceDetails.PlatformOs", deviceDetails.PlatformOs);
 
     saveScheduledBooking(
       request,
       (data: any) => {
-        console.log('---response after saving');
-        console.log(data);
-        if (data.StatusCode === '01') {
+        if (data.StatusCode === "01") {
           Alert.alert(data.StatusMessage);
           return;
         }
-        if (data.StatusCode === '00') {
+        if (data.StatusCode === "00") {
           dispatch(onSetBookingRefNo(data.BookingRefNo));
-          // _createPaymentIntent(data.BookingRefNo, 'BookLater');
+          _createPaymentIntent(
+            data.BookingRefNo,
+            "BookingToday",
+            paymentMethod,
+          );
         }
       },
       (err: any) => {
-        console.log('error');
-        console.log(err);
+        Alert.alert(
+          "Booking Error",
+          err?.response?.data?.StatusMessage ||
+            err?.response?.data?.message ||
+            err?.response?.data?.Message ||
+            err?.message ||
+            "Unable to save booking.",
+        );
+        resetPaymentState();
       },
     );
   };
@@ -402,7 +631,6 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
   };
 
   const CardContent = () => {
-    console.log(defaultCard?.CustomerStripePaymentId);
     if (defaultCard?.CustomerStripePaymentId !== undefined) {
       return (
         <Pressable
@@ -410,7 +638,8 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
           onPress={() => {
             setIsVisible(() => false);
             setTimeout(() => NavigationService.navigate(SCREENS.PAYMENT), 300);
-          }}>
+          }}
+        >
           <View style={styles.cardLeftContent}>
             <VISA pointerEvents="none" height={40} width={40} />
             <View style={styles.cardMiddleContent}>
@@ -418,9 +647,8 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
                 {`${defaultCard?.Brand}`}
               </Text>
               <Text
-                color={
-                  v2Colors.green
-                }>{`XXXX XXXX XXXX ${defaultCard?.Last4}`}</Text>
+                color={v2Colors.green}
+              >{`XXXX XXXX XXXX ${defaultCard?.Last4}`}</Text>
             </View>
           </View>
           <CHEVRON_RIGHT pointerEvents="none" />
@@ -428,8 +656,8 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
       );
     } else {
       return (
-        <View style={{marginVertical: 20}}>
-          <Text style={{fontSize: 12}} color={v2Colors.orange}>
+        <View style={{ marginVertical: 20 }}>
+          <Text style={{ fontSize: 12 }} color={v2Colors.orange}>
             Note: The final price will vary slightly based on your payment
             method and will be shown after setup.
           </Text>
@@ -453,11 +681,19 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
           size={25}
         />
       </Pressable>
-      <LikeGreenCircle pointerEvents="none" height={75} width={75} style={styles.icon} />
+      <LikeGreenCircle
+        pointerEvents="none"
+        height={75}
+        width={75}
+        style={styles.icon}
+      />
       {isFetching ? <Header2 /> : <Header />}
 
       <View style={styles.body}>
-        <Item icon={<Calendar pointerEvents="none" height={24} width={24} />} text={data?.date} />
+        <Item
+          icon={<Calendar pointerEvents="none" height={24} width={24} />}
+          text={data?.date}
+        />
         <Item
           icon={<HouseProperty pointerEvents="none" height={24} width={24} />}
           text={data?.name}
@@ -466,18 +702,19 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
           icon={<MowerGreen pointerEvents="none" height={24} width={24} />}
           text={
             data.serviceName === 1
-              ? 'Trim - Edge - Mow - Blow'
+              ? "Trim - Edge - Mow - Blow"
               : data.serviceName === 2
-                ? 'Trim - Edge - Mulch - Blow'
-                : 'Trim - Edge - Mow - Blow'
+                ? "Trim - Edge - Mulch - Blow"
+                : "Trim - Edge - Mow - Blow"
           }
         />
         {data.customerDiscountId !== 0 && (
           <>
             <View style={styles.discountTitle}>
               <Text
-                style={{fontSize: 12, margin: 2, fontWeight: 'bold'}}
-                color={'white'}>
+                style={{ fontSize: 12, margin: 2, fontWeight: "bold" }}
+                color={"white"}
+              >
                 {data.discountName}
               </Text>
             </View>
@@ -486,7 +723,7 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
                 You Saved
               </Text>
               <Text h4 bold color={v2Colors.green}>
-                {'$' + data.totalDiscount || ''}
+                {"$" + data.totalDiscount || ""}
               </Text>
             </View>
           </>
@@ -497,15 +734,13 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
             Total Cost
           </Text>
           <Text h4 bold color={v2Colors.green}>
-            {'$' + data.fee || ''}
+            {"$" + data.fee || ""}
           </Text>
-          
         </View>
 
         <View style={styles.serviceContainer}>
-          <Text h4 color={v2Colors.green}>
-          </Text>
-          <Text style={{fontSize: 12}} color={v2Colors.green}>
+          <Text h4 color={v2Colors.green}></Text>
+          <Text style={{ fontSize: 12 }} color={v2Colors.green}>
             (Includes 10% GST)
           </Text>
         </View>
@@ -515,11 +750,11 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
     </View>
   );
 
-  const Item = (props: {icon: JSX.Element; text: string}) => {
+  const Item = (props: { icon: JSX.Element; text: string }) => {
     return (
       <View style={styles.item}>
         {props.icon}
-        <View style={{width: 20}} />
+        <View style={{ width: 20 }} />
         <Text h5 color={v2Colors.green}>
           {props.text}
         </Text>
@@ -537,7 +772,7 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
 
   const Header2 = () => (
     <View style={styles.header}>
-      <View style={{marginBottom: 10}}>
+      <View style={{ marginBottom: 10 }}>
         <Text h3 bold color={v2Colors.green}>
           Processing Booking
         </Text>
@@ -556,38 +791,45 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
     </View>
   );
 
-  const Confirm = () => (
-    <View style={[styles.buttonContainer, buttonBottomPadding]}>
-      <CommonButton
-        text={'Secure Booking'}
-        onPress={() => handleSubmit()}
-        style={{borderRadius: 5}}
-        isFetching={isFetching}
-        disabled={isFetching}
+  const PlatformPayAction = () => {
+    if (!isStripeReady || !isPlatformPayAvailable) {
+      return null;
+    }
+
+    return (
+      <PlatformPayButton
+        type={PlatformPay.ButtonType.Book}
+        appearance={PlatformPay.ButtonStyle.Black}
+        borderRadius={5}
+        onPress={() => handleSubmit("platformPay")}
+        disabled={isFetching || isPaymentProcessing}
+        style={styles.platformPayButton}
       />
-    </View>
-  );
+    );
+  };
 
   const ConditionalConfirm = () => {
     if (defaultCard?.CustomerStripePaymentId !== undefined) {
       return (
         <View style={[styles.buttonContainer, buttonBottomPadding]}>
           <CommonButton
-            text={'Secure Booking'}
-            onPress={() => handleSubmit()}
-            style={{borderRadius: 5}}
+            text={"Secure Booking"}
+            onPress={() => handleSubmit("card")}
+            style={{ borderRadius: 5 }}
             isFetching={isFetching}
             disabled={isFetching}
           />
+          <PlatformPayAction />
         </View>
       );
     } else {
       return (
         <View style={[styles.buttonContainer, buttonBottomPadding]}>
+          <PlatformPayAction />
           <CommonButton
-            text={'Add Payment Method'}
+            text={"Add Payment Method"}
             onPress={addWalletAndRedirect}
-            style={{borderRadius: 5}}
+            style={{ borderRadius: 5 }}
             isFetching={isFetching}
             disabled={isFetching}
           />
@@ -614,7 +856,8 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
         animationOutTiming={500}
         useNativeDriver={false}
         hideModalContentWhileAnimating
-        backdropTransitionOutTiming={0}>
+        backdropTransitionOutTiming={0}
+      >
         <Content />
       </Modal>
     </GestureRecognizer>

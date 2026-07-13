@@ -5,23 +5,24 @@
  * @format
  */
 
-import React, {useEffect, useState} from 'react';
-import {SafeAreaProvider} from 'react-native-safe-area-context';
-import Navigation from './src/navigation';
-import 'react-native-gesture-handler';
-import {store} from './src/store';
-import {Provider} from 'react-redux';
-import SplashScreen from 'react-native-splash-screen';
-import {QueryClient, QueryClientProvider} from 'react-query';
-import BackgroundActivityHandler from 'shared/functions/BackgroundActivityHandler';
-import NotificationHandler from 'shared/functions/NoficationHandler';
-import ChatCountHandler from 'shared/functions/ChatCountHandler';
-import CenterModal from '@shared-components/modals/center-modal/CenterModal';
-import {LogBox, Text} from 'react-native';
+import React, { useEffect, useState } from "react";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import Navigation from "./src/navigation";
+import "react-native-gesture-handler";
+import { store } from "./src/store";
+import { Provider } from "react-redux";
+import SplashScreen from "react-native-splash-screen";
+import { QueryClient, QueryClientProvider } from "react-query";
+import BackgroundActivityHandler from "shared/functions/BackgroundActivityHandler";
+import NotificationHandler from "shared/functions/NoficationHandler";
+import ChatCountHandler from "shared/functions/ChatCountHandler";
+import CenterModal from "@shared-components/modals/center-modal/CenterModal";
+import { Linking, LogBox, Text } from "react-native";
+import { useStripe } from "@stripe/stripe-react-native";
 export const queryClient = new QueryClient();
 
-
 const App = () => {
+  const { handleURLCallback } = useStripe();
   // const isDarkMode = useColorScheme() === 'dark';
 
   /**
@@ -31,9 +32,9 @@ const App = () => {
 */
   const [showNotifModal, setShowNotifModal] = useState<boolean>(false);
   const [notifModal, setNotifModal] = useState<any>({
-    title: '',
-    body: '',
-    btnText: 'Ok',
+    title: "",
+    body: "",
+    btnText: "Ok",
     onPress: () => {},
   });
   const [didReceiveNotif, setDidReceiveNotif] = useState<boolean>(false);
@@ -44,9 +45,28 @@ const App = () => {
       SplashScreen.hide();
     }, 500);
 
-    LogBox.ignoreLogs(['new NativeEventEmitter']); // Ignore log notification by message
+    LogBox.ignoreLogs(["new NativeEventEmitter"]); // Ignore log notification by message
     LogBox.ignoreAllLogs(); //Ignore all log notifications
   }, []);
+
+  useEffect(() => {
+    const handleStripeUrlCallback = (url?: string | null) => {
+      if (!url) {
+        return;
+      }
+
+      handleURLCallback(url).catch(() => undefined);
+    };
+
+    Linking.getInitialURL().then(handleStripeUrlCallback);
+    const subscription = Linking.addEventListener("url", ({ url }) => {
+      handleStripeUrlCallback(url);
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [handleURLCallback]);
 
   /**
   |--------------------------------------------------

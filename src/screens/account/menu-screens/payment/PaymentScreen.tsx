@@ -30,6 +30,11 @@ import CommonButton from '@shared-components/buttons/CommonButton';
 import WholeScreenLoader from '@shared-components/loaders/WholeScreenLoader';
 import CenterModalW2Buttons from '@shared-components/modals/center-modal/with-2-buttons';
 import {useSafeBottomPadding} from 'shared/functions/useSafeBottomInset';
+import {
+  assertStripePublishableKeySafeForCurrentBuild,
+  STRIPE_MERCHANT_IDENTIFIER,
+  STRIPE_URL_SCHEME,
+} from '@services/stripe/stripe.helpers';
 
 /**
  * ? SVGs
@@ -107,7 +112,7 @@ const PaymentScreen: React.FC<IPaymentScreenProps> = () => {
   /**
    * ? States
    */
-  const [isFetching, setIsFetching] = useState<boolean>(false);
+  const [isFetching] = useState<boolean>(false);
   const [expandedKey, setExpandedKey] = useState<string>('');
   const [walletList, setWalletList] = useState<Array<ICustomerPaymentInfo>>([]);
   const [selectedCard, setSelectedCard] = useState<ICustomerPaymentInfo>();
@@ -116,7 +121,6 @@ const PaymentScreen: React.FC<IPaymentScreenProps> = () => {
   const [showRemoveModal, setShowRemoveModal] = useState<boolean>(false);
   const [ready, setReady] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
-  const [refresh, setRefresh] = useState(0);
   
 
   /**
@@ -219,13 +223,20 @@ const getStripeKey = () => {
     payload,
     async (data: any) => {
       if (data.StatusCode === '00') {
-        const stipeKey = data.Data.find((x: any) => x.StripeKeyName === 'PublishableKey')?.StripeKey;       
-        await initStripe({
-          publishableKey: stipeKey,
-          merchantIdentifier: 'merchant.com.app.lawnq', // or your real merchant id
-          urlScheme: 'app.lawnq',                      // 👈 MUST match Info.plist
-        });
-        await initializePaymentSheet(); // make sure we await this
+        try {
+          const stipeKey = assertStripePublishableKeySafeForCurrentBuild(
+            data.Data.find((x: any) => x.StripeKeyName === 'PublishableKey')
+              ?.StripeKey,
+          );
+          await initStripe({
+            publishableKey: stipeKey,
+            merchantIdentifier: STRIPE_MERCHANT_IDENTIFIER,
+            urlScheme: STRIPE_URL_SCHEME,
+          });
+          await initializePaymentSheet(); // make sure we await this
+        } catch (error: any) {
+          Alert.alert('Stripe configuration error', error.message);
+        }
       } else {
         Alert.alert(data.StatusMessage);
       }

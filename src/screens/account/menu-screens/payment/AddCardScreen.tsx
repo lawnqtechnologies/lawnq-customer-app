@@ -1,33 +1,42 @@
-import React, {useEffect, useMemo, useRef, useState} from 'react';
-import {Alert, View, Dimensions, ScrollView} from 'react-native';
-import HeaderContainer from '@shared-components/headers/HeaderContainer';
-import {SCREENS} from '@shared-constants';
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Alert, View, Dimensions, ScrollView } from "react-native";
+import HeaderContainer from "@shared-components/headers/HeaderContainer";
+import { SCREENS } from "@shared-constants";
 import {
   CardField,
   ConfirmSetupIntentResult,
   initStripe,
   useStripe,
-} from '@stripe/stripe-react-native';
-import {useSelector} from 'react-redux';
-import * as NavigationService from 'react-navigation-helpers';
-import {useTheme} from '@react-navigation/native';
-import {yupResolver} from '@hookform/resolvers/yup';
-import * as yup from 'yup';
-import {useForm} from 'react-hook-form';
-import {useKeyboard} from '@react-native-community/hooks';
+} from "@stripe/stripe-react-native";
+import { useSelector } from "react-redux";
+import * as NavigationService from "react-navigation-helpers";
+import { useTheme } from "@react-navigation/native";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
+import { useForm } from "react-hook-form";
+import { useKeyboard } from "@react-native-community/hooks";
 
-import createStyles from './AddCardScreen.style';
-import CommonButton from '@shared-components/buttons/CommonButton';
-import {v2Colors} from '@theme/themes';
-import fonts from '@fonts';
-import InputText from '@shared-components/form/InputText/v2/input-text';
-import {usePayment} from '@services/hooks/usePayment';
-import {useSafeBottomPadding} from 'shared/functions/useSafeBottomInset';
-import InAppBrowser from 'react-native-inappbrowser-reborn';
+import createStyles from "./AddCardScreen.style";
+import CommonButton from "@shared-components/buttons/CommonButton";
+import { v2Colors } from "@theme/themes";
+import fonts from "@fonts";
+import InputText from "@shared-components/form/InputText/v2/input-text";
+import { usePayment } from "@services/hooks/usePayment";
+import { useSafeBottomPadding } from "shared/functions/useSafeBottomInset";
+import InAppBrowser from "react-native-inappbrowser-reborn";
 
-import {RootState} from 'store';
+import { RootState } from "store";
+import {
+  assertStripePublishableKeySafeForCurrentBuild,
+  getStripeErrorMessage,
+  isSetupIntentSucceeded,
+  isStripeUserCancellation,
+  STRIPE_MERCHANT_IDENTIFIER,
+  STRIPE_RETURN_URL,
+  STRIPE_URL_SCHEME,
+} from "@services/stripe/stripe.helpers";
 
-const {height} = Dimensions.get('window');
+const { height } = Dimensions.get("window");
 
 interface IAddCardScreen {
   route?: any;
@@ -47,8 +56,8 @@ interface CardInformations {
   cvc: string;
 }
 
-const AddCardScreen: React.FC<IAddCardScreen> = ({route}) => {
-  const {token, customerId, customerInfo, deviceDetails} = useSelector(
+const AddCardScreen: React.FC<IAddCardScreen> = ({ route }) => {
+  const { token, customerId, customerInfo, deviceDetails } = useSelector(
     (state: RootState) => state.user,
   );
 
@@ -57,29 +66,27 @@ const AddCardScreen: React.FC<IAddCardScreen> = ({route}) => {
   const pending3DSPayloadRef = useRef<any>(null);
 
   const keyboard = useKeyboard();
-  const {keyboardShown, keyboardHeight} = keyboard;
+  const { keyboardShown, keyboardHeight } = keyboard;
 
-  const {customerSetupIntent, completeCustomerSetupIntentV2, customerPaymentKey} =
-    usePayment();
-  const {confirmSetupIntent} = useStripe();
+  const {
+    customerSetupIntent,
+    completeCustomerSetupIntentV2,
+    customerPaymentKey,
+  } = usePayment();
+  const { confirmSetupIntent } = useStripe();
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const buttonBottomPadding = useSafeBottomPadding(20);
   const screen = route.params?.screen;
 
-  const {
-    control,
-    handleSubmit,
-    formState: {errors},
-    getValues,
-  } = useForm({
+  const { control, handleSubmit, getValues } = useForm({
     defaultValues: {
-      fullName: '',
+      fullName: "",
     },
     resolver: yupResolver(
       yup
         .object({
-          fullName: yup.string().required('Full Name is required'),
+          fullName: yup.string().required("Full Name is required"),
         })
         .required(),
     ),
@@ -91,19 +98,19 @@ const AddCardScreen: React.FC<IAddCardScreen> = ({route}) => {
 
   const _validateCardDetails = async () => {
     if (!cardInfo?.complete) {
-      Alert.alert('Please enter your complete card details');
+      Alert.alert("Please enter your complete card details");
       return false;
     }
-    if (cardInfo?.validNumber === 'Invalid') {
-      Alert.alert('Invalid card number');
+    if (cardInfo?.validNumber === "Invalid") {
+      Alert.alert("Invalid card number");
       return false;
     }
-    if (cardInfo?.validExpiryDate === 'Invalid') {
-      Alert.alert('Invalid expiry date');
+    if (cardInfo?.validExpiryDate === "Invalid") {
+      Alert.alert("Invalid expiry date");
       return false;
     }
-    if (cardInfo?.validCVC === 'Invalid') {
-      Alert.alert('Invalid card details');
+    if (cardInfo?.validCVC === "Invalid") {
+      Alert.alert("Invalid card details");
       return false;
     }
     return true;
@@ -118,15 +125,20 @@ const AddCardScreen: React.FC<IAddCardScreen> = ({route}) => {
     customerPaymentKey(
       payload,
       (data: any) => {
-        if (data.StatusCode === '00') {
-          let stripeKey = data.Data.find(
-            (x: any) => x.StripeKeyName === 'PublishableKey',
-          ).StripeKey;
-          initStripe({
-            publishableKey: stripeKey,
-            merchantIdentifier: 'merchant.com.app.lawnq',
-            urlScheme: 'app.lawnq',
-          });
+        if (data.StatusCode === "00") {
+          try {
+            const stripeKey = assertStripePublishableKeySafeForCurrentBuild(
+              data.Data.find((x: any) => x.StripeKeyName === "PublishableKey")
+                ?.StripeKey,
+            );
+            initStripe({
+              publishableKey: stripeKey,
+              merchantIdentifier: STRIPE_MERCHANT_IDENTIFIER,
+              urlScheme: STRIPE_URL_SCHEME,
+            });
+          } catch (error: any) {
+            Alert.alert("Stripe configuration error", error.message);
+          }
         } else {
           Alert.alert(data.StatusMessage);
         }
@@ -159,7 +171,7 @@ const AddCardScreen: React.FC<IAddCardScreen> = ({route}) => {
     customerSetupIntent(
       payload,
       (data: any) => {
-        if (data.StatusCode === '00') {
+        if (data.StatusCode === "00") {
           _confirmStripeIntent(data.ClientSecret);
         } else {
           setLoading(false);
@@ -177,17 +189,17 @@ const AddCardScreen: React.FC<IAddCardScreen> = ({route}) => {
   const _confirmStripeIntent = (clientSecret: string) => {
     const values = getValues();
     confirmSetupIntent(clientSecret, {
-      paymentMethodType: 'Card',
+      paymentMethodType: "Card",
       paymentMethodData: {
-        billingDetails: {name: values.fullName},
+        billingDetails: { name: values.fullName },
       },
     }).then((res: ConfirmSetupIntentResult) => {
       if (res.error) {
-        if (res.error.code !== 'Canceled') {
-          Alert.alert('Payment Error', res.error.message);
+        if (!isStripeUserCancellation(res.error.code)) {
+          Alert.alert("Payment Error", getStripeErrorMessage(res.error));
         }
         setLoading(false);
-      } else if (res.setupIntent?.status === 'Succeeded') {
+      } else if (isSetupIntentSucceeded(res.setupIntent?.status)) {
         const setupIntentId = res.setupIntent.id;
         const paymentMethodId = res.setupIntent.paymentMethod?.id ?? null;
         _completeCustomerSetupIntent(paymentMethodId, setupIntentId);
@@ -218,54 +230,67 @@ const AddCardScreen: React.FC<IAddCardScreen> = ({route}) => {
       payload,
       (data: any) => {
         setLoading(false);
-        if (data.StatusCode === '00') {
-          Alert.alert('Set Up Wallet', 'Success', [
+        if (data.StatusCode === "00") {
+          Alert.alert("Set Up Wallet", "Success", [
             {
               onPress: () => NavigationService.navigate(screen),
-              text: 'Confirm',
+              text: "Confirm",
             },
           ]);
         } else if (data.Requires3DSecure === true && data.RedirectUrl) {
           pending3DSPayloadRef.current = payload;
-          InAppBrowser.openAuth(data.RedirectUrl, 'app.lawnq://', {
+          InAppBrowser.openAuth(data.RedirectUrl, STRIPE_RETURN_URL, {
             ephemeralWebSession: false,
             showTitle: false,
             enableUrlBarHiding: true,
             enableDefaultShare: false,
-          }).then((result: any) => {
-            pending3DSPayloadRef.current = null;
-            if (result.type === 'success' && result.url) {
-              const params = new URLSearchParams(result.url.split('?')[1] ?? '');
-              if (params.get('redirect_status') === 'succeeded') {
-                completeCustomerSetupIntentV2(
-                  payload,
-                  (d: any) => {
-                    setLoading(false);
-                    if (d.StatusCode === '00') {
-                      Alert.alert('Set Up Wallet', 'Success', [
-                        {onPress: () => NavigationService.navigate(screen), text: 'Confirm'},
-                      ]);
-                    } else {
-                      Alert.alert(d.StatusMessage);
-                    }
-                  },
-                  (err: any) => {
-                    setLoading(false);
-                    Alert.alert(`Error Code: ${err.code}`, err.message);
-                  },
+          })
+            .then((result: any) => {
+              pending3DSPayloadRef.current = null;
+              if (result.type === "success" && result.url) {
+                const params = new URLSearchParams(
+                  result.url.split("?")[1] ?? "",
                 );
+                if (params.get("redirect_status") === "succeeded") {
+                  completeCustomerSetupIntentV2(
+                    payload,
+                    (d: any) => {
+                      setLoading(false);
+                      if (d.StatusCode === "00") {
+                        Alert.alert("Set Up Wallet", "Success", [
+                          {
+                            onPress: () => NavigationService.navigate(screen),
+                            text: "Confirm",
+                          },
+                        ]);
+                      } else {
+                        Alert.alert(d.StatusMessage);
+                      }
+                    },
+                    (err: any) => {
+                      setLoading(false);
+                      Alert.alert(`Error Code: ${err.code}`, err.message);
+                    },
+                  );
+                } else {
+                  setLoading(false);
+                  Alert.alert(
+                    "Verification Failed",
+                    "Card setup could not be completed. Please try again.",
+                  );
+                }
               } else {
                 setLoading(false);
-                Alert.alert('Verification Failed', 'Card setup could not be completed. Please try again.');
               }
-            } else {
+            })
+            .catch(() => {
+              pending3DSPayloadRef.current = null;
               setLoading(false);
-            }
-          }).catch(() => {
-            pending3DSPayloadRef.current = null;
-            setLoading(false);
-            Alert.alert('3D Secure Required', 'Unable to open verification page. Please try again.');
-          });
+              Alert.alert(
+                "3D Secure Required",
+                "Unable to open verification page. Please try again.",
+              );
+            });
         } else {
           Alert.alert(data.StatusMessage);
         }
@@ -277,27 +302,28 @@ const AddCardScreen: React.FC<IAddCardScreen> = ({route}) => {
     );
   };
 
-  const Separator = () => <View style={{height: 30}} />;
-  const Separator2 = () => <View style={{height: 20}} />;
+  const Separator = () => <View style={{ height: 30 }} />;
+  const Separator2 = () => <View style={{ height: 20 }} />;
 
   return (
     <>
       <HeaderContainer
-        pageTitle={'Set Up Wallet'}
+        pageTitle={"Set Up Wallet"}
         navigateTo={SCREENS.PAYMENT}
         hasCancel
         onCancel={() => NavigationService.goBack()}
       />
       <ScrollView
-        contentContainerStyle={{paddingHorizontal: 20}}
+        contentContainerStyle={{ paddingHorizontal: 20 }}
         style={styles.container}
-        keyboardShouldPersistTaps={'never'}
-        showsVerticalScrollIndicator={false}>
-        <View style={{minHeight: height * 0.67}}>
+        keyboardShouldPersistTaps={"never"}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={{ minHeight: height * 0.67 }}>
           <Separator />
           <CardField
             postalCodeEnabled={false}
-            placeholders={{number: 'XXXX XXXX XXXX XXXX'}}
+            placeholders={{ number: "XXXX XXXX XXXX XXXX" }}
             cardStyle={{
               textColor: v2Colors.green,
               fontSize: 16,
@@ -308,10 +334,10 @@ const AddCardScreen: React.FC<IAddCardScreen> = ({route}) => {
               borderWidth: 1,
               borderColor: v2Colors.border,
               padding: 10,
-              backgroundColor: 'white',
+              backgroundColor: "white",
               borderRadius: 7,
-              shadowColor: '#000',
-              shadowOffset: {width: 0, height: 2},
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
               shadowOpacity: 0.23,
               shadowRadius: 2.62,
               elevation: 4,
@@ -324,15 +350,15 @@ const AddCardScreen: React.FC<IAddCardScreen> = ({route}) => {
             name="fullName"
             label="Enter Full Name of Card Holder"
           />
-          {keyboardShown && <View style={{height: keyboardHeight}} />}
+          {keyboardShown && <View style={{ height: keyboardHeight }} />}
         </View>
 
         <View style={[styles.buttonContainer, buttonBottomPadding]}>
           <CommonButton
-            text={'Save'}
+            text={"Save"}
             isFetching={loading}
             onPress={handleSubmit(_customerSetupIntent)}
-            style={{borderRadius: 5}}
+            style={{ borderRadius: 5 }}
           />
         </View>
       </ScrollView>
