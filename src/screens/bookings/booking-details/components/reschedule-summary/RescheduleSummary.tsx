@@ -237,7 +237,7 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
 
       if (result.error) {
         if (!isStripeUserCancellation(result.error.code)) {
-          Alert.alert(PAYMENT_ERROR_TITLE, getStripeErrorMessage(result.error));
+          Alert.alert(PAYMENT_ERROR_TITLE, getStripeErrorMessage(result));
         }
         return false;
       }
@@ -271,7 +271,7 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
 
       if (result.error) {
         if (!isStripeUserCancellation(result.error.code)) {
-          Alert.alert(PAYMENT_ERROR_TITLE, getStripeErrorMessage(result.error));
+          Alert.alert(PAYMENT_ERROR_TITLE, getStripeErrorMessage(result));
         }
         return false;
       }
@@ -349,7 +349,7 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
 
       if (result.error) {
         if (!isStripeUserCancellation(result.error.code)) {
-          Alert.alert(PAYMENT_ERROR_TITLE, getStripeErrorMessage(result.error));
+          Alert.alert(PAYMENT_ERROR_TITLE, getStripeErrorMessage(result));
         }
         return false;
       }
