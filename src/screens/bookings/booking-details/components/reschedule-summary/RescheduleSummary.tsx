@@ -125,6 +125,7 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
     confirmPlatformPayPayment,
     handleNextAction,
     isPlatformPaySupported,
+    retrievePaymentIntent,
   } = useStripe();
   /**
 |--------------------------------------------------
@@ -210,6 +211,23 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
     setIsPaymentProcessing(false);
   };
 
+  const getStripePaymentIntentErrorMessage = async (
+    clientSecret: string,
+    stripeResultOrError: any,
+  ) => {
+    try {
+      const retrievedResult = await retrievePaymentIntent(clientSecret);
+
+      return getStripeErrorMessage({
+        ...stripeResultOrError,
+        paymentIntent: retrievedResult.paymentIntent,
+        retrievePaymentIntentError: retrievedResult.error,
+      });
+    } catch {
+      return getStripeErrorMessage(stripeResultOrError);
+    }
+  };
+
   const getPaymentIntentPaymentType = (paymentMethod: BookingPaymentMethod) =>
     paymentMethod === "card"
       ? STRIPE_PAYMENT_TYPE_CARD
@@ -237,7 +255,10 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
 
       if (result.error) {
         if (!isStripeUserCancellation(result.error.code)) {
-          Alert.alert(PAYMENT_ERROR_TITLE, getStripeErrorMessage(result));
+          Alert.alert(
+            PAYMENT_ERROR_TITLE,
+            await getStripePaymentIntentErrorMessage(clientSecret, result),
+          );
         }
         return false;
       }
@@ -253,7 +274,10 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
       return false;
     } catch (error: any) {
       if (!isStripeUserCancellation(error?.code || error?.message)) {
-        Alert.alert(PAYMENT_ERROR_TITLE, getStripeErrorMessage(error));
+        Alert.alert(
+          PAYMENT_ERROR_TITLE,
+          await getStripePaymentIntentErrorMessage(clientSecret, error),
+        );
       }
       return false;
     }
@@ -271,7 +295,10 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
 
       if (result.error) {
         if (!isStripeUserCancellation(result.error.code)) {
-          Alert.alert(PAYMENT_ERROR_TITLE, getStripeErrorMessage(result));
+          Alert.alert(
+            PAYMENT_ERROR_TITLE,
+            await getStripePaymentIntentErrorMessage(clientSecret, result),
+          );
         }
         return false;
       }
@@ -287,7 +314,10 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
       return false;
     } catch (error: any) {
       if (!isStripeUserCancellation(error?.code || error?.message)) {
-        Alert.alert(PAYMENT_ERROR_TITLE, getStripeErrorMessage(error));
+        Alert.alert(
+          PAYMENT_ERROR_TITLE,
+          await getStripePaymentIntentErrorMessage(clientSecret, error),
+        );
       }
       return false;
     }
@@ -349,7 +379,10 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
 
       if (result.error) {
         if (!isStripeUserCancellation(result.error.code)) {
-          Alert.alert(PAYMENT_ERROR_TITLE, getStripeErrorMessage(result));
+          Alert.alert(
+            PAYMENT_ERROR_TITLE,
+            await getStripePaymentIntentErrorMessage(clientSecret, result),
+          );
         }
         return false;
       }
@@ -365,7 +398,10 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
       return false;
     } catch (error: any) {
       if (!isStripeUserCancellation(error?.code || error?.message)) {
-        Alert.alert(PAYMENT_ERROR_TITLE, getStripeErrorMessage(error));
+        Alert.alert(
+          PAYMENT_ERROR_TITLE,
+          await getStripePaymentIntentErrorMessage(clientSecret, error),
+        );
       }
       return false;
     }
