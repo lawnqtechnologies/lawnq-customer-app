@@ -8,6 +8,7 @@ import {
   Alert,
   InteractionManager,
   Pressable,
+  TextInput,
 } from 'react-native';
 import {useFocusEffect, useTheme} from '@react-navigation/native';
 import * as NavigationService from 'react-navigation-helpers';
@@ -36,6 +37,7 @@ import {
  */
 import CHEVRON_RIGHT from '@assets/v2/list/chevron-right.svg';
 import MOW_TYPE from '@assets/v2/list/mow-type.svg';
+import SEARCH from '@assets/v2/list/search.svg';
 import PLUS_GREEN from '@assets/v2/common/icons/plus-green.svg';
 import {RootState} from 'store';
 import {
@@ -429,27 +431,29 @@ const MyPropertiesScreen: React.FC<IMyPropertiesScreenProps> = () => {
         // backDisabled
       />
 
-      <View style={{marginBottom: 20}}>
-        {/* {!searchText && <SEARCH style={styles.search} />}
-        <TextInput
-          style={styles.searchInputText}
-          placeholder="Search Property"
-          onChangeText={(text: string) => {
-            setLoading(true);
-            setItems([]);
-            setSearchText(() => text);
+      {data.length > 5 && (
+        <View style={{marginBottom: 20}}>
+          {!searchText && <SEARCH style={styles.search} />}
+          <TextInput
+            style={styles.searchInputText}
+            placeholder="Search Property"
+            onChangeText={(text: string) => {
+              setLoading(true);
+              setItems([]);
+              setSearchText(() => text);
 
-            setTimeout(() => {
-              setLoading(false);
-              onSearch(text);
-            }, 1000);
-          }}
-          defaultValue={searchText}
-          placeholderTextColor={v2Colors.gray}
-          autoCorrect={false}
-          clearButtonMode="always"
-        /> */}
-      </View>
+              setTimeout(() => {
+                setLoading(false);
+                onSearch(text);
+              }, 1000);
+            }}
+            defaultValue={searchText}
+            placeholderTextColor={v2Colors.gray}
+            autoCorrect={false}
+            clearButtonMode="always"
+          />
+        </View>
+      )}
 
       {loading && (
         <ActivityIndicator

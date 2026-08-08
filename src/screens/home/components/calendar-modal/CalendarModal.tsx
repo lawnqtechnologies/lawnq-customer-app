@@ -58,7 +58,7 @@ const CalendarModal: React.FC<ICalendarModalProps> = ({
   const dispatch = useDispatch();
 
   const minDate = new Date(Date.now() + 24 * 60 * 60 * 1000); // Tomorrow
-  const maxDate = new Date(Date.now() + 24 * 30 * 60 * 60 * 1000); // next month
+  // const maxDate = new Date(Date.now() + 24 * 30 * 60 * 60 * 1000); // next month
 
   const {token, customerId} = useSelector((state: RootState) => state.user);
 
@@ -296,7 +296,7 @@ const CalendarModal: React.FC<ICalendarModalProps> = ({
           <CalendarPicker
             startFromMonday
             minDate={minDate}
-            maxDate={maxDate}
+            // maxDate={maxDate}
             disabledDates={enableOnlySpecificDates}
             selectedDayColor={v2Colors.green}
             selectedDayTextColor={'#FFFFFF'}
