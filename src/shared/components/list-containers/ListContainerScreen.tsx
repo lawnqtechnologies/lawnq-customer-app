@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   FlatList,
   Alert,
+  TextInput,
 } from 'react-native';
 import {useFocusEffect, useTheme} from '@react-navigation/native';
 import * as NavigationService from 'react-navigation-helpers';
@@ -26,6 +27,7 @@ import HeaderContainer from '@shared-components/headers/HeaderContainer';
  * ? SVGs
  */
 import CHEVRON_RIGHT from '@assets/v2/list/chevron-right.svg';
+import SEARCH from '@assets/v2/list/search.svg';
 import AREA from '@assets/v2/list/area.svg';
 import PET from '@assets/v2/list/pet.svg';
 import MOW_TYPE from '@assets/v2/list/mow-type.svg';
@@ -105,7 +107,9 @@ const ListScreen: React.FC<IListScreenProps> = ({route}) => {
   /**
    * ? States
    */
+  const [data, setData] = useState<Array<any>>([]);
   const [items, setItems] = useState<any>();
+  const [searchText, setSearchText] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   /**
   |--------------------------------------------------
@@ -163,6 +167,7 @@ const ListScreen: React.FC<IListScreenProps> = ({route}) => {
             isDefault: item.IsDefault,
           });
         });
+        setData(propertyArrayList);
         setItems(propertyArrayList);
         setLoading(false);
         dispatch(OnSetIsReloadScreen(false));
@@ -172,6 +177,14 @@ const ListScreen: React.FC<IListScreenProps> = ({route}) => {
         setLoading(false);
       },
     );
+  };
+
+  const onSearch = (searchString: string) => {
+    const filtered = data.filter((item: any) =>
+      _.toLower(item.label).includes(searchString.toLowerCase()),
+    );
+    if (!searchString) return setItems(data);
+    setItems(filtered);
   };
 
   const addProperty = () => {
@@ -362,12 +375,33 @@ const ListScreen: React.FC<IListScreenProps> = ({route}) => {
       <HeaderContainer pageTitle={pageTitle} navigateTo={navigateTo} />
       <View style={styles.container}>
 
+        {data.length > 5 && (
+          <View style={{marginBottom: 20}}>
+            {!searchText && <SEARCH style={styles.search} />}
+            <TextInput
+              style={styles.searchInputText}
+              placeholder="Search Property"
+              onChangeText={(text: string) => {
+                setLoading(true);
+                setItems([]);
+                setSearchText(() => text);
+                setTimeout(() => {
+                  setLoading(false);
+                  onSearch(text);
+                }, 1000);
+              }}
+              defaultValue={searchText}
+              placeholderTextColor={v2Colors.gray}
+              autoCorrect={false}
+              clearButtonMode="always"
+            />
+          </View>
+        )}
+
         {loading && (
-          <ActivityIndicator
-            size="large"
-            color="black"
-            style={styles.loadingContainer}
-          />
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="black" />
+          </View>
         )}
 
         <FlatList
