@@ -1,10 +1,11 @@
 import {useEffect} from 'react';
 import {getMessaging} from '@react-native-firebase/messaging';
 import {useDispatch} from 'react-redux';
-import notifee from '@notifee/react-native';
+import notifee, {EventType} from '@notifee/react-native';
 
 import {SCREENS} from '@shared-constants';
 import {OnSetIsReloadScreen} from '@services/states/property/property.slice';
+import {onSetBookingItem} from '@services/states/booking/booking.slice';
 import {systemActions} from '@services/states/system/system.slice';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Platform, Vibration} from 'react-native';
@@ -16,6 +17,18 @@ import {
 const DEFAULT_NOTIFICATION_CHANNEL_ID = 'default';
 const DEFAULT_NOTIFICATION_CHANNEL_NAME = 'Default Channel';
 const BOOKINGS_TAB_ROUTE_NAME = 'Bookings';
+const PENDING_NOTIFEE_PRESS_KEY = 'pendingNotifeeNotification';
+const PENDING_BOOKING_COMPLETED_KEY = 'pendingBookingCompleted';
+
+const readAndClearPendingNotification = async (
+  key: string,
+): Promise<any | undefined> => {
+  const raw = await AsyncStorage.getItem(key);
+  if (!raw) return undefined;
+
+  await AsyncStorage.removeItem(key);
+  return JSON.parse(raw);
+};
 
 const parseNotificationMessage = (message: any) => {
   if (typeof message === 'string') {
@@ -36,6 +49,15 @@ const getPromoScreenName = (message: any) => {
     parsedMessage?.SreenName ?? parsedMessage?.ScreenName ?? SCREENS.HOME;
 
   return screenName === 'Home' ? SCREENS.HOME : screenName;
+};
+
+const getBookingCompletedMessage = (parsedMessage: any): string => {
+  const address: string =
+    parsedMessage?.property?.Address1 || parsedMessage?.property?.Alias || '';
+
+  return address
+    ? `Your LawnQ booking at ${address} has been completed. Please rate your service provider and let us know how they did.`
+    : 'Your LawnQ booking has been completed. Please rate your service provider and let us know how they did.';
 };
 
 const createDefaultNotificationChannel = async () => {
@@ -71,108 +93,121 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
   const {onSetReceivedChatInfo} = systemActions;
 
   /**
+   * Shared processor for any notification that was *tapped* — whether that
+   * tap came from the OS notification tray (FCM, app backgrounded/killed)
+   * or from a locally-created notifee notification (see the notifee event
+   * listeners below). Always safe to call after the component has mounted.
+   */
+  const handleNotificationOpen = async (remoteMessage: any) => {
+    if (!remoteMessage) return;
+
+
+    const {data, notification} = remoteMessage;
+
+    if (data?.ScreenName === 'property') {
+      void triggerDefaultNotification();
+      dispatch(OnSetIsReloadScreen(true));
+      setShowNotifModal(true);
+      setNotifModal({
+        title: notification?.title,
+        body: notification?.body,
+        btnText: 'Confirm',
+        onPress: () => {
+          setShowNotifModal(false);
+          navigateAfterForeground(SCREENS.HOME);
+        },
+      });
+    }
+
+    const parsedMessage: any = parseNotificationMessage(data?.Message);
+
+    const action: string | undefined = parsedMessage?.action;
+    if (action === 'ACCEPT') {
+      await setBookingAcceptedFlag();
+    }
+
+    if (data?.Remarks === 'BOOKING_COMPLETED') {
+      // Handled via a tap (or the pending-notification replay below) — if
+      // the background handler in index.js also stashed this one, it's
+      // moot now, so clear it to avoid showing the prompt a second time.
+      void AsyncStorage.removeItem(PENDING_BOOKING_COMPLETED_KEY);
+      setShowNotifModal(true);
+      setNotifModal({
+        title: 'Service Completed',
+        body: getBookingCompletedMessage(parsedMessage),
+        btnText: 'Confirm',
+        onPress: () => {
+          setShowNotifModal(false);
+          pushAfterForeground(SCREENS.RATING_FEEDBACK, {
+            completeBookingData: parsedMessage,
+          });
+        },
+      });
+    }
+
+    if (data?.Remarks === 'SP_CANCEL_BOOKING') {
+      setShowNotifModal(true);
+      setNotifModal({
+        title: notification?.title ?? 'Notification',
+        body: notification?.body ?? '',
+        btnText: 'Confirm',
+        onPress: () => {
+          setShowNotifModal(false);
+          navigateAfterForeground(SCREENS.HOME, {
+            screen: BOOKINGS_TAB_ROUTE_NAME,
+          });
+        },
+      });
+    }
+
+    if (data?.Remarks === 'SP_START_BOOKING') {
+      setShowNotifModal(true);
+      setNotifModal({
+        title: notification?.title ?? 'Notification',
+        body: notification?.body ?? '',
+        btnText: 'Confirm',
+        onPress: () => {
+          setShowNotifModal(false);
+          navigateAfterForeground(SCREENS.HOME, {
+            screen: BOOKINGS_TAB_ROUTE_NAME,
+          });
+        },
+      });
+    }
+
+    if (data?.ScreenName === 'BOOKING_CHAT') {
+      // This path only runs when the user tapped the notification (tray
+      // tap, or a locally-created notifee notification), so it's safe to
+      // navigate straight to the booking's chat.
+      handleReceivedChat(data, true);
+    }
+
+    if (data?.Remarks === 'PROMO') {
+      setShowNotifModal(true);
+      setNotifModal({
+        title: notification?.title ?? 'Notification',
+        body: notification?.body ?? '',
+        btnText: 'Confirm',
+        onPress: () => {
+          setShowNotifModal(false);
+          pushAfterForeground(getPromoScreenName(data?.Message));
+        },
+      });
+    }
+
+    void onDisplayNotification(
+      notification?.title ?? '',
+      notification?.body ?? '',
+      data,
+    );
+  };
+
+  /**
   |--------------------------------------------------
   | When app is on screen
   |--------------------------------------------------
   */
   useEffect(() => {
-    const handleNotificationOpen = async (remoteMessage: any) => {
-      if (!remoteMessage) return;
-
-      console.log('notification opened', remoteMessage);
-
-      const {data, notification} = remoteMessage;
-
-      if (data?.ScreenName === 'property') {
-        void triggerDefaultNotification();
-        dispatch(OnSetIsReloadScreen(true));
-        setShowNotifModal(true);
-        setNotifModal({
-          title: notification?.title,
-          body: notification?.body,
-          btnText: 'Confirm',
-          onPress: () => {
-            setShowNotifModal(false);
-            navigateAfterForeground(SCREENS.HOME);
-          },
-        });
-      }
-
-      const parsedMessage: any = parseNotificationMessage(data?.Message);
-
-      const action: string | undefined = parsedMessage?.action;
-      if (action === 'ACCEPT') {
-        await setBookingAcceptedFlag();
-      }
-
-      if (data?.Remarks === 'BOOKING_COMPLETED') {
-        setShowNotifModal(true);
-        setNotifModal({
-          title: 'Scheduled Booking',
-          body: "Yay! Service is now completed. Please provide your feedback for the 'Service Provider'",
-          btnText: 'Confirm',
-          onPress: () => {
-            setShowNotifModal(false);
-            pushAfterForeground(SCREENS.RATING_FEEDBACK, {
-              completeBookingData: parsedMessage,
-            });
-          },
-        });
-      }
-
-      if (data?.Remarks === 'SP_CANCEL_BOOKING') {
-        setShowNotifModal(true);
-        setNotifModal({
-          title: notification?.title ?? 'Notification',
-          body: notification?.body ?? '',
-          btnText: 'Confirm',
-          onPress: () => {
-            setShowNotifModal(false);
-            navigateAfterForeground(SCREENS.HOME, {
-              screen: BOOKINGS_TAB_ROUTE_NAME,
-            });
-          },
-        });
-      }
-
-      if (data?.Remarks === 'SP_START_BOOKING') {
-        setShowNotifModal(true);
-        setNotifModal({
-          title: notification?.title ?? 'Notification',
-          body: notification?.body ?? '',
-          btnText: 'Confirm',
-          onPress: () => {
-            setShowNotifModal(false);
-            navigateAfterForeground(SCREENS.HOME, {
-              screen: BOOKINGS_TAB_ROUTE_NAME,
-            });
-          },
-        });
-      }
-
-      if (data?.ScreenName === 'BOOKING_CHAT') {
-        handleReceivedChat(data, false);
-      }
-
-      if (data?.Remarks === 'PROMO') {
-        setShowNotifModal(true);
-        setNotifModal({
-          title: notification?.title ?? 'Notification',
-          body: notification?.body ?? '',
-          btnText: 'Confirm',
-          onPress: () => {
-            setShowNotifModal(false);
-            pushAfterForeground(getPromoScreenName(data?.Message));
-          },
-        });
-      }
-
-      void onDisplayNotification(
-        notification?.title ?? '',
-        notification?.body ?? '',
-      );
-    };
-
     getMessaging()
       .getInitialNotification()
       .then(handleNotificationOpen)
@@ -214,8 +249,8 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
           if (data?.Remarks === 'BOOKING_COMPLETED') {
             setShowNotifModal(true);
             setNotifModal({
-              title: 'Scheduled Booking',
-              body: "Yay! Service is now completed. Please provide your feedback for the 'Service Provider'",
+              title: 'Service Completed',
+              body: getBookingCompletedMessage(parsedMessage),
               btnText: 'Confirm',
               onPress: () => {
                 setShowNotifModal(false);
@@ -277,6 +312,7 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
           void onDisplayNotification(
             notification?.title ?? '',
             notification?.body ?? '',
+            data,
           );
         }
       },
@@ -285,6 +321,59 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
     return () => {
       unsubscribeNotificationOpen();
       listenOnMessageReceived();
+    };
+  }, []);
+
+  /**
+  |--------------------------------------------------
+  | When app is backgrounded or killed
+  |--------------------------------------------------
+  | Locally-created notifee notifications (chat "buzz", foreground banners
+  | re-shown in the tray) aren't covered by getMessaging().onNotificationOpenedApp
+  | above — that only fires for notifications the OS displayed from the FCM
+  | payload directly. notifee.onForegroundEvent covers a press while the JS
+  | context is still alive (app backgrounded, not killed). A press while the
+  | app is fully killed is caught by the notifee.onBackgroundEvent handler
+  | registered in index.js, which stashes the notification so we can replay
+  | it here once the app has actually launched.
+  */
+  useEffect(() => {
+    const unsubscribeNotifeeForegroundEvent = notifee.onForegroundEvent(
+      ({type, detail}) => {
+        if (type !== EventType.PRESS) return;
+
+        const notificationData = detail.notification?.data;
+        if (!notificationData) return;
+
+        void handleNotificationOpen({
+          data: notificationData,
+          notification: {
+            title: detail.notification?.title,
+            body: detail.notification?.body,
+          },
+        });
+      },
+    );
+
+    // Anything stashed by index.js while the app was backgrounded/killed —
+    // either a tapped local notification, or (for BOOKING_COMPLETED) a
+    // message that arrived but may never get tapped at all if the user
+    // opens the app via its icon instead. Replayed through the same
+    // handler that processes a real notification tap.
+    const replayPendingNotification = async (key: string) => {
+      try {
+        const pending = await readAndClearPendingNotification(key);
+        if (pending) void handleNotificationOpen(pending);
+      } catch (error) {
+        console.warn(`Failed to replay pending notification (${key}):`, error);
+      }
+    };
+
+    void replayPendingNotification(PENDING_NOTIFEE_PRESS_KEY);
+    void replayPendingNotification(PENDING_BOOKING_COMPLETED_KEY);
+
+    return () => {
+      unsubscribeNotifeeForegroundEvent();
     };
   }, []);
 
@@ -301,8 +390,6 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
     } else if (data?.Message && typeof data.Message === 'object') {
       messageObj = data.Message;
     }
-
-    console.log('message:', messageObj);
 
     void triggerDefaultNotification();
     const {text, _id, bookingItem, imageName, imageType} = messageObj;
@@ -334,13 +421,22 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
     );
 
     if (navigate) {
-      // navigate logic...
+      // Mirrors how tapping a booking card navigates: put the booking in
+      // redux, then land on its detail screen where the chat lives.
+      if (bookingItem) {
+        dispatch(onSetBookingItem(bookingItem));
+      }
+      pushAfterForeground(SCREENS.BOOKING_DETAIL);
     } else if (Platform.OS === 'android') {
-      void onDisplayNotification('Chat', notificationText);
+      void onDisplayNotification('Chat', notificationText, data);
     }
   };
 
-  const onDisplayNotification = async (title: string, body: string) => {
+  const onDisplayNotification = async (
+    title: string,
+    body: string,
+    data?: any,
+  ) => {
     if (!title && !body) return;
 
     try {
@@ -354,6 +450,10 @@ const NotificationHandler: React.FC<INotificationHandlerProps> = ({
       await notifee.displayNotification({
         title: title || 'Notification',
         body: body || '',
+        // Carried through to notifee's press events so a tap on this
+        // notification (foreground or background) can be routed the same
+        // way as a tap on the OS/FCM tray notification.
+        data: data ?? undefined,
         android: {
           channelId,
           // pressAction is needed if you want the notification to open the app when pressed

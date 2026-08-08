@@ -65,7 +65,7 @@ const CalendarModal: React.FC<ICalendarModalProps> = ({
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const minDate = new Date(Date.now() + 24 * 60 * 60 * 1000); // Tomorrow
-  const maxDate = new Date(Date.now() + 24 * 7 * 60 * 60 * 1000); // next week
+  // const maxDate = new Date(Date.now() + 24 * 7 * 60 * 60 * 1000); // next week
 
   /**
 |--------------------------------------------------
@@ -248,7 +248,7 @@ const CalendarModal: React.FC<ICalendarModalProps> = ({
         <CalendarPicker
           startFromMonday
           minDate={minDate}
-          maxDate={maxDate}
+          // maxDate={maxDate}
           todayBackgroundColor={'transparent'}
           disabledDates={enableOnlySpecificDates}
           onDateChange={thisDate => {

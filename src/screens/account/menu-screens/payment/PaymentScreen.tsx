@@ -248,7 +248,7 @@ const initializePaymentSheet = async () => {
       returnURL:"app.lawnq://app/payment",
       ...getPaymentSheetWalletParams(),
     });
-
+    console.log('initPaymentSheet error:', error);
     if (error) {
       setReady(false);
       initializedRef.current = false;
@@ -285,6 +285,7 @@ const openPaymentSheet = async () => {
 
     if (error) {
       // 'Canceled' = user closed; don't re-init, don't re-present
+      console.log('PaymentSheet error:', error);
       if (error.code !== 'Canceled') {
         // Delay showing an Alert a bit (see #③ below)
         setTimeout(() => {
@@ -542,11 +543,11 @@ const _getWalletInformations = async () => {
     payload,
     (data: any) => {
       let resultData = Object.values(data.Data as Array<any>);
-      console.log('resultData:', resultData);
+      // console.log('resultData:', resultData);
       let postData = Array<ICustomerPaymentInfo>();
 
       const hasDefault = resultData.filter(item => item.IsDefault === 1);
-      console.log('hasDefault:', hasDefault);
+      // console.log('hasDefault:', hasDefault);
       // if (!hasDefault?.length && resultData.length > 0)
       //   return onSetDefaultCard(resultData[0]?.CustomerStripePaymentId);
 
