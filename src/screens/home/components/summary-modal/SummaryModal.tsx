@@ -10,7 +10,6 @@ import {
 } from "react-native";
 import { useTheme } from "@react-navigation/native";
 import Modal from "react-native-modal";
-import GestureRecognizer from "react-native-swipe-gestures";
 import * as NavigationService from "react-navigation-helpers";
 import { useDispatch, useSelector } from "react-redux";
 import Icon, { IconType } from "react-native-dynamic-vector-icons";
@@ -38,12 +37,14 @@ import MowerGreen from "@assets/v2/homescreen/icons/mower-green.svg";
 import VISA from "@assets/v2/payment/images/cards-illustration.svg";
 import CHEVRON_RIGHT from "@assets/v2/list/chevron-right.svg";
 import { RootState } from "store";
-import { onSetBookingRefNo } from "@services/states/booking/booking.slice";
+import {
+  onSetBookingRefNo,
+  onSetPreferredPaymentMethod,
+} from "@services/states/booking/booking.slice";
 import { usePayment } from "@services/hooks/usePayment";
 import { useSafeBottomPadding } from "shared/functions/useSafeBottomInset";
 import {
   PlatformPay,
-  PlatformPayButton,
   useStripe,
 } from "@stripe/stripe-react-native";
 import {
@@ -131,9 +132,13 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
     (state: RootState) => state.user,
   );
 
-  const { lawnURIList, property, rawDate, selectedServiceTypeId } = useSelector(
-    (state: RootState) => state.booking,
-  );
+  const {
+    lawnURIList,
+    property,
+    rawDate,
+    selectedServiceTypeId,
+    preferredPaymentMethod,
+  } = useSelector((state: RootState) => state.booking);
   const { ensureStripeInitialized, isStripeReady } = useStripeInitialization(
     token,
     customerId,
@@ -158,6 +163,15 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
     useState<boolean>(false);
   const [isPlatformPayAvailable, setIsPlatformPayAvailable] =
     useState<boolean>(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] =
+    useState<BookingPaymentMethod>("card");
+  const hasSavedCard = Boolean(defaultCard?.CustomerStripePaymentId);
+  const walletPayLabel = Platform.OS === "ios" ? "Apple Pay" : "Google Pay";
+  const isWalletPayAvailable = isStripeReady && isPlatformPayAvailable;
+  const isSelectedPaymentMethodReady =
+    selectedPaymentMethod === "platformPay"
+      ? isWalletPayAvailable
+      : hasSavedCard;
 
   useEffect(() => {
     let isMounted = true;
@@ -200,6 +214,34 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
       isMounted = false;
     };
   }, [ensureStripeInitialized, isPlatformPaySupported, isVisible]);
+
+  useEffect(() => {
+    if (!isVisible) {
+      return;
+    }
+
+    if (!hasSavedCard && isWalletPayAvailable) {
+      setSelectedPaymentMethod("platformPay");
+    }
+
+    if (selectedPaymentMethod === "platformPay" && !isWalletPayAvailable) {
+      setSelectedPaymentMethod("card");
+    }
+  }, [
+    hasSavedCard,
+    isVisible,
+    isWalletPayAvailable,
+    selectedPaymentMethod,
+  ]);
+
+  useEffect(() => {
+    if (!isVisible || !preferredPaymentMethod) {
+      return;
+    }
+
+    setSelectedPaymentMethod(preferredPaymentMethod);
+    dispatch(onSetPreferredPaymentMethod(null));
+  }, [dispatch, isVisible, preferredPaymentMethod]);
 
   const handleSubmit = (paymentMethod: BookingPaymentMethod) => {
     if (paymentMethod === "card" && !defaultCard?.CustomerStripePaymentId) {
@@ -696,40 +738,79 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
     setIsPaymentProcessing(false);
   };
 
-  const CardContent = () => {
-    if (defaultCard?.CustomerStripePaymentId !== undefined) {
+  const getPaymentMethodDisplay = () => {
+    if (selectedPaymentMethod === "platformPay" && isWalletPayAvailable) {
+      return {
+        title: walletPayLabel,
+        subtitle: "Wallet payment",
+        method: "platformPay" as BookingPaymentMethod,
+      };
+    }
+
+    if (hasSavedCard) {
+      return {
+        title: defaultCard?.Brand || "Card",
+        subtitle: `XXXX XXXX XXXX ${defaultCard?.Last4}`,
+        method: "card" as BookingPaymentMethod,
+      };
+    }
+
+    return {
+      title: "Add payment method",
+      subtitle: isWalletPayAvailable
+        ? `${walletPayLabel} available`
+        : "Card required to secure booking",
+      method: "card" as BookingPaymentMethod,
+    };
+  };
+
+  const PaymentMethodIcon = ({
+    method,
+  }: {
+    method: BookingPaymentMethod;
+  }) => {
+    if (method === "platformPay") {
       return (
-        <Pressable
-          style={styles.cardContainer}
-          onPress={() => {
-            setIsVisible(() => false);
-            setTimeout(() => NavigationService.navigate(SCREENS.PAYMENT), 300);
-          }}
-        >
-          <View style={styles.cardLeftContent}>
-            <VISA pointerEvents="none" height={40} width={40} />
-            <View style={styles.cardMiddleContent}>
-              <Text bold color={v2Colors.green}>
-                {`${defaultCard?.Brand}`}
-              </Text>
-              <Text
-                color={v2Colors.green}
-              >{`XXXX XXXX XXXX ${defaultCard?.Last4}`}</Text>
-            </View>
-          </View>
-          <CHEVRON_RIGHT pointerEvents="none" />
-        </Pressable>
-      );
-    } else {
-      return (
-        <View style={{ marginVertical: 20 }}>
-          <Text style={{ fontSize: 12 }} color={v2Colors.orange}>
-            Note: The final price will vary slightly based on your payment
-            method and will be shown after setup.
+        <View style={styles.walletMethodIconBox}>
+          <Text bold color={v2Colors.green} style={{ fontSize: 12 }}>
+            {Platform.OS === "ios" ? "Pay" : "G Pay"}
           </Text>
         </View>
       );
     }
+
+    return <VISA pointerEvents="none" height={40} width={40} />;
+  };
+
+  const PaymentMethodSelector = () => {
+    const selectedMethod = getPaymentMethodDisplay();
+
+    return (
+      <Pressable
+        style={styles.cardContainer}
+        hitSlop={8}
+        onPress={() => {
+          if (isFetching || isPaymentProcessing) {
+            return;
+          }
+
+          NavigationService.push(SCREENS.PAYMENT, { returnOnSelect: true });
+        }}
+      >
+        <View style={styles.cardLeftContent}>
+          {PaymentMethodIcon({ method: selectedMethod.method })}
+          <View style={styles.cardMiddleContent}>
+            <Text bold color={v2Colors.green} numberOfLines={1}>
+              {selectedMethod.title}
+            </Text>
+            <Text color={v2Colors.green} numberOfLines={1}>
+              {selectedMethod.subtitle}
+            </Text>
+          </View>
+        </View>
+        <CHEVRON_RIGHT pointerEvents="none" />
+      </Pressable>
+    );
   };
 
   /**
@@ -753,27 +834,26 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
         width={75}
         style={styles.icon}
       />
-      {isFetching ? <Header2 /> : <Header />}
+      {isFetching ? Header2() : Header()}
 
       <View style={styles.body}>
-        <Item
-          icon={<Calendar pointerEvents="none" height={24} width={24} />}
-          text={data?.date}
-        />
-        <Item
-          icon={<HouseProperty pointerEvents="none" height={24} width={24} />}
-          text={data?.name}
-        />
-        <Item
-          icon={<MowerGreen pointerEvents="none" height={24} width={24} />}
-          text={
+        {Item({
+          icon: <Calendar pointerEvents="none" height={24} width={24} />,
+          text: data?.date,
+        })}
+        {Item({
+          icon: <HouseProperty pointerEvents="none" height={24} width={24} />,
+          text: data?.name,
+        })}
+        {Item({
+          icon: <MowerGreen pointerEvents="none" height={24} width={24} />,
+          text:
             data.serviceName === 1
               ? "Trim - Edge - Mow - Blow"
               : data.serviceName === 2
                 ? "Trim - Edge - Mulch - Blow"
-                : "Trim - Edge - Mow - Blow"
-          }
-        />
+                : "Trim - Edge - Mow - Blow",
+        })}
         {data.customerDiscountId !== 0 && (
           <>
             <View style={styles.discountTitle}>
@@ -810,9 +890,9 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
             (Includes 10% GST)
           </Text>
         </View>
-        <CardContent />
+        {PaymentMethodSelector()}
       </View>
-      <ConditionalConfirm />
+      {ConditionalConfirm()}
     </View>
   );
 
@@ -857,76 +937,56 @@ const BottomModal: React.FC<IBottomModalScreenProps> = ({
     </View>
   );
 
-  const PlatformPayAction = () => {
-    if (!isStripeReady || !isPlatformPayAvailable) {
-      return null;
-    }
+  const ConditionalConfirm = () => {
+    const isBusy = isFetching || isPaymentProcessing;
 
     return (
-      <PlatformPayButton
-        type={PlatformPay.ButtonType.Book}
-        appearance={PlatformPay.ButtonStyle.Black}
-        borderRadius={5}
-        onPress={() => handleSubmit("platformPay")}
-        disabled={isFetching || isPaymentProcessing}
-        style={styles.platformPayButton}
-      />
+      <View style={[styles.buttonContainer, buttonBottomPadding]}>
+        <CommonButton
+          text={
+            isSelectedPaymentMethodReady
+              ? "Secure Booking"
+              : "Add Payment Method"
+          }
+          onPress={() => {
+            if (isSelectedPaymentMethodReady) {
+              handleSubmit(selectedPaymentMethod);
+              return;
+            }
+
+            addWalletAndRedirect();
+          }}
+          style={{ borderRadius: 5 }}
+          isFetching={isBusy}
+          disabled={isBusy}
+        />
+      </View>
     );
   };
 
-  const ConditionalConfirm = () => {
-    if (defaultCard?.CustomerStripePaymentId !== undefined) {
-      return (
-        <View style={[styles.buttonContainer, buttonBottomPadding]}>
-          <CommonButton
-            text={"Secure Booking"}
-            onPress={() => handleSubmit("card")}
-            style={{ borderRadius: 5 }}
-            isFetching={isFetching}
-            disabled={isFetching}
-          />
-          <PlatformPayAction />
-        </View>
-      );
-    } else {
-      return (
-        <View style={[styles.buttonContainer, buttonBottomPadding]}>
-          <PlatformPayAction />
-          <CommonButton
-            text={"Add Payment Method"}
-            onPress={addWalletAndRedirect}
-            style={{ borderRadius: 5 }}
-            isFetching={isFetching}
-            disabled={isFetching}
-          />
-        </View>
-      );
-    }
-  };
-
   const addWalletAndRedirect = () => {
-    setIsVisible(false);
-    NavigationService.navigate(SCREENS.PAYMENT);
+    NavigationService.push(SCREENS.PAYMENT, { returnOnSelect: true });
   };
 
-  // NavigationService.navigate(SCREENS.PAYMENT);
+  const handleSwipeDown = () => {
+    setIsVisible(false);
+  };
 
   return (
-    <GestureRecognizer onSwipeDown={() => setIsVisible(false)}>
-      <Modal
-        isVisible={isVisible}
-        swipeDirection="down"
-        style={styles.modal}
-        animationOut="slideOutDown"
-        animationInTiming={500}
-        animationOutTiming={500}
-        useNativeDriver={false}
-        hideModalContentWhileAnimating
-        backdropTransitionOutTiming={0}
-      >
-        <Content />
-      </Modal>
-    </GestureRecognizer>
+    <Modal
+      isVisible={isVisible}
+      swipeDirection="down"
+      onSwipeComplete={handleSwipeDown}
+      style={styles.modal}
+      animationOut="slideOutDown"
+      animationInTiming={500}
+      animationOutTiming={500}
+      useNativeDriver={false}
+      hideModalContentWhileAnimating
+      backdropTransitionOutTiming={0}
+    >
+      {Content()}
+    </Modal>
   );
 };
 

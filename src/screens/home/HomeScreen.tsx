@@ -183,6 +183,10 @@ const HomeScreen = () => {
   */
   useFocusEffect(
     useCallback(() => {
+      // Kept cheap and unthrottled: the booking summary always needs the
+      // freshest default card, e.g. right after picking one on the Wallet screen.
+      getDefaultCard();
+
       const task = InteractionManager.runAfterInteractions(() => {
         if (isHomeInitializingRef.current) {
           return;
@@ -224,7 +228,6 @@ const HomeScreen = () => {
     setDidReceiveNotif(true);
     fetchGrassLengthList();
     setIsFetching(false);
-    getDefaultCard();
   };
 
   useEffect(() => {

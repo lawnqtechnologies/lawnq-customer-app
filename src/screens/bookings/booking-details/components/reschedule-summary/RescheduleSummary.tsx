@@ -10,7 +10,6 @@ import {
 } from "react-native";
 import { useTheme } from "@react-navigation/native";
 import Modal from "react-native-modal";
-import GestureRecognizer from "react-native-swipe-gestures";
 import * as NavigationService from "react-navigation-helpers";
 import { useDispatch, useSelector } from "react-redux";
 import Icon, { IconType } from "react-native-dynamic-vector-icons";
@@ -196,8 +195,7 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
 
   const handleSubmit = (paymentMethod: BookingPaymentMethod) => {
     if (paymentMethod === "card" && !defaultCard?.CustomerStripePaymentId) {
-      setIsVisible(false);
-      NavigationService.navigate(SCREENS.PAYMENT);
+      NavigationService.push(SCREENS.PAYMENT, { returnOnSelect: true });
       return;
     }
 
@@ -603,8 +601,7 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
       <Pressable
         style={styles.cardContainer}
         onPress={() => {
-          setIsVisible(() => false);
-          setTimeout(() => NavigationService.navigate(SCREENS.PAYMENT), 300);
+          NavigationService.push(SCREENS.PAYMENT, { returnOnSelect: true });
         }}
       >
         <View style={styles.cardLeftContent}>
@@ -633,27 +630,26 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
           size={25}
         />
       </Pressable>
-      {isFetching ? <Header2 /> : <Header />}
+      {isFetching ? Header2() : Header()}
 
       <View style={styles.body}>
-        <Item
-          icon={<Calendar pointerEvents="none" height={24} width={24} />}
-          text={formatedRescheduleDate}
-        />
-        <Item
-          icon={<HouseProperty pointerEvents="none" height={24} width={24} />}
-          text={propertyName}
-        />
-        <Item
-          icon={<MowerGreen pointerEvents="none" height={24} width={24} />}
-          text={
+        {Item({
+          icon: <Calendar pointerEvents="none" height={24} width={24} />,
+          text: formatedRescheduleDate,
+        })}
+        {Item({
+          icon: <HouseProperty pointerEvents="none" height={24} width={24} />,
+          text: propertyName,
+        })}
+        {Item({
+          icon: <MowerGreen pointerEvents="none" height={24} width={24} />,
+          text:
             serviceType === 1
               ? "Trim - Edge - Mow - Blow"
               : serviceType === 2
                 ? "Trim - Edge - Mulch - Blow"
-                : "Trim - Edge - Mow - Blow"
-          }
-        />
+                : "Trim - Edge - Mow - Blow",
+        })}
         <View style={styles.serviceContainer}>
           <Text h4 color={v2Colors.green}>
             Total Cost
@@ -663,9 +659,9 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
           </Text>
         </View>
 
-        <CardContent />
+        {CardContent()}
       </View>
-      <Confirm />
+      {Confirm()}
     </View>
   );
 
@@ -735,8 +731,7 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
         <CommonButton
           text={"Add Payment Method"}
           onPress={() => {
-            setIsVisible(false);
-            NavigationService.navigate(SCREENS.PAYMENT);
+            NavigationService.push(SCREENS.PAYMENT, { returnOnSelect: true });
           }}
           style={{ borderRadius: 5 }}
           isFetching={isFetching}
@@ -747,21 +742,20 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
   );
 
   return (
-    <GestureRecognizer onSwipeDown={() => setIsVisible(false)}>
-      <Modal
-        isVisible={isVisible}
-        swipeDirection="down"
-        style={styles.modal}
-        animationOut="slideOutDown"
-        animationInTiming={100}
-        animationOutTiming={100}
-        useNativeDriver={false}
-        hideModalContentWhileAnimating
-        backdropTransitionOutTiming={0}
-      >
-        <Content />
-      </Modal>
-    </GestureRecognizer>
+    <Modal
+      isVisible={isVisible}
+      swipeDirection="down"
+      onSwipeComplete={() => setIsVisible(false)}
+      style={styles.modal}
+      animationOut="slideOutDown"
+      animationInTiming={100}
+      animationOutTiming={100}
+      useNativeDriver={false}
+      hideModalContentWhileAnimating
+      backdropTransitionOutTiming={0}
+    >
+      {Content()}
+    </Modal>
   );
 };
 
