@@ -45,6 +45,7 @@ interface BokingState {
   intiatePayment: boolean;
   ServiceProviderIdAccepted: number;
   isReschedule: boolean;
+  preferredPaymentMethod: 'card' | 'platformPay' | null;
 }
 
 const initialState: BokingState = {
@@ -93,6 +94,7 @@ const initialState: BokingState = {
   ServiceProviderIdAccepted: 0,
   intiatePayment: false,
   isReschedule: false,
+  preferredPaymentMethod: null,
 };
 
 export const bookingSlice = createSlice({
@@ -177,6 +179,12 @@ export const bookingSlice = createSlice({
     onSetIsReschedule(state, action: PayloadAction<any>) {
       state.isReschedule = action.payload;
     },
+    onSetPreferredPaymentMethod(
+      state,
+      action: PayloadAction<'card' | 'platformPay' | null>,
+    ) {
+      state.preferredPaymentMethod = action.payload;
+    },
   },
 });
 
@@ -205,5 +213,6 @@ export const {
   onserviceProviderIdAccepted,
   setSelectedServiceTypeId,
   onSetIsReschedule,
+  onSetPreferredPaymentMethod,
 } = bookingSlice.actions;
 export default bookingSlice.reducer;

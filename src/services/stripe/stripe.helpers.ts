@@ -462,11 +462,13 @@ const getStripeErrorPayloads = (error?: any): unknown[] => {
   if (error && typeof error === "object") {
     addPayload(error.response?.data);
     addPayload(error.data);
-    addPayload(error.error);
     addPayload(error.lastPaymentError);
     addPayload(error.last_payment_error);
     addPayload(error.paymentIntent?.lastPaymentError);
     addPayload(error.payment_intent?.last_payment_error);
+    addPayload(error.setupIntent?.lastSetupError);
+    addPayload(error.setup_intent?.last_setup_error);
+    addPayload(error.error);
   }
 
   addPayload(error);
@@ -529,9 +531,13 @@ const isSensitiveDeclineMessage = (message?: string) => {
 const isTechnicalErrorMessage = (message?: string) => {
   const normalizedMessage = message?.toLowerCase() || "";
 
-  return ["request failed with status code"].some((keyword) =>
-    normalizedMessage.includes(keyword),
-  );
+  return [
+    "error confirming the intent",
+    "inspect the",
+    "lastpaymenterror",
+    "lastsetuperror",
+    "request failed with status code",
+  ].some((keyword) => normalizedMessage.includes(keyword));
 };
 
 const isPaymentOnlyDeclineMessage = (message?: string) => {

@@ -1,6 +1,6 @@
 import { ExtendedTheme } from "@react-navigation/native";
 import { v2Colors } from "@theme/themes";
-import { ViewStyle, StyleSheet } from "react-native";
+import { ViewStyle, StyleSheet, TextStyle } from "react-native";
 
 interface Style {
   container: ViewStyle;
@@ -10,11 +10,15 @@ interface Style {
   itemContent: ViewStyle;
   activeItemContent: ViewStyle;
   cardDetails: ViewStyle;
+  rowActions: ViewStyle;
+  removeIconButton: ViewStyle;
 
-  bottomContentContainer: ViewStyle;
-  updateButton: ViewStyle;
-  deleteButton: ViewStyle;
-  divider: ViewStyle;
+  walletPayContainer: ViewStyle;
+  walletPayContent: ViewStyle;
+  walletPayIconContainer: ViewStyle;
+  walletPayTextContainer: ViewStyle;
+  walletPayTitle: TextStyle;
+  walletPaySubtitle: TextStyle;
 
   buttonContainer: ViewStyle;
 }
@@ -68,37 +72,51 @@ export default (_theme: ExtendedTheme) => {
     },
     cardDetails: {
       flexDirection: "row",
-      width: "80%",
+      flex: 1,
+      minWidth: 0,
       alignItems: "center",
+    },
+    rowActions: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    removeIconButton: {
+      padding: 6,
     },
 
-    bottomContentContainer: {
+    walletPayContainer: {
+      backgroundColor: "#fff",
+      borderBottomWidth: 1.5,
+      borderBottomColor: v2Colors.border,
+      paddingVertical: 15,
+      justifyContent: "center",
+      paddingHorizontal: 10,
+    },
+    walletPayContent: {
       flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 20,
+    },
+    walletPayIconContainer: {
+      alignItems: "center",
+      justifyContent: "center",
       height: 40,
-      width: "100%",
-      justifyContent: "space-around",
-      alignItems: "center",
+      width: 40,
+      borderRadius: 6,
+      backgroundColor: v2Colors.backgroundGray,
     },
-    updateButton: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      height: "100%",
-      width: "50%",
-      backgroundColor: v2Colors.highlight,
+    walletPayTextContainer: {
+      flex: 1,
+      marginHorizontal: 18,
     },
-    deleteButton: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      height: "100%",
-      width: "50%",
-      backgroundColor: v2Colors.lightRed,
+    walletPayTitle: {
+      fontSize: 16,
+      fontWeight: "600",
     },
-    divider: {
-      height: "100%",
-      width: 1.5,
-      backgroundColor: v2Colors.border,
+    walletPaySubtitle: {
+      fontSize: 12,
+      marginTop: 4,
     },
 
     buttonContainer: {

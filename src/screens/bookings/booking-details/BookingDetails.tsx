@@ -71,6 +71,51 @@ type CustomStyleProp = StyleProp<ViewStyle> | Array<StyleProp<ViewStyle>>;
 
 const CANCEL_BOOKING_TIMEOUT_MS = 17000;
 const CANCEL_MODAL_CLOSE_DELAY_MS = 650;
+const CANCEL_BOOKING_ERROR_MESSAGE =
+  "We couldn't cancel this booking right now. Please try again or contact support.";
+
+const isTechnicalCancelErrorMessage = (message?: string) => {
+  const normalizedMessage = message?.toLowerCase() || '';
+
+  return [
+    '/v1/',
+    'axioserror',
+    'non-empty identifier',
+    'payment_intents',
+    'request failed with status code',
+    'stripe.com/docs',
+    'support.stripe.com',
+    'unrecognized request url',
+  ].some(keyword => normalizedMessage.includes(keyword));
+};
+
+const getCancelBookingErrorMessage = (error?: any) => {
+  const message =
+    error?.response?.data?.DisplayMessage ||
+    error?.response?.data?.StatusMessage ||
+    error?.response?.data?.message ||
+    error?.response?.data?.Message ||
+    error?.StatusMessage ||
+    error?.message;
+
+  if (typeof message !== 'string' || !message.trim()) {
+    return CANCEL_BOOKING_ERROR_MESSAGE;
+  }
+
+  if (isTechnicalCancelErrorMessage(message)) {
+    return CANCEL_BOOKING_ERROR_MESSAGE;
+  }
+
+  return message;
+};
+
+const stringifyCancelBookingDebug = (value: any) => {
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+};
 
 interface IBookingDetailScreenProps {
   style?: CustomStyleProp;
@@ -265,7 +310,7 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
     );
   };
 
-  const showCancelFailure = (message = 'Cancel Failed, please try again.') => {
+  const showCancelFailure = (message = CANCEL_BOOKING_ERROR_MESSAGE) => {
     Alert.alert('Cancel Failed', message);
   };
 
@@ -307,25 +352,36 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
       });
     }, CANCEL_BOOKING_TIMEOUT_MS);
 
+    console.log(
+      `[CancelBookingDebug] request payload ${stringifyCancelBookingDebug(
+        payload,
+      )}`,
+    );
+
     customerCancelBooking(
       payload,
       (data: any) => {
+        console.log(
+          `[CancelBookingDebug] response ${stringifyCancelBookingDebug(data)}`,
+        );
         finishCancelRequest(requestId, () => {
-          const {StatusCode, StatusMessage} = data;
+          const {StatusCode} = data;
           if (StatusCode === '00') return showCancelSuccessAlert();
-          return showCancelFailure(
-            StatusMessage || 'Cancel Failed, please try again.',
-          );
+          return showCancelFailure(getCancelBookingErrorMessage(data));
         });
       },
       (err: any) => {
+        console.log(
+          `[CancelBookingDebug] error ${stringifyCancelBookingDebug(
+            {
+              status: err?.response?.status,
+              data: err?.response?.data,
+              message: err?.message,
+            },
+          )}`,
+        );
         finishCancelRequest(requestId, () => {
-          showCancelFailure(
-            err?.response?.data?.StatusMessage ||
-              err?.response?.data?.message ||
-              err?.response?.data?.Message ||
-              'Cancel Failed, please try again.',
-          );
+          showCancelFailure(getCancelBookingErrorMessage(err));
         });
       },
     );

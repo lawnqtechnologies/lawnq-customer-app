@@ -1,6 +1,7 @@
-import {useTheme,useIsFocused} from '@react-navigation/native';
+import {useTheme,useIsFocused,useRoute} from '@react-navigation/native';
 import React, { useEffect, useMemo, useRef, useState} from 'react';
 import {
+  ActivityIndicator,
   ScrollView,
   StyleProp,
   View,
@@ -8,20 +9,23 @@ import {
   Pressable,
   Alert,
   Linking,
+  Platform,
 } from 'react-native';
-import {initPaymentSheet, initStripe, presentPaymentSheet, useStripe} from '@stripe/stripe-react-native';
+import {
+  PlatformPay,
+  initPaymentSheet,
+  initStripe,
+  presentPaymentSheet,
+  useStripe,
+} from '@stripe/stripe-react-native';
 import {usePayment} from '@services/hooks/usePayment';
 import * as NavigationService from 'react-navigation-helpers';
 import _ from 'lodash';
-import {useSelector} from 'react-redux';
-import {
-  Collapse,
-  CollapseHeader,
-  CollapseBody,
-} from 'accordion-collapse-react-native';
+import {useDispatch, useSelector} from 'react-redux';
 import Icon, {IconType} from 'react-native-dynamic-vector-icons';
 
 import createStyles from './PaymentScreen.style';
+import {onSetPreferredPaymentMethod} from '@services/states/booking/booking.slice';
 import {v2Colors} from '@theme/themes';
 import Text from '@shared-components/text-wrapper/TextWrapper';
 import HeaderContainer from '@shared-components/headers/HeaderContainer';
@@ -32,8 +36,15 @@ import CenterModalW2Buttons from '@shared-components/modals/center-modal/with-2-
 import {useSafeBottomPadding} from 'shared/functions/useSafeBottomInset';
 import {
   assertStripePublishableKeySafeForCurrentBuild,
+  getStripeClientSecret,
   getStripeCardSetupErrorMessage,
+  isSetupIntentSucceeded,
+  isStripeUserCancellation,
+  STRIPE_CURRENCY_CODE,
   STRIPE_MERCHANT_IDENTIFIER,
+  STRIPE_MERCHANT_NAME,
+  STRIPE_MERCHANT_COUNTRY_CODE,
+  STRIPE_PLATFORM_PAY_TEST_ENV,
   STRIPE_URL_SCHEME,
 } from '@services/stripe/stripe.helpers';
 
@@ -79,7 +90,14 @@ const PaymentScreen: React.FC<IPaymentScreenProps> = () => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const buttonBottomPadding = useSafeBottomPadding(30);
-  const {handleURLCallback} = useStripe();
+  const {
+    confirmPlatformPaySetupIntent,
+    handleURLCallback,
+    isPlatformPaySupported,
+  } = useStripe();
+  const route = useRoute<any>();
+  const returnOnSelect = Boolean(route.params?.returnOnSelect);
+  const dispatch = useDispatch();
 
   /**
    * ? Hooks
@@ -89,7 +107,8 @@ const PaymentScreen: React.FC<IPaymentScreenProps> = () => {
     setIsDefaultCustomerCard,
     removeCustomerCard,
     customerPaymentKey,
-    customerSetupIntent
+    customerSetupIntent,
+    completeCustomerSetupIntentV2,
   } = usePayment();
 
   useEffect(() => {
@@ -119,14 +138,14 @@ const PaymentScreen: React.FC<IPaymentScreenProps> = () => {
    * ? States
    */
   const [isFetching] = useState<boolean>(false);
-  const [expandedKey, setExpandedKey] = useState<string>('');
   const [walletList, setWalletList] = useState<Array<ICustomerPaymentInfo>>([]);
   const [selectedCard, setSelectedCard] = useState<ICustomerPaymentInfo>();
-  const [showSetDefaultModal, setShowSetDefaultModal] =
-    useState<boolean>(false);
   const [showRemoveModal, setShowRemoveModal] = useState<boolean>(false);
+  const [settingDefaultId, setSettingDefaultId] = useState<string>();
   const [ready, setReady] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
+  const [isPlatformPayAvailable, setIsPlatformPayAvailable] =
+    useState<boolean>(false);
   
 
   /**
@@ -134,6 +153,75 @@ const PaymentScreen: React.FC<IPaymentScreenProps> = () => {
    */
   const initializedRef = useRef(false);  // ✅ prevents multiple init
   const presentingRef  = useRef(false);  // ✅ prevents double present
+
+  const getPaymentSheetWalletParams = () => {
+    if (Platform.OS === 'ios') {
+      return {
+        applePay: {
+          merchantCountryCode: STRIPE_MERCHANT_COUNTRY_CODE,
+        },
+      };
+    }
+
+    if (Platform.OS === 'android') {
+      return {
+        googlePay: {
+          merchantCountryCode: STRIPE_MERCHANT_COUNTRY_CODE,
+          currencyCode: STRIPE_CURRENCY_CODE,
+          testEnv: STRIPE_PLATFORM_PAY_TEST_ENV,
+        },
+      };
+    }
+
+    return {};
+  };
+
+  const getPlatformPayName = () =>
+    Platform.OS === 'ios' ? 'Apple Pay' : 'Google Pay';
+
+  const getPlatformPaySetupParams = (): PlatformPay.ConfirmParams => {
+    if (Platform.OS === 'ios') {
+      return {
+        applePay: {
+          merchantCountryCode: STRIPE_MERCHANT_COUNTRY_CODE,
+          currencyCode: STRIPE_CURRENCY_CODE,
+          merchantCapabilities: [
+            PlatformPay.ApplePayMerchantCapability.Supports3DS,
+          ],
+          cartItems: [
+            {
+              label: STRIPE_MERCHANT_NAME,
+              amount: '0.00',
+              paymentType: PlatformPay.PaymentType.Immediate,
+            },
+          ],
+        },
+      };
+    }
+
+    return {
+      googlePay: {
+        testEnv: STRIPE_PLATFORM_PAY_TEST_ENV,
+        merchantName: STRIPE_MERCHANT_NAME,
+        merchantCountryCode: STRIPE_MERCHANT_COUNTRY_CODE,
+        currencyCode: STRIPE_CURRENCY_CODE,
+      },
+    };
+  };
+
+  const updatePlatformPayAvailability = async () => {
+    try {
+      const supported = await isPlatformPaySupported(
+        Platform.OS === 'android'
+          ? {googlePay: {testEnv: STRIPE_PLATFORM_PAY_TEST_ENV}}
+          : undefined,
+      );
+
+      setIsPlatformPayAvailable(supported);
+    } catch {
+      setIsPlatformPayAvailable(false);
+    }
+  };
 
   // this will reload the function everytime screen focused
 const isFocused = useIsFocused();
@@ -158,6 +246,7 @@ const initializePaymentSheet = async () => {
       allowsDelayedPaymentMethods: true,
       defaultBillingDetails: { name: `${customerInfo.Firstname} ${customerInfo.Lastname}` },
       returnURL:"app.lawnq://app/payment",
+      ...getPaymentSheetWalletParams(),
     });
     console.log('initPaymentSheet error:', error);
     if (error) {
@@ -209,10 +298,13 @@ const openPaymentSheet = async () => {
         NavigationService.replace(SCREENS.PAYMENT);
 
       }
+    } else if (returnOnSelect) {
+      setTimeout(() => {
+        NavigationService.goBack();
+      }, 250);
     } else {
       setTimeout(() => {
         Alert.alert('Success', 'Your card has been saved!');
-        NavigationService.replace(SCREENS.PAYMENT);
       }, 250);
     }
   } finally {
@@ -249,6 +341,7 @@ const getStripeKey = () => {
             merchantIdentifier: STRIPE_MERCHANT_IDENTIFIER,
             urlScheme: STRIPE_URL_SCHEME,
           });
+          await updatePlatformPayAvailability();
           await initializePaymentSheet(); // make sure we await this
         } catch (error: any) {
           Alert.alert(
@@ -320,6 +413,125 @@ const _customerSetupIntent = async (): Promise<ICustomerSetupIntentResponse> => 
   });
 };
 
+const completePlatformPaySetup = (
+  paymentMethodId: string | null,
+  setupIntentId: string,
+) =>
+  new Promise<void>((resolve, reject) => {
+    const payload = {
+      CustomerToken: token,
+      CustomerId: parseInt(customerId),
+      SetupIntentId: setupIntentId,
+      CustomerStripePaymentId: paymentMethodId,
+      CardEmail: customerInfo.EmailAddress,
+      Mobile: customerInfo.MobileNumber,
+      CardName: `${customerInfo.Firstname} ${customerInfo.Lastname}`,
+      DeviceDetails: deviceDetails,
+    };
+
+    completeCustomerSetupIntentV2(
+      payload,
+      (data: any) => {
+        if (data.StatusCode === '00') {
+          resolve();
+          return;
+        }
+
+        reject(data);
+      },
+      reject,
+    );
+  });
+
+const onSelectPlatformPay = () => {
+  if (returnOnSelect) {
+    // Choosing the wallet for this booking doesn't need an up-front
+    // authorization — the real Apple/Google Pay sheet appears later,
+    // at Secure Booking time, same as picking a card.
+    dispatch(onSetPreferredPaymentMethod('platformPay'));
+    NavigationService.goBack();
+    return;
+  }
+
+  setupPlatformPay();
+};
+
+const setupPlatformPay = async () => {
+  if (loading || presentingRef.current) return;
+
+  if (!isPlatformPayAvailable) {
+    Alert.alert(
+      `${getPlatformPayName()} Unavailable`,
+      `${getPlatformPayName()} is not available on this device.`,
+    );
+    return;
+  }
+
+  presentingRef.current = true;
+  setLoading(true);
+
+  try {
+    const setupIntentResponse = await _customerSetupIntent();
+    const clientSecret =
+      getStripeClientSecret(setupIntentResponse) || setupIntentResponse.ClientSecret;
+
+    if (!clientSecret) {
+      Alert.alert(
+        CARD_SETUP_ERROR_TITLE,
+        "We couldn't start wallet setup. Please try again.",
+      );
+      return;
+    }
+
+    const result = await confirmPlatformPaySetupIntent(
+      clientSecret,
+      getPlatformPaySetupParams(),
+    );
+
+    if (result.error) {
+      if (!isStripeUserCancellation(result.error.code)) {
+        Alert.alert(
+          CARD_SETUP_ERROR_TITLE,
+          getStripeCardSetupErrorMessage(result.error, CARD_SETUP_ERROR_MESSAGE),
+        );
+      }
+      return;
+    }
+
+    const setupIntent = result.setupIntent;
+
+    if (!setupIntent || !isSetupIntentSucceeded(setupIntent.status)) {
+      Alert.alert(
+        CARD_SETUP_ERROR_TITLE,
+        "Wallet setup was not completed. Please try again.",
+      );
+      return;
+    }
+
+    const paymentMethodId =
+      setupIntent.paymentMethod?.id ||
+      setupIntent.paymentMethodId ||
+      null;
+
+    await completePlatformPaySetup(paymentMethodId, setupIntent.id);
+    _getWalletInformations();
+
+    if (returnOnSelect) {
+      NavigationService.goBack();
+    } else {
+      Alert.alert('Set Up Wallet', `${getPlatformPayName()} has been added.`);
+    }
+  } catch (error: any) {
+    Alert.alert(
+      CARD_SETUP_ERROR_TITLE,
+      getStripeCardSetupErrorMessage(error, CARD_SETUP_ERROR_MESSAGE),
+    );
+  } finally {
+    presentingRef.current = false;
+    setLoading(false);
+  }
+};
+
 const _getWalletInformations = async () => {
   const payload = {
     CustomerToken: token,
@@ -365,26 +577,33 @@ const _getWalletInformations = async () => {
   );
 };
 
-const onSetDefaultCard = (CustomerStripePaymentId?: string) => {
+const onSetDefaultCard = (
+  CustomerStripePaymentId?: string,
+  onDone?: () => void,
+) => {
+  const targetId = CustomerStripePaymentId || selectedCard?.CustomerStripePaymentId;
   const payload = {
     CustomerToken: token,
     CustomerId: Number(customerId),
-    CustomerStripePaymentId:
-    CustomerStripePaymentId || selectedCard?.CustomerStripePaymentId,
+    CustomerStripePaymentId: targetId,
     DeviceDetails: deviceDetails,
   };
 
+  setSettingDefaultId(targetId);
   console.log('setIsDefaultCustomerCard payload:', payload);
   setIsDefaultCustomerCard(
     payload,
     (data: any) => {
       console.log('setIsDefaultCustomerCard data:', data);
-      setExpandedKey(() => '');
+      setSettingDefaultId(undefined);
       _getWalletInformations();
+      onDone?.();
     },
     (err: any) => {
       console.log(' setIsDefaultCustomerCard err:', err);
+      setSettingDefaultId(undefined);
       _getWalletInformations();
+      onDone?.();
     },
   );
 };
@@ -401,7 +620,6 @@ const onSetDefaultCard = (CustomerStripePaymentId?: string) => {
       (data: any) => {
         console.log('removeCustomerCard data:', data);
         _getWalletInformations();
-        setExpandedKey(() => '');
       },
       (err: any) => {
         console.log(' removeCustomerCard err:', err);
@@ -445,81 +663,115 @@ const onSetDefaultCard = (CustomerStripePaymentId?: string) => {
 
   const Cards = (item: ICustomerPaymentInfo, index: number) => {
     const {IsDefault} = item;
+    const isSettingThisDefault =
+      settingDefaultId === item.CustomerStripePaymentId;
 
     return (
-      <Collapse
+      <Pressable
         key={index}
-        onToggle={(isExpanded: boolean) => {
-          if (isExpanded) {
-            setSelectedCard(item);
-            setExpandedKey(item.CustomerStripePaymentId);
+        disabled={!!settingDefaultId}
+        style={({pressed}) => [
+          !!IsDefault ? styles.activeItemContainer : styles.itemContainer,
+          pressed && !IsDefault ? {opacity: 0.5} : null,
+        ]}
+        onPress={() => {
+          if (settingDefaultId) return;
+
+          if (!!IsDefault) {
+            if (returnOnSelect) {
+              NavigationService.goBack();
+            }
+            return;
           }
-        }}
-        isExpanded={item?.CustomerStripePaymentId === expandedKey}>
-        <CollapseHeader>
-          <View
-            style={
-              !!IsDefault ? styles.activeItemContainer : styles.itemContainer
-            }>
-            <View
-              style={
-                !!IsDefault ? styles.activeItemContent : styles.itemContent
-              }>
-              <View style={styles.cardDetails}>
-                {CardImage(item.Brand, item.IsDefault)}
-                <View style={{width: 30}} />
-                {CardDetails(item)}
-              </View>
-              {!!IsDefault && (
-                <GREEN_CHECK_CIRCLE pointerEvents="none"
-                  style={{
-                    marginTop: 6,
-                  }}
-                />
-              )}
-            </View>
+
+          setSelectedCard(item);
+          onSetDefaultCard(item.CustomerStripePaymentId, () => {
+            if (returnOnSelect) {
+              NavigationService.goBack();
+            }
+          });
+        }}>
+        <View
+          style={
+            !!IsDefault ? styles.activeItemContent : styles.itemContent
+          }>
+          <View style={styles.cardDetails}>
+            {CardImage(item.Brand, item.IsDefault)}
+            <View style={{width: 30}} />
+            {CardDetails(item)}
           </View>
-        </CollapseHeader>
-        <CollapseBody>
-          <BottomContent />
-        </CollapseBody>
-      </Collapse>
+          <View style={styles.rowActions}>
+            {isSettingThisDefault && (
+              <ActivityIndicator
+                size="small"
+                color={v2Colors.green}
+                style={{marginRight: 6}}
+              />
+            )}
+            {!isSettingThisDefault && !!IsDefault && (
+              <GREEN_CHECK_CIRCLE pointerEvents="none" style={{marginRight: 6}} />
+            )}
+            <Pressable
+              style={styles.removeIconButton}
+              hitSlop={8}
+              onPress={() => {
+                setSelectedCard(item);
+                setShowRemoveModal(true);
+              }}>
+              <Icon
+                name="trash-2"
+                size={18}
+                type={IconType.Feather}
+                color={v2Colors.gray}
+              />
+            </Pressable>
+          </View>
+        </View>
+      </Pressable>
     );
   };
 
-  const BottomContent = () => (
-    <View style={styles.bottomContentContainer}>
-      <Pressable
-        style={styles.updateButton}
-        onPress={() => setShowSetDefaultModal(true)}>
-        <Icon
-          name="edit"
-          size={20}
-          type={IconType.Feather}
-          color={v2Colors.green}
-        />
-        <View style={{width: 10}} />
-        <Text color={v2Colors.green}>Set as default</Text>
-      </Pressable>
-      <View style={styles.divider} />
-      <Pressable
-        style={styles.deleteButton}
-        onPress={() => setShowRemoveModal(true)}>
-        <Icon name="delete" size={20} type={IconType.Feather} color={'black'} />
-        <View style={{width: 10}} />
-        <Text color={'black'}>Remove</Text>
-      </Pressable>
-    </View>
-  );
+  const WalletPayAvailabilityRow = () => {
+    if (!isPlatformPayAvailable) return null;
 
-  const SetDefaultModal = () => (
-    <CenterModalW2Buttons
-      isVisible={showSetDefaultModal}
-      setIsVisible={setShowSetDefaultModal}
-      onPressYes={onSetDefaultCard}
-      text={'Set this card as default?'}
-    />
-  );
+    const platformPayName = getPlatformPayName();
+
+    return (
+      <Pressable
+        style={styles.walletPayContainer}
+        onPress={onSelectPlatformPay}
+        disabled={
+          returnOnSelect
+            ? loading || presentingRef.current
+            : !ready || loading || presentingRef.current
+        }>
+        <View style={styles.walletPayContent}>
+          <View style={styles.walletPayIconContainer}>
+            <Icon
+              name={Platform.OS === 'ios' ? 'apple' : 'google'}
+              size={24}
+              type={IconType.FontAwesome}
+              color={v2Colors.green}
+            />
+          </View>
+          <View style={styles.walletPayTextContainer}>
+            <Text color={v2Colors.green} style={styles.walletPayTitle}>
+              {platformPayName}
+            </Text>
+            <Text color={v2Colors.gray} style={styles.walletPaySubtitle}>
+              Available on this device
+            </Text>
+          </View>
+          <Icon
+            name="chevron-right"
+            size={24}
+            type={IconType.Feather}
+            color={v2Colors.green}
+          />
+        </View>
+      </Pressable>
+    );
+  };
 
   const RemoveModal = () => (
     <CenterModalW2Buttons
@@ -541,6 +793,7 @@ const onSetDefaultCard = (CustomerStripePaymentId?: string) => {
               walletList.map((item, index) => {
                 return Cards(item, index);
               })}
+            <WalletPayAvailabilityRow />
           </View>
         </ScrollView>
         <View style={[styles.buttonContainer, buttonBottomPadding]}>
@@ -553,7 +806,6 @@ const onSetDefaultCard = (CustomerStripePaymentId?: string) => {
           />
         </View>
       </View>
-      <SetDefaultModal />
       <RemoveModal />
     </>
   );

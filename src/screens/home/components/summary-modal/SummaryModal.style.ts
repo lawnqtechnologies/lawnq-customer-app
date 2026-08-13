@@ -16,9 +16,9 @@ interface Style {
   cardLeftContent: ViewStyle;
   cardMiddleContent: ViewStyle;
   buttonContainer: ViewStyle;
-  platformPayButton: ViewStyle;
   discountTitle: ViewStyle;
   discountDetail: ViewStyle;
+  walletMethodIconBox: ViewStyle;
 }
 
 export default (_theme: ExtendedTheme) => {
@@ -85,34 +85,43 @@ export default (_theme: ExtendedTheme) => {
       paddingRight: 10,
     },
     cardContainer: {
-      height: 60,
+      minHeight: 64,
       width: '100%',
       borderWidth: 1.5,
       borderColor: v2Colors.border,
       borderRadius: 7,
       marginVertical: 15,
-      paddingHorizontal: 20,
-      paddingVertical: 15,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
+      gap: 12,
     },
     cardLeftContent: {
       flexDirection: 'row',
       alignItems: 'center',
+      flex: 1,
+      minWidth: 0,
     },
     cardMiddleContent: {
-      marginLeft: 20,
+      marginLeft: 16,
+      flex: 1,
+      minWidth: 0,
     },
     buttonContainer: {
       flexGrow: 1,
       justifyContent: 'flex-end',
     },
-    platformPayButton: {
-      width: '100%',
-      height: 52,
-      marginTop: 12,
-      marginBottom: 8,
+    walletMethodIconBox: {
+      width: 40,
+      height: 28,
+      borderRadius: 5,
+      backgroundColor: v2Colors.backgroundGray,
+      borderWidth: 1,
+      borderColor: v2Colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
   });
 };
