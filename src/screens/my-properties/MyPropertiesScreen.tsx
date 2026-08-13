@@ -299,8 +299,16 @@ const MyPropertiesScreen: React.FC<IMyPropertiesScreenProps> = () => {
 
   // ? Search function for finding properties
   const onSearch = (searchString: string) => {
+    const query = searchString.toLowerCase();
     const filteredProperty = data.filter((item: any) =>
-      _.toLower(item.Alias).includes(searchString.toLowerCase()),
+      [
+        item.Alias,
+        item.Address,
+        item.Suburb,
+        item.StreetName,
+        item.StreetNumber,
+        item.PostalCode,
+      ].some(field => _.toLower(field).includes(query)),
     );
 
     if (!searchString) return setItems(data);
