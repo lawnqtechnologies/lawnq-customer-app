@@ -36,12 +36,14 @@ import MowerGreen from "@assets/v2/homescreen/icons/mower-green.svg";
 import VISA from "@assets/v2/payment/images/cards-illustration.svg";
 import CHEVRON_RIGHT from "@assets/v2/list/chevron-right.svg";
 import { RootState } from "store";
-import { onSetBookingRefNo } from "@services/states/booking/booking.slice";
+import {
+  onSetBookingRefNo,
+  onSetPreferredPaymentMethod,
+} from "@services/states/booking/booking.slice";
 import { usePayment } from "@services/hooks/usePayment";
 import { useSafeBottomPadding } from "shared/functions/useSafeBottomInset";
 import {
   PlatformPay,
-  PlatformPayButton,
   useStripe,
 } from "@stripe/stripe-react-native";
 import {
@@ -134,6 +136,9 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
   const { token, customerId, deviceDetails } = useSelector(
     (state: RootState) => state.user,
   );
+  const { preferredPaymentMethod } = useSelector(
+    (state: RootState) => state.booking,
+  );
   const { ensureStripeInitialized, isStripeReady } = useStripeInitialization(
     token,
     customerId,
@@ -150,6 +155,15 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
     useState<boolean>(false);
   const [isPlatformPayAvailable, setIsPlatformPayAvailable] =
     useState<boolean>(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] =
+    useState<BookingPaymentMethod>("card");
+  const hasSavedCard = Boolean(defaultCard?.CustomerStripePaymentId);
+  const walletPayLabel = Platform.OS === "ios" ? "Apple Pay" : "Google Pay";
+  const isWalletPayAvailable = isStripeReady && isPlatformPayAvailable;
+  const isSelectedPaymentMethodReady =
+    selectedPaymentMethod === "platformPay"
+      ? isWalletPayAvailable
+      : hasSavedCard;
 
   useEffect(() => {
     let isMounted = true;
@@ -193,15 +207,68 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
     };
   }, [ensureStripeInitialized, isPlatformPaySupported, isVisible]);
 
+  useEffect(() => {
+    if (!isVisible) {
+      return;
+    }
+
+    if (!hasSavedCard && isWalletPayAvailable) {
+      setSelectedPaymentMethod("platformPay");
+    }
+
+    if (selectedPaymentMethod === "platformPay" && !isWalletPayAvailable) {
+      setSelectedPaymentMethod("card");
+    }
+  }, [hasSavedCard, isVisible, isWalletPayAvailable, selectedPaymentMethod]);
+
+  useEffect(() => {
+    if (!isVisible || !preferredPaymentMethod) {
+      return;
+    }
+
+    setSelectedPaymentMethod(preferredPaymentMethod);
+    dispatch(onSetPreferredPaymentMethod(null));
+  }, [dispatch, isVisible, preferredPaymentMethod]);
+
+  const addWalletAndRedirect = () => {
+    NavigationService.push(SCREENS.PAYMENT, { returnOnSelect: true });
+  };
+
   const handleSubmit = (paymentMethod: BookingPaymentMethod) => {
     if (paymentMethod === "card" && !defaultCard?.CustomerStripePaymentId) {
-      NavigationService.push(SCREENS.PAYMENT, { returnOnSelect: true });
+      addWalletAndRedirect();
       return;
     }
 
     Vibration.vibrate();
     setIsFetching(true);
     cancelBooking(paymentMethod);
+  };
+
+  const getPaymentMethodDisplay = () => {
+    if (selectedPaymentMethod === "platformPay" && isWalletPayAvailable) {
+      return {
+        title: walletPayLabel,
+        subtitle: "Wallet payment",
+        method: "platformPay" as BookingPaymentMethod,
+      };
+    }
+
+    if (hasSavedCard) {
+      return {
+        title: defaultCard?.Brand || "Card",
+        subtitle: `XXXX XXXX XXXX ${defaultCard?.Last4}`,
+        method: "card" as BookingPaymentMethod,
+      };
+    }
+
+    return {
+      title: "Add payment method",
+      subtitle: isWalletPayAvailable
+        ? `${walletPayLabel} available`
+        : "Card required to confirm booking",
+      method: "card" as BookingPaymentMethod,
+    };
   };
 
   const resetPaymentState = () => {
@@ -469,7 +536,7 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
     const request = {
       CustomerToken: token,
       CustomerId: parseInt(customerId),
-      Amount: totalCost,
+      Amount: String(totalCost),
       BookingRefNo,
       ServiceProviderId: 0,
       DeviceDetails: deviceDetails,
@@ -585,34 +652,48 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
 | Render Components
 |--------------------------------------------------
 */
-  const CardContent = () => {
-    if (!defaultCard?.CustomerStripePaymentId) {
+  const PaymentMethodIcon = ({
+    method,
+  }: {
+    method: BookingPaymentMethod;
+  }) => {
+    if (method === "platformPay") {
       return (
-        <View style={{ marginVertical: 20 }}>
-          <Text style={{ fontSize: 12 }} color={v2Colors.orange}>
-            Note: The final price will vary slightly based on your payment
-            method and will be shown after setup.
+        <View style={styles.walletMethodIconBox}>
+          <Text bold color={v2Colors.green} style={{ fontSize: 12 }}>
+            {Platform.OS === "ios" ? "Pay" : "G Pay"}
           </Text>
         </View>
       );
     }
 
+    return <VISA pointerEvents="none" height={40} width={40} />;
+  };
+
+  const PaymentMethodSelector = () => {
+    const selectedMethod = getPaymentMethodDisplay();
+
     return (
       <Pressable
         style={styles.cardContainer}
+        hitSlop={8}
         onPress={() => {
+          if (isFetching || isPaymentProcessing) {
+            return;
+          }
+
           NavigationService.push(SCREENS.PAYMENT, { returnOnSelect: true });
         }}
       >
         <View style={styles.cardLeftContent}>
-          <VISA pointerEvents="none" height={40} width={40} />
+          <PaymentMethodIcon method={selectedMethod.method} />
           <View style={styles.cardMiddleContent}>
-            <Text bold color={v2Colors.green}>
-              {`${defaultCard?.Brand}`}
+            <Text bold color={v2Colors.green} numberOfLines={1}>
+              {selectedMethod.title}
             </Text>
-            <Text
-              color={v2Colors.green}
-            >{`XXXX XXXX XXXX ${defaultCard?.Last4}`}</Text>
+            <Text color={v2Colors.green} numberOfLines={1}>
+              {selectedMethod.subtitle}
+            </Text>
           </View>
         </View>
         <CHEVRON_RIGHT pointerEvents="none" />
@@ -659,9 +740,9 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
           </Text>
         </View>
 
-        {CardContent()}
+        <PaymentMethodSelector />
       </View>
-      {Confirm()}
+      <ConditionalConfirm />
     </View>
   );
 
@@ -706,40 +787,28 @@ const RescheduleModal: React.FC<IBottomModalScreenProps> = ({
     </View>
   );
 
-  const Confirm = () => (
-    <View style={[styles.buttonContainer, buttonBottomPadding]}>
-      {defaultCard?.CustomerStripePaymentId ? (
+  const ConditionalConfirm = () => {
+    const isBusy = isFetching || isPaymentProcessing;
+
+    return (
+      <View style={[styles.buttonContainer, buttonBottomPadding]}>
         <CommonButton
-          text={"Confirm"}
-          onPress={() => handleSubmit("card")}
-          style={{ borderRadius: 5 }}
-          isFetching={isFetching}
-          disabled={isFetching}
-        />
-      ) : null}
-      {isStripeReady && isPlatformPayAvailable ? (
-        <PlatformPayButton
-          type={PlatformPay.ButtonType.Book}
-          appearance={PlatformPay.ButtonStyle.Black}
-          borderRadius={5}
-          onPress={() => handleSubmit("platformPay")}
-          disabled={isFetching || isPaymentProcessing}
-          style={styles.platformPayButton}
-        />
-      ) : null}
-      {!defaultCard?.CustomerStripePaymentId ? (
-        <CommonButton
-          text={"Add Payment Method"}
+          text={isSelectedPaymentMethodReady ? "Confirm" : "Add Payment Method"}
           onPress={() => {
-            NavigationService.push(SCREENS.PAYMENT, { returnOnSelect: true });
+            if (isSelectedPaymentMethodReady) {
+              handleSubmit(selectedPaymentMethod);
+              return;
+            }
+
+            addWalletAndRedirect();
           }}
           style={{ borderRadius: 5 }}
-          isFetching={isFetching}
-          disabled={isFetching}
+          isFetching={isBusy}
+          disabled={isBusy}
         />
-      ) : null}
-    </View>
-  );
+      </View>
+    );
+  };
 
   return (
     <Modal

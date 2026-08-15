@@ -39,9 +39,22 @@ const getAxiosMultiPartClient = async <T>(
 
   axiosInstance.interceptors.response.use(
     (response) => {
+      if (__DEV__) {
+        console.log(
+          `[API] ${method.toUpperCase()} ${requestUrl} -> ${response.status}`,
+          response.data,
+        );
+      }
       return response;
     },
     (error) => {
+      if (__DEV__) {
+        console.log(
+          `[API ERROR] ${method.toUpperCase()} ${requestUrl} ->`,
+          error?.response?.status,
+          error?.response?.data || error?.message,
+        );
+      }
       return Promise.reject(error);
     },
   );

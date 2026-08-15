@@ -299,7 +299,9 @@ const MyPropertiesScreen: React.FC<IMyPropertiesScreenProps> = () => {
 
   // ? Search function for finding properties
   const onSearch = (searchString: string) => {
-    const query = searchString.toLowerCase();
+    const query = searchString.trim().toLowerCase();
+    if (!query) return setItems(data);
+
     const filteredProperty = data.filter((item: any) =>
       [
         item.Alias,
@@ -308,10 +310,9 @@ const MyPropertiesScreen: React.FC<IMyPropertiesScreenProps> = () => {
         item.StreetName,
         item.StreetNumber,
         item.PostalCode,
-      ].some(field => _.toLower(field).includes(query)),
+      ].some(field => _.toLower(field).trim().includes(query)),
     );
 
-    if (!searchString) return setItems(data);
     setItems(filteredProperty);
   };
 
