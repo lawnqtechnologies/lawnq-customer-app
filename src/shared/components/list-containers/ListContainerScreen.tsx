@@ -180,10 +180,14 @@ const ListScreen: React.FC<IListScreenProps> = ({route}) => {
   };
 
   const onSearch = (searchString: string) => {
+    const query = searchString.trim().toLowerCase();
+    if (!query) return setItems(data);
+
     const filtered = data.filter((item: any) =>
-      _.toLower(item.label).includes(searchString.toLowerCase()),
+      [item.label, item.shortDesc].some(field =>
+        _.toLower(field).trim().includes(query),
+      ),
     );
-    if (!searchString) return setItems(data);
     setItems(filtered);
   };
 

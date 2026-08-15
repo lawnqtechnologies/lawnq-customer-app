@@ -12,6 +12,8 @@ import {
   Alert,
   InteractionManager,
   Pressable,
+  TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import {useFocusEffect, useTheme} from '@react-navigation/native';
 import {useDispatch, useSelector} from 'react-redux';
@@ -30,6 +32,7 @@ import HeaderContainer from '@shared-components/headers/HeaderContainer';
 import WholeScreenLoader from '@shared-components/loaders/WholeScreenLoader';
 // ? Tabs
 import Reusable from './tab-views/reusable-tab/ReusableTab';
+import SEARCH from '@assets/v2/list/search.svg';
 
 import {useBooking} from '@services/hooks/useBooking';
 import {systemActions} from '@services/states/system/system.slice';
@@ -342,13 +345,62 @@ const BookingsScreen: React.FC<IReservationsScreenProps> = ({
     [],
   );
 
+  const activeTabRawData = useMemo(() => {
+    switch (index) {
+      case 0:
+        return pendingTabReservations;
+      case 1:
+        return completedTabReservations;
+      case 2:
+        return disputeTabReservations;
+      default:
+        return [];
+    }
+  }, [completedTabReservations, disputeTabReservations, index, pendingTabReservations]);
+
+  /**
+   * ? Search - same filtering approach as MyPropertiesScreen: case-insensitive
+   * substring match across multiple fields, not just one.
+   */
+  const [searchText, setSearchText] = useState('');
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchedItems, setSearchedItems] = useState<
+    Array<IReservationsItemProps>
+  >([]);
+
+  const onSearch = (searchString: string) => {
+    const query = searchString.trim().toLowerCase();
+    if (!query) return setSearchedItems(activeTabRawData);
+
+    const filteredBookings = activeTabRawData.filter((item: any) =>
+      [
+        item.Address1,
+        item.BookingRefNo,
+        item.BookingTypeDesc,
+        item.ServiceTypeDesc,
+        item.BookingStatus,
+        item.BookingDate,
+      ].some(field => _.toLower(field).trim().includes(query)),
+    );
+
+    setSearchedItems(filteredBookings);
+  };
+
+  // ? Reset search whenever the selected tab changes so results don't leak across tabs
+  useEffect(() => {
+    setSearchText('');
+    setSearchedItems([]);
+  }, [index]);
+
+  const displayedTabData = searchText ? searchedItems : activeTabRawData;
+
   const activeScene = useMemo(() => {
     switch (index) {
       case 0:
         return (
           <Reusable
             navigation={navigation}
-            data={pendingTabReservations}
+            data={displayedTabData}
             statusType="pending"
           />
         );
@@ -356,7 +408,7 @@ const BookingsScreen: React.FC<IReservationsScreenProps> = ({
         return (
           <Reusable
             navigation={navigation}
-            data={completedTabReservations}
+            data={displayedTabData}
             statusType="completed"
           />
         );
@@ -364,14 +416,14 @@ const BookingsScreen: React.FC<IReservationsScreenProps> = ({
         return (
           <Reusable
             navigation={navigation}
-            data={disputeTabReservations}
+            data={displayedTabData}
             statusType="dispute"
           />
         );
       default:
         return null;
     }
-  }, [completedTabReservations, disputeTabReservations, index, navigation, pendingTabReservations]);
+  }, [displayedTabData, index, navigation]);
 
   return (
     <>
@@ -424,6 +476,38 @@ const BookingsScreen: React.FC<IReservationsScreenProps> = ({
             );
           })}
         </View>
+
+        {activeTabRawData.length > 5 && (
+          <View style={{marginBottom: 20, marginTop: 20}}>
+            {!searchText && <SEARCH style={styles.search} />}
+            <TextInput
+              style={styles.searchInputText}
+              placeholder="Search Bookings"
+              onChangeText={(text: string) => {
+                setSearchLoading(true);
+                setSearchText(text);
+
+                setTimeout(() => {
+                  setSearchLoading(false);
+                  onSearch(text);
+                }, 1000);
+              }}
+              defaultValue={searchText}
+              placeholderTextColor={v2Colors.gray}
+              autoCorrect={false}
+              clearButtonMode="always"
+            />
+          </View>
+        )}
+
+        {searchLoading && (
+          <ActivityIndicator
+            size="large"
+            color="black"
+            style={styles.loadingContainer}
+          />
+        )}
+
         {activeScene}
       </View>
       {isLoading && <WholeScreenLoader />}
