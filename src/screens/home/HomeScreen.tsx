@@ -535,33 +535,34 @@ const HomeScreen = () => {
     customerPaymentMethodList(
       payload,
       (data: any) => {
-        let resultData = Object.values(data.Data as Array<any>);
+        const resultData = Object.values(data.Data as Array<any>);
+        const defaultCardData: any = resultData.find(
+          (card: any) => card.IsDefault === 1,
+        );
 
-        resultData.forEach((card: any) => {
-          const {Cards, IsDefault, CustomerStripeId, CustomerStripePaymentId} =
-            card;
-          const {ExpMonth, ExpYear, Fingerprint, Last4, Brand} = Cards;
+        if (!defaultCardData) {
+          // No cards left (e.g. user removed them all from the Wallet screen) -
+          // clear any stale card so checkout falls back to "Add Payment Method".
+          setDefaultCard(undefined);
+          setIsFetching(false);
+          return;
+        }
 
-          const StripeCustomerInfomation: ICustomerPaymentInfo = {
-            CustomerStripeId,
-            CustomerStripePaymentId,
-            ExpMonth,
-            ExpYear,
-            Fingerprint,
-            Last4,
-            Brand,
-            IsDefault,
-          };
+        const {Cards, IsDefault, CustomerStripeId, CustomerStripePaymentId} =
+          defaultCardData;
+        const {ExpMonth, ExpYear, Fingerprint, Last4, Brand} = Cards;
 
-          if (resultData.some(e => e.IsDefault === 1)) {
-            if (IsDefault === 1) {
-              setDefaultCard(StripeCustomerInfomation);
-              setIsFetching(false);
-            }
-          } else {
-            setIsFetching(false);
-          }
+        setDefaultCard({
+          CustomerStripeId,
+          CustomerStripePaymentId,
+          ExpMonth,
+          ExpYear,
+          Fingerprint,
+          Last4,
+          Brand,
+          IsDefault,
         });
+        setIsFetching(false);
       },
       (error: any) => {
         console.log('customerPaymentMethodList error:', error);

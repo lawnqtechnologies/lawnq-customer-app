@@ -444,15 +444,6 @@ const completePlatformPaySetup = (
   });
 
 const onSelectPlatformPay = () => {
-  if (returnOnSelect) {
-    // Choosing the wallet for this booking doesn't need an up-front
-    // authorization — the real Apple/Google Pay sheet appears later,
-    // at Secure Booking time, same as picking a card.
-    dispatch(onSetPreferredPaymentMethod('platformPay'));
-    NavigationService.goBack();
-    return;
-  }
-
   setupPlatformPay();
 };
 
@@ -517,6 +508,7 @@ const setupPlatformPay = async () => {
     _getWalletInformations();
 
     if (returnOnSelect) {
+      dispatch(onSetPreferredPaymentMethod('platformPay'));
       NavigationService.goBack();
     } else {
       Alert.alert('Set Up Wallet', `${getPlatformPayName()} has been added.`);
