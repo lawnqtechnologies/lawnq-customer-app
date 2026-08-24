@@ -193,11 +193,9 @@ const CalendarModal: React.FC<ICalendarModalProps> = ({
 
       setTimeout(() => {
         setIsVisible(false);
-
-        setTimeout(() => {
-          setIsPreparingSelection(false);
-          setIsLoading(false);
-        }, 250);
+        // isPreparingSelection/isLoading are cleared once the modal's close
+        // animation actually finishes (see onModalHide below), not on a
+        // guessed timeout.
       }, 450);
     },
     [
@@ -259,13 +257,17 @@ const CalendarModal: React.FC<ICalendarModalProps> = ({
       animationIn="slideInUp"
       animationOut="slideOutDown"
       animationInTiming={1000}
-      animationOutTiming={2000}
+      animationOutTiming={300}
+      onModalHide={() => {
+        setIsPreparingSelection(false);
+        setIsLoading(false);
+      }}
       onSwipeComplete={handleClose}
       onBackdropPress={handleClose}
       onBackButtonPress={handleClose}
       useNativeDriver={false}
-      hideModalContentWhileAnimating={false}
-      backdropTransitionOutTiming={700}>
+      hideModalContentWhileAnimating
+      backdropTransitionOutTiming={300}>
       <View style={styles.content}>
         <CalendarGreenCircle pointerEvents="none"
           height={75}
