@@ -75,6 +75,7 @@ export default (_theme: ExtendedTheme) => {
       flex: 1,
       minWidth: 0,
       alignItems: "center",
+      marginRight: 12,
     },
     rowActions: {
       flexDirection: "row",
