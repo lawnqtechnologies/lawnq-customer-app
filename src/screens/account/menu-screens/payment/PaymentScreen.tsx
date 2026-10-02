@@ -54,6 +54,7 @@ import {
 import MASTERCARD from '@assets/v2/payment/images/mastercard.svg';
 import VISA from '@assets/v2/payment/images/visa.svg';
 import AMEX from '@assets/v2/payment/images/amex.svg';
+import GOOGLE_PAY_MARK from '@assets/v2/payment/images/google-pay-mark.svg';
 import GREEN_CHECK_CIRCLE from '@assets/v2/common/icons/green-check-circle.svg';
 import {RootState} from 'store';
 
@@ -94,6 +95,7 @@ const PaymentScreen: React.FC<IPaymentScreenProps> = () => {
     confirmPlatformPaySetupIntent,
     handleURLCallback,
     isPlatformPaySupported,
+    retrieveSetupIntent,
   } = useStripe();
   const route = useRoute<any>();
   const returnOnSelect = Boolean(route.params?.returnOnSelect);
@@ -489,20 +491,44 @@ const setupPlatformPay = async () => {
       return;
     }
 
-    const setupIntent = result.setupIntent;
+    let setupIntent = result.setupIntent;
+    let paymentMethodId =
+      setupIntent?.paymentMethod?.id || setupIntent?.paymentMethodId || null;
 
-    if (!setupIntent || !isSetupIntentSucceeded(setupIntent.status)) {
+    // Android's native Google Pay confirm flow can fail to fetch the confirmed
+    // SetupIntent (or its payment method) even when Google Pay itself
+    // succeeded - a known gap in @stripe/stripe-react-native's Android bridge,
+    // where a transient retrieve error silently comes back as an empty
+    // result instead of an error. Re-fetch directly once before giving up, so
+    // that transient failure doesn't block a wallet setup that actually went
+    // through (this class of failure doesn't occur on iOS/Apple Pay).
+    if (!isSetupIntentSucceeded(setupIntent?.status) || !paymentMethodId) {
+      try {
+        const retried = await retrieveSetupIntent(clientSecret);
+
+        if (retried?.setupIntent) {
+          setupIntent = retried.setupIntent;
+          paymentMethodId =
+            setupIntent.paymentMethod?.id ||
+            setupIntent.paymentMethodId ||
+            paymentMethodId;
+        }
+      } catch {
+        // fall through to the failure handling below
+      }
+    }
+
+    if (
+      !setupIntent ||
+      !isSetupIntentSucceeded(setupIntent.status) ||
+      !paymentMethodId
+    ) {
       Alert.alert(
         CARD_SETUP_ERROR_TITLE,
         "Wallet setup was not completed. Please try again.",
       );
       return;
     }
-
-    const paymentMethodId =
-      setupIntent.paymentMethod?.id ||
-      setupIntent.paymentMethodId ||
-      null;
 
     await completePlatformPaySetup(paymentMethodId, setupIntent.id);
     _getWalletInformations();
@@ -738,18 +764,26 @@ const onSetDefaultCard = (
             : !ready || loading || presentingRef.current
         }>
         <View style={styles.walletPayContent}>
-          <View style={styles.walletPayIconContainer}>
-            <Icon
-              name={Platform.OS === 'ios' ? 'apple' : 'google'}
-              size={24}
-              type={IconType.FontAwesome}
-              color={v2Colors.green}
-            />
-          </View>
+          {Platform.OS === 'ios' ? (
+            <View style={styles.walletPayIconContainer}>
+              <Icon
+                name="apple"
+                size={24}
+                type={IconType.FontAwesome}
+                color={v2Colors.green}
+              />
+            </View>
+          ) : (
+            // Google requires their own unmodified Google Pay mark wherever
+            // Google Pay is shown as a payment option - no custom icon/text.
+            <GOOGLE_PAY_MARK width={89} height={61} />
+          )}
           <View style={styles.walletPayTextContainer}>
-            <Text color={v2Colors.green} style={styles.walletPayTitle}>
-              {platformPayName}
-            </Text>
+            {Platform.OS === 'ios' && (
+              <Text color={v2Colors.green} style={styles.walletPayTitle}>
+                {platformPayName}
+              </Text>
+            )}
             <Text color={v2Colors.gray} style={styles.walletPaySubtitle}>
               Available on this device
             </Text>
