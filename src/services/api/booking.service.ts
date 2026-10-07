@@ -82,6 +82,29 @@ export const onSaveBooking = async (payload: any) => {
   return response.data;
 };
 
+// Lawn mowing + other services in a single booking. Mirrors onSaveBooking but
+// hits a dedicated endpoint so the mowing-only save stays untouched.
+// NOTE: endpoint name is provisional — backend route not yet finalised.
+export const onSaveBookingServiceWithExtra = async (payload: any) => {
+  const response =
+    await nonAuthorizedMultiPartRequest<AuthenticationObject>().post(
+      `BookingService/SaveBookingServiceWithExtra`,
+      payload,
+    );
+  return response.data;
+};
+
+// Other / garden services only (no mowing).
+// NOTE: endpoint name is provisional — backend route not yet finalised.
+export const onSaveBookingExtra = async (payload: any) => {
+  const response =
+    await nonAuthorizedMultiPartRequest<AuthenticationObject>().post(
+      `BookingService/SaveBookingExtra`,
+      payload,
+    );
+  return response.data;
+};
+
 export const onFindSP = async (payload: any) => {
   const response = await nonAuthorizedRequest<AuthenticationObject>().post(
     `BookingService/FindServiceProvider`,

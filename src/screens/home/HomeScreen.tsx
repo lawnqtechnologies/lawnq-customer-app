@@ -25,7 +25,7 @@ import Text from '@shared-components/text-wrapper/TextWrapper';
 import fonts from '@fonts';
 import Loader from '@shared-components/loaders/loader';
 import UploadImagesLoader from '@shared-components/loaders/upload-loader.tsx';
-import {grassLengthItems, mowHeightItems} from './data';
+import {grassLengthItems, mowHeightItems, serviceCategoryItems} from './data';
 import * as NavigationService from 'react-navigation-helpers';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 const GRASS_IMAGE_BG = '../../assets/v2/homescreen/images/grass-image.png';
@@ -50,6 +50,9 @@ import {
   onSetDateAndQueue,
   onSetFee,
   onSetGrassClippingsValue,
+  onSetServiceCategory,
+  onSetExtraServices,
+  onRemoveExtraService,
   setSelectedServiceTypeId,
 } from '@services/states/booking/booking.slice';
 import {useAuth} from '@services/hooks/useAuth';
@@ -77,6 +80,13 @@ import Onboarding from 'react-native-onboarding-swiper';
 import WalletBottomValidation from '@shared-components/wallet-bottom-validation';
 import NotificationEnabler from 'shared/functions/NotificationEnabler';
 import CHEVRON_RIGHT from '@assets/v2/list/chevron-right.svg';
+// TODO(garden-services): replace with the illustrated per-category icons from
+// the design (mower / mower+plant / plant+trowel). Reusing the mower glyph as a
+// placeholder for the scaffold.
+import MOWER_GREEN from '@assets/v2/homescreen/icons/mower-green.svg';
+import Icon, {IconType} from 'react-native-dynamic-vector-icons';
+import ExtraServicesModal from './components/extra-services-modal/ExtraServicesModal';
+import AddedServicesList from './components/extra-services/AddedServicesList';
 
 const ITEM_WIDTH = 100;
 const HOME_FOCUS_REFRESH_COOLDOWN_MS = 20000;
@@ -101,8 +111,13 @@ const HomeScreen = () => {
   const {getCustomerInfo, customerAppVersion} = useAuth();
   const {getCustomerProperties} = useProperty();
   const {customerPaymentMethodList} = usePayment();
-  const {getRideOnMowingPricing, getGrassLengthList, getMowLengthList} =
-    useBooking();
+  const {
+    getRideOnMowingPricing,
+    getGrassLengthList,
+    getMowLengthList,
+    saveBookingServiceWithExtra,
+    saveBookingExtra,
+  } = useBooking();
 
   /**
   |--------------------------------------------------
@@ -112,8 +127,24 @@ const HomeScreen = () => {
   const {token, customerId, customerInfo, deviceDetails} = useSelector(
     (state: RootState) => state.user,
   );
-  const {bookingType, property, formattedDate1, queue, lawnURIList} =
-    useSelector((state: RootState) => state.booking);
+  const {
+    bookingType,
+    property,
+    formattedDate1,
+    queue,
+    lawnURIList,
+    serviceCategory,
+    extraServices,
+  } = useSelector((state: RootState) => state.booking);
+
+  // Derived flags for the selected service category. Gates which booking
+  // steps are shown. Garden paths are UI stubs until the backend exists.
+  const activeCategory = useMemo(
+    () =>
+      serviceCategoryItems.find(item => item.id === serviceCategory) ??
+      serviceCategoryItems[0],
+    [serviceCategory],
+  );
   /**
   |--------------------------------------------------
   | States
@@ -139,6 +170,7 @@ const HomeScreen = () => {
   // Modals
   const [showError, setShowError] = useState<boolean>(false);
   const [showSummary, setShowSummary] = useState<boolean>(false);
+  const [showExtraServices, setShowExtraServices] = useState<boolean>(false);
   const [refreshing, setRefreshing] = React.useState(false);
 
   //booking state
@@ -685,6 +717,123 @@ const HomeScreen = () => {
     setSaveBookingData(request);
   };
 
+  /**
+  |--------------------------------------------------
+  | Extra / other services booking payloads (Phase 2)
+  | Separate builders + endpoints from the mowing-only saveBooking above,
+  | which is intentionally left untouched. Backend routes are provisional.
+  |--------------------------------------------------
+  */
+
+  // Appends the attached extra services to a booking FormData. Sent as a JSON
+  // blob plus a count; adjust to the final backend field shape when ready.
+  const appendExtraServices = (request: FormData) => {
+    request.append('ExtraServicesCount', extraServices.length);
+    request.append(
+      'ExtraServices',
+      JSON.stringify(
+        extraServices.map(service => ({
+          Name: service.name,
+          Description: service.description,
+          IsCustom: service.isCustom,
+          CatalogId: service.catalogId ?? 0,
+          Status: service.status,
+        })),
+      ),
+    );
+  };
+
+  const appendDeviceDetails = (request: FormData) => {
+    request.append('DeviceDetails.AppVersion', deviceDetails.AppVersion);
+    request.append('DeviceDetails.DeviceModel', deviceDetails.DeviceModel);
+    request.append('DeviceDetails.DeviceVersion', deviceDetails.DeviceVersion);
+    request.append('DeviceDetails.IpAddress', deviceDetails.IpAddress);
+    request.append('DeviceDetails.MacAddress', deviceDetails.MacAddress);
+    request.append('DeviceDetails.Platform', deviceDetails.Platform);
+    request.append('DeviceDetails.PlatformOs', deviceDetails.PlatformOs);
+  };
+
+  // Lawn Mowing + Other Services: mowing fields (mirrors saveBooking) + extras.
+  const buildBookingWithExtraPayload = () => {
+    const request = new FormData();
+
+    request.append('CustomerToken', token);
+    request.append('CustomerId', customerId);
+    if (lawnURIList[0]) request.append('LawnImages', lawnURIList[0]);
+    request.append('AddressId', property.value);
+    request.append('ServiceProviderId', 0);
+    request.append('BookingServiceStepId', selectedServiceType);
+    request.append('BookingTypeId', selectedServiceType);
+    request.append('BookingServiceTypeId', selectedServiceType || 0);
+    request.append('ServiceCategory', serviceCategory);
+    request.append('Remarks', 'Empty');
+    request.append('GrassLengthId', selectedGrassHeight || '1');
+    request.append('MowLengthId', '1');
+    request.append('IsGrassCollected', selectedGrassClippings);
+
+    request.append('BookingStartDateTime', getCurrentDateTime());
+    request.append('BookingExpiryDateTime', getCurrentDateTimePlus30Seconds());
+    request.append('BoookingStartEpochTime', getCurrentEpochTimeSeconds());
+    request.append('BookingExpiryEpochTime', getCurrentEpochTimePlus30Seconds());
+
+    appendExtraServices(request);
+    appendDeviceDetails(request);
+
+    return request;
+  };
+
+  // Other Services only: no mowing / grass fields, just property + extras.
+  const buildExtraOnlyPayload = () => {
+    const request = new FormData();
+
+    request.append('CustomerToken', token);
+    request.append('CustomerId', customerId);
+    request.append('AddressId', property.value);
+    request.append('ServiceProviderId', 0);
+    request.append('ServiceCategory', serviceCategory);
+    request.append('Remarks', 'Empty');
+
+    request.append('BookingStartDateTime', getCurrentDateTime());
+    request.append('BookingExpiryDateTime', getCurrentDateTimePlus30Seconds());
+    request.append('BoookingStartEpochTime', getCurrentEpochTimeSeconds());
+    request.append('BookingExpiryEpochTime', getCurrentEpochTimePlus30Seconds());
+
+    appendExtraServices(request);
+    appendDeviceDetails(request);
+
+    return request;
+  };
+
+  // Routes a garden-inclusive booking to its dedicated endpoint. Mowing-only
+  // (serviceCategory 1) never reaches here — it keeps the existing flow.
+  const submitExtraServiceBooking = () => {
+    const onSuccess = () => {
+      setIsFetching(false);
+      Alert.alert(
+        'Request submitted',
+        'Your services have been sent to a provider for quoting.',
+      );
+    };
+    const onError = () => {
+      setIsFetching(false);
+      Alert.alert('Oops', 'Something went wrong. Please try again later.');
+    };
+
+    setIsFetching(true);
+
+    if (activeCategory.includesMowing) {
+      // Lawn Mowing + Other Services
+      saveBookingServiceWithExtra(
+        buildBookingWithExtraPayload(),
+        onSuccess,
+        onError,
+      );
+    } else {
+      // Other Services only
+      saveBookingExtra(buildExtraOnlyPayload(), onSuccess, onError);
+    }
+  };
+
   const onSaveFee = (fee: number) => {
     dispatch(onSetFee(fee));
   };
@@ -725,17 +874,31 @@ const HomeScreen = () => {
     let errorArray = [];
     if (!property.label) errorArray.push(`Please select a property`);
     if (!bookingType) errorArray.push(`Please select a booking type`);
-    if (selectedGrassHeight === 99)
-      errorArray.push(`Please select a grass height`);
-    if (selectedGrassClippings === 2)
-      errorArray.push(`Please select grass a clippings option`);
-    // if (preferredHeight === 99)
-    //   errorArray.push(`Please select preffered mow height`);
+
+    // Grass details only apply when the category includes mowing.
+    if (activeCategory.includesMowing) {
+      if (selectedGrassHeight === 99)
+        errorArray.push(`Please select a grass height`);
+      if (selectedGrassClippings === 2)
+        errorArray.push(`Please select grass a clippings option`);
+    }
+
+    // Garden-inclusive categories need at least one extra service.
+    if (activeCategory.includesGarden && extraServices.length === 0) {
+      errorArray.push(`Please add at least one extra service`);
+    }
 
     if (errorArray.length > 0) {
       setError(errorArray);
       setShowError(true);
       errorActionSheetRef.current?.show();
+      return;
+    }
+
+    // Mowing-only keeps the existing pricing/checkout flow untouched.
+    // Garden-inclusive categories route to their dedicated save endpoints.
+    if (activeCategory.includesGarden) {
+      submitExtraServiceBooking();
       return;
     }
     fetchMowingPricing();
@@ -767,9 +930,111 @@ const HomeScreen = () => {
           h3
           color="white"
           style={styles.serviceTypeText}>
-          Trim - Edge - Mow - Blow
+          What can we help you with?
         </Text>
       </View>
+    </View>
+  );
+
+  const ServiceCategorySelector = () => (
+    <View style={styles.categorySelectorContainer}>
+      {/* <Text
+        fontFamily={fonts.lexend.extraBold}
+        color={v2Colors.green}
+        style={styles.categoryHeading}>
+        What can we help you with?
+      </Text> */}
+      <Text color={v2Colors.greenShade2} style={styles.categorySubheading}>
+        Choose a service to get started.
+      </Text>
+
+      {serviceCategoryItems.map(item => {
+        const isSelected = serviceCategory === item.id;
+        return (
+          <Pressable
+            key={item.id}
+            onPress={() => dispatch(onSetServiceCategory(item.id))}
+            style={[
+              styles.categoryCard,
+              isSelected && styles.categoryCardSelected,
+            ]}>
+            <View
+              style={[
+                styles.categoryIconCircle,
+                isSelected && styles.categoryIconCircleSelected,
+              ]}>
+              <Icon
+                name={item.icon}
+                type={IconType.MaterialCommunityIcons}
+                size={26}
+                color={isSelected ? v2Colors.green : v2Colors.highlight}
+              />
+            </View>
+            <View style={styles.categoryTextContainer}>
+              <Text
+                fontFamily={fonts.lexend.extraBold}
+                color={v2Colors.green}
+                style={styles.categoryCardTitle}>
+                {item.title}
+              </Text>
+              <Text
+                color={v2Colors.greenShade2}
+                style={styles.categoryCardDescription}>
+                {item.description}
+              </Text>
+            </View>
+            {isSelected ? (
+              <View style={styles.categoryCheckWrap}>
+                <Icon
+                  name="check-circle"
+                  type={IconType.MaterialCommunityIcons}
+                  size={26}
+                  color={v2Colors.green}
+                />
+              </View>
+            ) : (
+              <View style={styles.categoryRadio} />
+            )}
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+
+  // Placeholder shown for the other service categories until the catalog +
+  // pricing endpoints exist. See feature/extra-service-development.
+  const ExtraServicesSection = () => (
+    <View style={styles.extraServicesSection}>
+      <Text
+        color={v2Colors.greenShade2}
+        style={{marginTop: 30, fontWeight: 'bold'}}>
+        OTHER SERVICES
+      </Text>
+      <Text
+        fontFamily={fonts.lexend.regular}
+        color={v2Colors.green}
+        style={{fontSize: 16, lineHeight: 22, marginTop: 4, marginBottom: 12}}>
+        Add any extra services you need
+      </Text>
+
+      <Pressable
+        style={styles.addExtraServicesButton}
+        onPress={() => setShowExtraServices(true)}>
+        <MOWER_GREEN pointerEvents="none" width={22} height={22} />
+        <Text
+          fontFamily={fonts.lexend.extraBold}
+          color={v2Colors.green}
+          style={{marginLeft: 10}}>
+          {extraServices.length ? 'Add / Edit Extra Services' : 'Add Extra Services'}
+        </Text>
+      </Pressable>
+
+      <AddedServicesList
+        services={extraServices}
+        hideWhenEmpty
+        onEdit={() => setShowExtraServices(true)}
+        onRemove={(id: string) => dispatch(onRemoveExtraService(id))}
+      />
     </View>
   );
 
@@ -1138,17 +1403,27 @@ const HomeScreen = () => {
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
             }>
+            {/* What can we help you with? – service category */}
+            <ServiceCategorySelector />
+
             {/* Select Property & Select Date */}
             <PropertyAndDateSelection />
 
-            {/* Select your current grass length */}
-            <GrassLength />
+            {activeCategory.includesMowing && (
+              <>
+                {/* Select your current grass length */}
+                <GrassLength />
 
-            {/* Collect grass Clippings */}
-            <GrassCilippings />
+                {/* Collect grass Clippings */}
+                <GrassCilippings />
 
-            {/* Upload Lawn images */}
-            <ImageUploads />
+                {/* Upload Lawn images */}
+                <ImageUploads />
+              </>
+            )}
+
+            {/* Extra / other services (placeholder catalog until backend exists) */}
+            {activeCategory.includesGarden && <ExtraServicesSection />}
 
             <DateSelectionScreen />
 
@@ -1203,6 +1478,14 @@ const HomeScreen = () => {
         selectedServiceType={selectedServiceType}
         addressId={property.value}
         canCollectWaste={selectedGrassClippings}
+      />
+
+      {/* Add Extra Services */}
+      <ExtraServicesModal
+        isVisible={showExtraServices}
+        setIsVisible={setShowExtraServices}
+        services={extraServices}
+        onSave={updated => dispatch(onSetExtraServices(updated))}
       />
 
       {/* <BookingModal

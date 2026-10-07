@@ -8,6 +8,8 @@ import {
   onGetBookingServiceType,
   onGetServiceFee,
   onSaveBooking,
+  onSaveBookingServiceWithExtra,
+  onSaveBookingExtra,
   onFindSP,
   onSendNotification,
   onGetBookingHistory,
@@ -118,6 +120,47 @@ export const useBooking = () => {
     successCallbackRef.current = succesCallback;
     errorCallbackRef.current = errorCallback;
     saveBookingMutation.mutate(payload);
+  };
+
+  // ? Save Booking — Lawn Mowing + Other Services
+  const saveBookingServiceWithExtraMutation = useMutation(
+    onSaveBookingServiceWithExtra,
+    {
+      onSuccess: (data: any) => {
+        return successCallbackRef.current?.(data);
+      },
+      onError: (err: AxiosError) => {
+        errorCallbackRef.current?.(err);
+      },
+    },
+  );
+  const saveBookingServiceWithExtra = (
+    payload: any,
+    succesCallback?: (p: object) => void,
+    errorCallback?: (p: any) => void,
+  ) => {
+    successCallbackRef.current = succesCallback;
+    errorCallbackRef.current = errorCallback;
+    saveBookingServiceWithExtraMutation.mutate(payload);
+  };
+
+  // ? Save Booking — Other Services only
+  const saveBookingExtraMutation = useMutation(onSaveBookingExtra, {
+    onSuccess: (data: any) => {
+      return successCallbackRef.current?.(data);
+    },
+    onError: (err: AxiosError) => {
+      errorCallbackRef.current?.(err);
+    },
+  });
+  const saveBookingExtra = (
+    payload: any,
+    succesCallback?: (p: object) => void,
+    errorCallback?: (p: any) => void,
+  ) => {
+    successCallbackRef.current = succesCallback;
+    errorCallbackRef.current = errorCallback;
+    saveBookingExtraMutation.mutate(payload);
   };
 
   // ? Find Service Provider
@@ -476,6 +519,8 @@ export const useBooking = () => {
     getBookingIntervalServiceTime,
     getBookingServiceType,
     saveBooking,
+    saveBookingServiceWithExtra,
+    saveBookingExtra,
     findSP,
     getServiceFee,
     sendNotification,

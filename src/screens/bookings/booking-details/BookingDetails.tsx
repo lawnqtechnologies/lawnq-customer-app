@@ -722,6 +722,68 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
     </View>
   );
 
+  // Extra / other services attached to a booking. Field shape is provisional:
+  // the booking-details API doesn't return these yet, so we read defensively
+  // (accepting an array or a JSON string) and map with fallbacks. Adjust the
+  // field names below once the backend response is finalised.
+  const getExtraServices = (): Array<any> => {
+    const raw = bookingData?.ExtraServices;
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw;
+    if (typeof raw === 'string') {
+      try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  };
+
+  const renderExtraServices = () => {
+    const services = getExtraServices();
+    if (services.length === 0) return null;
+
+    return (
+      <>
+        <View style={{paddingHorizontal: 20, paddingTop: 10}}>
+          <Text h4 bold color={v2Colors.green}>
+            Extra Services
+          </Text>
+        </View>
+        {services.map((service: any, index: number) => {
+          const name = service?.Name ?? service?.ServiceName ?? '';
+          const description = service?.Description ?? '';
+          const priceValue = Number(
+            service?.Price ?? service?.Cost ?? service?.Amount ?? 0,
+          );
+          const hasPrice = priceValue > 0;
+          return (
+            <View style={styles.item} key={`${name}-${index}`}>
+              <View style={{width: '65%'}}>
+                <Text h5 bold color={v2Colors.green}>
+                  {name}
+                </Text>
+                {!!description && (
+                  <Text h5 color={v2Colors.greenShade2}>
+                    {description}
+                  </Text>
+                )}
+              </View>
+              <Text
+                h5
+                bold
+                color={hasPrice ? v2Colors.green : v2Colors.greenShade2}>
+                {hasPrice ? `$${priceValue.toFixed(2)}` : 'To be quoted'}
+              </Text>
+            </View>
+          );
+        })}
+      </>
+    );
+  };
+
   const Details = () => (
     <>
       {renderLineItem(
@@ -762,6 +824,7 @@ const BookingDetailScreen: React.FC<IBookingDetailScreenProps> = () => {
         !!Number(bookingData?.HasOutdoorPets) ? 'Yes' : 'No',
         <PET_GREEN pointerEvents="none" height={30} width={30} />,
       )} */}
+      {renderExtraServices()}
       <View style={{alignContent: 'center', justifyContent: 'center'}}>
         <Text
           style={{

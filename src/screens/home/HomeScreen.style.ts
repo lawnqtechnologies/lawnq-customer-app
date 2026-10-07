@@ -50,6 +50,21 @@ interface Style {
   uploadLoaderContainer: ViewStyle;
   opacityOnTop: ViewStyle;
   dateActionsContainer: ViewStyle;
+
+  categorySelectorContainer: ViewStyle;
+  categoryHeading: TextStyle;
+  categorySubheading: TextStyle;
+  categoryCard: ViewStyle;
+  categoryCardSelected: ViewStyle;
+  categoryIconCircle: ViewStyle;
+  categoryIconCircleSelected: ViewStyle;
+  categoryTextContainer: ViewStyle;
+  categoryCardTitle: TextStyle;
+  categoryCardDescription: TextStyle;
+  categoryRadio: ViewStyle;
+  categoryCheckWrap: ViewStyle;
+  extraServicesSection: ViewStyle;
+  addExtraServicesButton: ViewStyle;
 }
 
 export default (theme: ExtendedTheme) => {
@@ -345,6 +360,95 @@ export default (theme: ExtendedTheme) => {
       width: '100%',
       zIndex: 2,
       backgroundColor: 'rgba(0,0,0,0.5)',
+    },
+
+    categorySelectorContainer: {
+      width: '100%',
+      marginTop: 10,
+    },
+    categoryHeading: {
+      fontSize: 22,
+    },
+    categorySubheading: {
+      marginTop: 2,
+      marginBottom: 16,
+      fontSize: 14,
+    },
+    categoryCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      width: '100%',
+      backgroundColor: 'white',
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: v2Colors.border,
+      paddingVertical: 16,
+      paddingHorizontal: 16,
+      marginBottom: 14,
+      // Soft depth for an unselected card.
+      shadowColor: '#1E4940',
+      shadowOffset: {width: 0, height: 4},
+      shadowOpacity: 0.06,
+      shadowRadius: 10,
+      elevation: 2,
+    },
+    categoryCardSelected: {
+      borderColor: v2Colors.highlight,
+      borderWidth: 2,
+      backgroundColor: v2Colors.lightGreen,
+      shadowOpacity: 0.12,
+    },
+    categoryIconCircle: {
+      width: 52,
+      height: 52,
+      borderRadius: 26,
+      backgroundColor: '#F1F5E6',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    categoryIconCircleSelected: {
+      backgroundColor: 'rgba(152, 194, 60, 0.28)',
+    },
+    categoryTextContainer: {
+      flex: 1,
+      paddingHorizontal: 14,
+    },
+    categoryCardTitle: {
+      fontSize: 16,
+      lineHeight: 22,
+    },
+    categoryCardDescription: {
+      marginTop: 4,
+      fontSize: 13,
+      lineHeight: 19,
+    },
+    categoryRadio: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      borderWidth: 2,
+      borderColor: '#D6DBD9',
+    },
+    categoryCheckWrap: {
+      width: 24,
+      height: 24,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    extraServicesSection: {
+      width: '100%',
+    },
+    addExtraServicesButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '100%',
+      height: 54,
+      borderRadius: 10,
+      borderWidth: 1.5,
+      borderColor: v2Colors.highlight,
+      borderStyle: 'dashed',
+      backgroundColor: v2Colors.lightGreen,
     },
   });
 };

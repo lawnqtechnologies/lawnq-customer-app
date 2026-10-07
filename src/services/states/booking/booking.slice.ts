@@ -1,8 +1,15 @@
 import {createSlice, PayloadAction} from '@reduxjs/toolkit';
+import type {ExtraService} from '../../../screens/home/data';
 interface BokingState {
   fromHome: string;
   bookingType: number;
   selectedServiceTypeId: number;
+  // High-level service category chosen on the home booking screen.
+  // 1 = Lawn Mowing, 2 = Lawn Mowing + Other Services, 3 = Other Services only.
+  // This is a separate axis from selectedServiceTypeId (push vs ride-on mower).
+  serviceCategory: number;
+  // Extra / garden services the customer attached to the booking.
+  extraServices: ExtraService[];
   property: {
     label: string;
     shortDesc?: string;
@@ -52,6 +59,8 @@ const initialState: BokingState = {
   fromHome: '',
   bookingType: 0,
   selectedServiceTypeId: 0,
+  serviceCategory: 1,
+  extraServices: [],
   property: {
     label: '',
     shortDesc: '',
@@ -109,6 +118,35 @@ export const bookingSlice = createSlice({
     },
     setSelectedServiceTypeId(state, action: PayloadAction<any>) {
       state.selectedServiceTypeId = action.payload;
+    },
+    onSetServiceCategory(state, action: PayloadAction<number>) {
+      state.serviceCategory = action.payload;
+    },
+    onAddExtraService(state, action: PayloadAction<ExtraService>) {
+      state.extraServices.push(action.payload);
+    },
+    onUpdateExtraService(
+      state,
+      action: PayloadAction<{
+        id: string;
+        changes: Partial<Pick<ExtraService, 'name' | 'description'>>;
+      }>,
+    ) {
+      const target = state.extraServices.find(
+        item => item.id === action.payload.id,
+      );
+      if (target) Object.assign(target, action.payload.changes);
+    },
+    onRemoveExtraService(state, action: PayloadAction<string>) {
+      state.extraServices = state.extraServices.filter(
+        item => item.id !== action.payload,
+      );
+    },
+    onSetExtraServices(state, action: PayloadAction<ExtraService[]>) {
+      state.extraServices = action.payload;
+    },
+    onResetExtraServices(state) {
+      state.extraServices = [];
     },
     onSetProperty(state, action: PayloadAction<any>) {
       state.property = action.payload;
@@ -212,6 +250,12 @@ export const {
   onSetProperty,
   onserviceProviderIdAccepted,
   setSelectedServiceTypeId,
+  onSetServiceCategory,
+  onAddExtraService,
+  onUpdateExtraService,
+  onRemoveExtraService,
+  onSetExtraServices,
+  onResetExtraServices,
   onSetIsReschedule,
   onSetPreferredPaymentMethod,
 } = bookingSlice.actions;
